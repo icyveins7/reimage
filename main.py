@@ -1,6 +1,6 @@
 from PySide6 import QtCore, QtWidgets, QtGui
 import sys
-import pyqtgraph as pg
+import numpy as np
 
 from signalView import SignalView
 
@@ -20,7 +20,7 @@ class ReimageMain(QtWidgets.QMainWindow):
 
         # Add to layout
         self.layout.addWidget(self.helloLabel)
-        self.layout.addWidget(SignalView())
+        self.layout.addWidget(SignalView(np.array([1,3,2,4,5]))) # sample data
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

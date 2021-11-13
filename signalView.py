@@ -3,18 +3,24 @@ from PySide6.QtCore import Qt
 import pyqtgraph as pg
 
 class SignalView(QFrame):
-    def __init__(self, parent=None, f=Qt.WindowFlags()):
+    def __init__(self, ydata, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
 
         # Create a graphics view
-        self.gv = pg.GraphicsView()
+        self.glw = pg.GraphicsLayoutWidget()
+        self.p = self.glw.addPlot(row=0,col=0)
 
         # Create the main layout
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.gv)
+        self.layout.addWidget(self.glw)
         self.setLayout(self.layout)
 
-        # Test plot
-        self.gv.addItem(pg.PlotDataItem([1,3,2,4,5]))
+        # Attach the data (hopefully this doesn't copy)
+        self.ydata = ydata
+
+        # Plot the data
+        self.p.plot(self.ydata)
+
+        self.show()
 
 
