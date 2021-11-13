@@ -18,9 +18,10 @@ class SignalView(QFrame):
         # Attach the data (hopefully this doesn't copy)
         self.ydata = ydata
 
-        # Plot the data
-        self.p.plot(self.ydata)
+        # Placeholder for xdata
+        self.xdata = None
 
-        self.show()
-
-
+    def plotAmpTime(self):
+        if self.xdata is None:
+            self.p.plot(self.ydata)
+            
