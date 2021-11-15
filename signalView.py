@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout
 from PySide6.QtCore import Qt
 import pyqtgraph as pg
+import numpy as np
 
 class SignalView(QFrame):
     def __init__(self, ydata, parent=None, f=Qt.WindowFlags()):
@@ -23,5 +24,5 @@ class SignalView(QFrame):
 
     def plotAmpTime(self):
         if self.xdata is None:
-            self.p.plot(self.ydata)
+            self.p.plot(np.abs(self.ydata))
             

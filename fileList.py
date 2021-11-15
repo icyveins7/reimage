@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog
-from PySide6.QtWidgets import QListWidget, QListWidgetItem
+from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PySide6.QtCore import Qt, Signal, Slot
 import os
 
@@ -16,11 +16,14 @@ class FileListFrame(QFrame):
 
         # Create the file list widget
         self.flw = QListWidget()
+        self.flw.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.flw.setDragEnabled(True)
         # Sublayout for buttons
         self.btnLayout = QHBoxLayout()
         # Some buttons..
         self.prepareFileBtn()
         self.prepareFolderBtn()
+        self.prepareAddBtn()
 
         # Create the main layout
         self.layout = QVBoxLayout()
@@ -55,4 +58,15 @@ class FileListFrame(QFrame):
         folderFiles = os.listdir(folderName)
         fileNames = [os.path.join(folderName, i) for i in folderFiles]
         self.flw.addItems(fileNames)
+    
+    ####################
+    def prepareAddBtn(self):
+        self.addBtn = QPushButton("Add to Viewer")
+        self.btnLayout.addWidget(self.addBtn)
+
+        self.addBtn.clicked.connect(self.onAddBtnClicked)
+
+    @Slot()
+    def onAddBtnClicked(self):
+        print([i.text() for i in self.flw.selectedItems()])
     
