@@ -27,9 +27,20 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.layout.addLayout(self.workspaceLayout)
 
         # Testing
-        self.sv = SignalView(np.array([1,3,2,4,5])) # sample data
+        self.sv = SignalView(np.zeros(100) + 100000) # sample data
         self.sv.plotAmpTime()
         self.workspaceLayout.addWidget(self.sv)
+
+        # Connections
+        self.fileListFrame.dataSignal.connect(self.onNewData)
+
+    @QtCore.Slot(np.ndarray)
+    def onNewData(self, data):
+        print("Got data")
+        self.sv.setYData(data)
+        self.sv.plotAmpTime()
+
+
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

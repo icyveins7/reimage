@@ -22,6 +22,11 @@ class SignalView(QFrame):
         # Placeholder for xdata
         self.xdata = None
 
+    def setYData(self, ydata):
+        self.ydata = ydata
+        self.p.clear()
+        self.p.plot(np.abs(self.ydata))
+
     def plotAmpTime(self):
         if self.xdata is None:
             self.p.plot(np.abs(self.ydata))

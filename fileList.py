@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QFi
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PySide6.QtCore import Qt, Signal, Slot
 import os
+import numpy as np
 
 #%%
 class FileListItem(QListWidgetItem):
@@ -11,6 +12,8 @@ class FileListItem(QListWidgetItem):
 
 #%%
 class FileListFrame(QFrame):
+    dataSignal = Signal(np.ndarray)
+
     def __init__(self, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
 
@@ -68,5 +71,18 @@ class FileListFrame(QFrame):
 
     @Slot()
     def onAddBtnClicked(self):
-        print([i.text() for i in self.flw.selectedItems()])
+        filepaths = [i.text() for i in self.flw.selectedItems()]
+        print(filepaths)
+
+        data = []
+        for filepath in filepaths:
+            d = np.fromfile(filepath, dtype=np.int16) # TODO: Make type variable later
+            data.append(d)
+
+        data = np.array(data).flatten().astype(np.float32).view(np.complex64) # TODO: and change this to variable...
+        self.dataSignal.emit(data)
+
+
+
+
     
