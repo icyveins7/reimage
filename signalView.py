@@ -23,8 +23,9 @@ class SignalView(QFrame):
         # Create a graphics view
         self.glw = pg.GraphicsLayoutWidget() # Window for the amplitude time plot
         self.p = self.glw.addPlot(row=0,col=0) # The amp-time plotItem
-        self.spw = pg.plot() # Window for the spectrogram
-        self.sp = None
+        self.sp = pg.ImageItem()
+        self.spw = self.glw.addPlot(row=1,col=0)
+        self.spw.addItem(self.sp)
 
         # Create some buttons for plot manipulations
         # self.btnLayout = QHBoxLayout()
@@ -36,7 +37,6 @@ class SignalView(QFrame):
         self.layout = QVBoxLayout()
         # self.layout.addLayout(self.btnLayout)
         self.layout.addWidget(self.glw)
-        self.layout.addWidget(self.spw)
 
         self.setLayout(self.layout)
 
@@ -69,11 +69,12 @@ class SignalView(QFrame):
             self.sxx = self.sxx.T
 
         if self.xdata is None:
-            self.sp = pg.ImageItem(self.sxx)
+            self.sp.setImage(self.sxx) # set image on existing item instead?
             cm2use = pg.colormap.getFromMatplotlib('viridis')
             self.sp.setLookupTable(cm2use.getLookupTable())
-            # 
-            self.spw.addItem(self.sp)
+            
+            self.spw.addItem(self.sp) # Must add it back because clears are done in setYData
+            self.spw.setMouseEnabled(x=True,y=False)
 
 
     # @Slot()
