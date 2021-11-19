@@ -36,7 +36,6 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     @QtCore.Slot(np.ndarray)
     def onNewData(self, data):
-        print("Got data")
         self.sv.setYData(data)
         self.sv.plotAmpTime()
 
