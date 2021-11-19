@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
@@ -65,11 +65,21 @@ class SignalView(QFrame):
         self.fs = fs
 
         self.freqs, self.ts, self.sxx = sps.spectrogram(self.ydata, fs, window, nperseg, noverlap, nfft, return_onesided=False)
+
+        self.freqs = np.fft.fftshift(self.freqs)
+        self.sxx = np.fft.fftshift(self.sxx, axes=0)
+        # Obtain the spans and gaps for proper plotting
+        tgap = self.ts[1] - self.ts[0]
+        fgap = self.freqs[1] - self.freqs[0]
+        tspan = self.ts[-1] - self.ts[0]
+        fspan = self.freqs[-1] - self.freqs[0]
+
         if auto_transpose:
             self.sxx = self.sxx.T
 
         if self.xdata is None:
             self.sp.setImage(self.sxx) # set image on existing item instead?
+            self.sp.setRect(QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)) # Proper setting of the box boundaries
             cm2use = pg.colormap.getFromMatplotlib('viridis')
             self.sp.setLookupTable(cm2use.getLookupTable())
             
