@@ -7,28 +7,6 @@ import scipy.signal as sps
 class SignalView(QFrame):
     def __init__(self, ydata, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
-
-        # Create a graphics view
-        self.glw = pg.GraphicsLayoutWidget() # Window for the amplitude time plot
-        self.p = self.glw.addPlot(row=0,col=0) # The amp-time plotItem
-        self.spw = pg.plot() # Window for the spectrogram
-        self.sp = None # Placeholder for spectrogram image item
-        self.spShown = False # Tracker for show/hide
-
-        # Create some buttons for plot manipulations
-        self.btnLayout = QHBoxLayout()
-        self.specgramBtn = QPushButton("Show Spectrogram")
-        self.specgramBtn.clicked.connect(self.onShowSpecgramBtnClicked)
-        self.btnLayout.addWidget(self.specgramBtn)
-
-        # Create the main layout
-        self.layout = QVBoxLayout()
-        self.layout.addLayout(self.btnLayout)
-        self.layout.addWidget(self.glw)
-        self.layout.addWidget(self.spw)
-        self.spw.hide()
-        self.setLayout(self.layout)
-
         # Attach the data (hopefully this doesn't copy)
         self.ydata = ydata
 
@@ -42,6 +20,28 @@ class SignalView(QFrame):
         self.ts = None
         self.sxx = None
 
+        # Create a graphics view
+        self.glw = pg.GraphicsLayoutWidget() # Window for the amplitude time plot
+        self.p = self.glw.addPlot(row=0,col=0) # The amp-time plotItem
+        self.spw = pg.plot() # Window for the spectrogram
+        self.sp = None
+
+        # Create some buttons for plot manipulations
+        # self.btnLayout = QHBoxLayout()
+        # self.specgramBtn = QPushButton("Show Spectrogram")
+        # self.specgramBtn.clicked.connect(self.onShowSpecgramBtnClicked)
+        # self.btnLayout.addWidget(self.specgramBtn)
+
+        # Create the main layout
+        self.layout = QVBoxLayout()
+        # self.layout.addLayout(self.btnLayout)
+        self.layout.addWidget(self.glw)
+        self.layout.addWidget(self.spw)
+
+        self.setLayout(self.layout)
+
+        
+
     def setXData(self, fs, startTime=0):
         self.fs = fs
         self.startTime = startTime
@@ -50,35 +50,39 @@ class SignalView(QFrame):
     def setYData(self, ydata):
         self.ydata = ydata
         self.p.clear()
-        self.p.plot(np.abs(self.ydata))
+        self.spw.clear()
+        self.plotAmpTime()
+        self.plotSpecgram()
 
     def plotAmpTime(self):
         if self.xdata is None:
             self.p.plot(np.abs(self.ydata))
         else:
             self.p.plot(self.xdata, np.abs(self.ydata))
+        self.p.setMouseEnabled(x=True,y=False)
             
-    def plotSpecgram(self, fs, window, nperseg, noverlap, nfft):
+    def plotSpecgram(self, fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None, auto_transpose=True):
         self.fs = fs
 
         self.freqs, self.ts, self.sxx = sps.spectrogram(self.ydata, fs, window, nperseg, noverlap, nfft, return_onesided=False)
+        if auto_transpose:
+            self.sxx = self.sxx.T
 
         if self.xdata is None:
             self.sp = pg.ImageItem(self.sxx)
             cm2use = pg.colormap.getFromMatplotlib('viridis')
             self.sp.setLookupTable(cm2use.getLookupTable())
-            # Add to the plot
+            # 
             self.spw.addItem(self.sp)
-            # Show the plot in the layout
-            self.spw.show()
 
 
-    @Slot()
-    def onShowSpecgramBtnClicked(self):
-        if not self.spShown:
-            self.plotSpecgram(fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None) # TODO: link options to dialog?
-            self.spShown = True
-        else:
-            self.spw.hide()
-            self.spShown = False
+    # @Slot()
+    # def onShowSpecgramBtnClicked(self):
+    #     if not self.spShown:
+    #         self.plotSpecgram(fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None) # TODO: link options to dialog?
+    #         self.spw.show()
+    #         self.spShown = True
+    #     else: # TODO: weird bug where hide/show multiple times causes size of specgram to take less height
+    #         self.spw.hide()
+    #         self.spShown = False
 
