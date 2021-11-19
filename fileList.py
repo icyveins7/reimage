@@ -16,12 +16,13 @@ class FileListFrame(QFrame):
 
     def __init__(self, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
+        self.setMaximumWidth(360)
 
         # Create the file list widget
         self.flw = QListWidget()
         self.flw.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.flw.setDragEnabled(True)
-        self.flw.setMaximumWidth(360)
+        
         # Sublayout for buttons
         self.btnLayout = QHBoxLayout() # TODO: change layout max width?
         # Some buttons..
@@ -59,9 +60,10 @@ class FileListFrame(QFrame):
     @Slot()
     def onFolderBtnClicked(self):
         folderName = QFileDialog.getExistingDirectory()
-        folderFiles = os.listdir(folderName)
-        fileNames = [os.path.join(folderName, i) for i in folderFiles]
-        self.flw.addItems(fileNames)
+        if folderName is not None and len(folderName)>0:
+            folderFiles = os.listdir(folderName)
+            fileNames = [os.path.join(folderName, i) for i in folderFiles]
+            self.flw.addItems(fileNames)
     
     ####################
     def prepareAddBtn(self):
