@@ -21,8 +21,9 @@ class FileListFrame(QFrame):
         self.flw = QListWidget()
         self.flw.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.flw.setDragEnabled(True)
+        self.flw.setMaximumWidth(360)
         # Sublayout for buttons
-        self.btnLayout = QHBoxLayout()
+        self.btnLayout = QHBoxLayout() # TODO: change layout max width?
         # Some buttons..
         self.prepareFileBtn()
         self.prepareFolderBtn()
