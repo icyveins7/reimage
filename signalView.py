@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
@@ -28,14 +28,24 @@ class SignalView(QFrame):
         self.spw.addItem(self.sp)
 
         # Create some buttons for plot manipulations
-        # self.btnLayout = QHBoxLayout()
-        # self.specgramBtn = QPushButton("Show Spectrogram")
-        # self.specgramBtn.clicked.connect(self.onShowSpecgramBtnClicked)
-        # self.btnLayout.addWidget(self.specgramBtn)
+        self.btnLayout = QHBoxLayout()
+        self.linearRegionStartEdit = QLineEdit()
+        self.linearRegionEndEdit = QLineEdit()
+        self.linearRegionColon = QLabel(":")
+        self.linearRegionBtn = QPushButton("Add/Remove Time Slice")
+        self.linearRegionBtn.clicked.connect(self.onLinearRegionBtnClicked)
+        self.btnLayout.addWidget(self.linearRegionStartEdit)
+        self.btnLayout.addWidget(self.linearRegionColon)
+        self.btnLayout.addWidget(self.linearRegionEndEdit)
+        self.btnLayout.addWidget(self.linearRegionBtn)
+
+        # Placeholders for linear regions 
+        self.linearRegion = None # TODO: make ctrl-click add it instead of via button?
+        # TODO: make linear region text edits update with click and drag of the region
 
         # Create the main layout
         self.layout = QVBoxLayout()
-        # self.layout.addLayout(self.btnLayout)
+        self.layout.addLayout(self.btnLayout)
         self.layout.addWidget(self.glw)
 
         self.setLayout(self.layout)
@@ -87,13 +97,21 @@ class SignalView(QFrame):
             self.spw.setMouseEnabled(x=True,y=False)
 
 
-    # @Slot()
-    # def onShowSpecgramBtnClicked(self):
-    #     if not self.spShown:
-    #         self.plotSpecgram(fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None) # TODO: link options to dialog?
-    #         self.spw.show()
-    #         self.spShown = True
-    #     else: # TODO: weird bug where hide/show multiple times causes size of specgram to take less height
-    #         self.spw.hide()
-    #         self.spShown = False
+    @Slot()
+    def onLinearRegionBtnClicked(self):
+        if self.linearRegion is None: # Then make it and add it
+            start = float(self.linearRegionStartEdit.text())
+            end = float(self.linearRegionEndEdit.text())
 
+            if end > start:
+                # Then create the region object
+                self.linearRegion = pg.LinearRegionItem(values=(start,end))
+                # Add to the current plots?
+                self.p.addItem(self.linearRegion)
+        
+        else: # Otherwise remove it and delete it
+            self.p.removeItem(self.linearRegion)
+            self.linearRegion = None
+            # Reset the text
+            self.linearRegionStartEdit.setText("")
+            self.linearRegionEndEdit.setText("")
