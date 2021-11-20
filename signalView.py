@@ -108,6 +108,8 @@ class SignalView(QFrame):
                 self.linearRegion = pg.LinearRegionItem(values=(start,end))
                 # Add to the current plots?
                 self.p.addItem(self.linearRegion)
+                # Connect to slot for updates
+                self.linearRegion.sigRegionChanged.connect(self.onRegionChanged)
         
         else: # Otherwise remove it and delete it
             self.p.removeItem(self.linearRegion)
@@ -115,3 +117,10 @@ class SignalView(QFrame):
             # Reset the text
             self.linearRegionStartEdit.setText("")
             self.linearRegionEndEdit.setText("")
+
+    @Slot()
+    def onRegionChanged(self):
+        region = self.linearRegion.getRegion()
+        self.linearRegionStartEdit.setText(str(region[0]))
+        self.linearRegionEndEdit.setText(str(region[1]))
+
