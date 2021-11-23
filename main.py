@@ -1,6 +1,7 @@
 from PySide6 import QtCore, QtWidgets, QtGui
 import sys
 import numpy as np
+import sqlite3 as sq
 
 from signalView import SignalView
 from fileList import FileListFrame
@@ -8,6 +9,9 @@ from fileList import FileListFrame
 class ReimageMain(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
+
+        # Databases
+        self.cachedb = sq.connect('cache.db')
 
         # Some window things
         self.setWindowTitle("Reimage")
@@ -20,7 +24,7 @@ class ReimageMain(QtWidgets.QMainWindow):
 
         # Sublayout 1
         self.workspaceLayout = QtWidgets.QHBoxLayout() # Sublayout 
-        self.fileListFrame = FileListFrame()
+        self.fileListFrame = FileListFrame(db=self.cachedb)
         self.workspaceLayout.addWidget(self.fileListFrame)
         
         # Add sublayouts to main layout
@@ -33,6 +37,8 @@ class ReimageMain(QtWidgets.QMainWindow):
 
         # Connections
         self.fileListFrame.dataSignal.connect(self.onNewData)
+
+        
 
     @QtCore.Slot(np.ndarray)
     def onNewData(self, data):
