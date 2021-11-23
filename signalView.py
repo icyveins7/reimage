@@ -49,10 +49,15 @@ class SignalView(QFrame):
         # Placeholders for linear regions 
         self.linearRegion = None # TODO: make ctrl-click add it instead of via button?
 
+        # ViewBox statistics
+        self.viewboxlabel = QLabel()
+        self.p.sigRangeChanged.connect(self.onZoom)
+
         # Create the main layout
         self.layout = QVBoxLayout()
         self.layout.addLayout(self.linearRegionInputLayout)
         self.layout.addLayout(self.linearRegionLabelsLayout)
+        self.layout.addWidget(self.viewboxlabel)
         self.layout.addWidget(self.glw)
 
         self.setLayout(self.layout)
@@ -158,3 +163,7 @@ class SignalView(QFrame):
             self.linearRegion.setRegion((region[0], float(self.linearRegionEndEdit.text())))
             self.linearRegionEndEdit.clear()
 
+    @Slot()
+    def onZoom(self):
+        print(self.p.viewRange())
+        # TODO: use this to set up the downsampling on the plots?
