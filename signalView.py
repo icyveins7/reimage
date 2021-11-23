@@ -27,25 +27,32 @@ class SignalView(QFrame):
         self.spw = self.glw.addPlot(row=1,col=0)
         self.spw.addItem(self.sp)
 
-        # Create some buttons for plot manipulations
-        self.btnLayout = QHBoxLayout()
+        # Create a layout for linear region
+        self.linearRegionInputLayout = QHBoxLayout()
         self.linearRegionStartEdit = QLineEdit()
         self.linearRegionEndEdit = QLineEdit()
         self.linearRegionColon = QLabel(":")
         self.linearRegionBtn = QPushButton("Add/Remove Time Slice")
         self.linearRegionBtn.clicked.connect(self.onLinearRegionBtnClicked)
-        self.btnLayout.addWidget(self.linearRegionStartEdit)
-        self.btnLayout.addWidget(self.linearRegionColon)
-        self.btnLayout.addWidget(self.linearRegionEndEdit)
-        self.btnLayout.addWidget(self.linearRegionBtn)
+        self.linearRegionStartEdit.editingFinished.connect(self.onStartEdited)
+        self.linearRegionEndEdit.editingFinished.connect(self.onEndEdited)
+        self.linearRegionInputLayout.addWidget(self.linearRegionStartEdit)
+        self.linearRegionInputLayout.addWidget(self.linearRegionColon)
+        self.linearRegionInputLayout.addWidget(self.linearRegionEndEdit)
+        self.linearRegionInputLayout.addWidget(self.linearRegionBtn)
+
+        # Corresponding labels for linear region
+        self.linearRegionLabelsLayout = QHBoxLayout()
+        self.linearRegionBoundsLabel = QLabel()
+        self.linearRegionLabelsLayout.addWidget(self.linearRegionBoundsLabel)
 
         # Placeholders for linear regions 
         self.linearRegion = None # TODO: make ctrl-click add it instead of via button?
-        # TODO: make linear region text edits update with click and drag of the region
 
         # Create the main layout
         self.layout = QVBoxLayout()
-        self.layout.addLayout(self.btnLayout)
+        self.layout.addLayout(self.linearRegionInputLayout)
+        self.layout.addLayout(self.linearRegionLabelsLayout)
         self.layout.addWidget(self.glw)
 
         self.setLayout(self.layout)
@@ -64,11 +71,18 @@ class SignalView(QFrame):
         self.plotAmpTime()
         self.plotSpecgram()
 
+        # Equalize the widths of the y-axis?
+        self.p.getAxis('left').setWidth(30) # Hardcoded for now
+        self.spw.getAxis('left').setWidth(30) # TODO: evaluate maximum y values in both graphs, then set an appropriate value
+
+        # Link axes
+        self.p.setXLink(self.spw)
+
     def plotAmpTime(self):
         if self.xdata is None:
-            self.p.plot(np.abs(self.ydata))
+            self.p.plot(np.abs(self.ydata), autoDownsample=True, downsampleMethod='subsample') # TODO: figure out whether these options do anything?
         else:
-            self.p.plot(self.xdata, np.abs(self.ydata))
+            self.p.plot(self.xdata, np.abs(self.ydata), autoDownsample=True, downsampleMethod='subsample')
         self.p.setMouseEnabled(x=True,y=False)
             
     def plotSpecgram(self, fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None, auto_transpose=True):
@@ -103,6 +117,10 @@ class SignalView(QFrame):
             start = float(self.linearRegionStartEdit.text())
             end = float(self.linearRegionEndEdit.text())
 
+            # Clear the edits
+            self.linearRegionStartEdit.clear()
+            self.linearRegionEndEdit.clear()
+
             if end > start:
                 # Then create the region object
                 self.linearRegion = pg.LinearRegionItem(values=(start,end))
@@ -110,6 +128,8 @@ class SignalView(QFrame):
                 self.p.addItem(self.linearRegion)
                 # Connect to slot for updates
                 self.linearRegion.sigRegionChanged.connect(self.onRegionChanged)
+                # Set the initial labels
+                self.linearRegionBoundsLabel.setText("%f : %f" % (start,end))
         
         else: # Otherwise remove it and delete it
             self.p.removeItem(self.linearRegion)
@@ -117,10 +137,24 @@ class SignalView(QFrame):
             # Reset the text
             self.linearRegionStartEdit.setText("")
             self.linearRegionEndEdit.setText("")
+            self.linearRegionBoundsLabel.clear()
 
     @Slot()
     def onRegionChanged(self):
         region = self.linearRegion.getRegion()
-        self.linearRegionStartEdit.setText(str(region[0]))
-        self.linearRegionEndEdit.setText(str(region[1]))
+        self.linearRegionBoundsLabel.setText("%f : %f" % (region[0], region[1]))
+
+    @Slot()
+    def onStartEdited(self):
+        if self.linearRegion is not None:
+            region = self.linearRegion.getRegion()
+            self.linearRegion.setRegion((float(self.linearRegionStartEdit.text()), region[1]))
+            self.linearRegionStartEdit.clear()
+
+    @Slot()
+    def onEndEdited(self):
+        if self.linearRegion is not None:
+            region = self.linearRegion.getRegion()
+            self.linearRegion.setRegion((region[0], float(self.linearRegionEndEdit.text())))
+            self.linearRegionEndEdit.clear()
 
