@@ -42,8 +42,7 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     @QtCore.Slot(np.ndarray)
     def onNewData(self, data):
-        self.sv.setYData(data)
-        self.sv.plotAmpTime()
+        self.sv.setYData(data) # this calls the plot automatically
 
 
 

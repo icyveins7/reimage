@@ -14,6 +14,12 @@ class SignalView(QFrame):
         self.xdata = None
         self.fs = None
         self.startTime = None
+        
+        # Placeholder for downsample rates
+        self.dsrs = []
+        self.dscache = []
+        self.curDsrIdx = -1
+        self.setDownsampleCache()
 
         # Placeholder for spectrogram data
         self.freqs = None
@@ -62,7 +68,22 @@ class SignalView(QFrame):
 
         self.setLayout(self.layout)
 
+    def setDownsampleCache(self):
+        # Clear existing cache
+        self.dscache = []
+        self.dsrs = []
+        # We cache the original sample rate to use as the bootstrap
+        self.dscache.append(np.abs(self.ydata))
+        self.dsrs.append(1)
+
+        cursize = self.ydata.size
+        while cursize > 1e5: # Recursively downsample in orders of magnitude
+            self.dscache.append(self.dscache[-1][::10])
+            self.dsrs.append(self.dsrs[-1]*10)
+            cursize = self.dscache[-1].size
         
+        print(self.dscache)
+        print(self.dsrs)
 
     def setXData(self, fs, startTime=0):
         self.fs = fs
@@ -70,9 +91,11 @@ class SignalView(QFrame):
         self.xdata = (np.arange(self.ydata.size) * 1/self.fs) + self.startTime
 
     def setYData(self, ydata):
-        self.ydata = ydata
         self.p.clear()
         self.spw.clear()
+        self.ydata = ydata
+
+        self.setDownsampleCache()
         self.plotAmpTime()
         self.plotSpecgram()
 
@@ -85,10 +108,12 @@ class SignalView(QFrame):
 
     def plotAmpTime(self):
         if self.xdata is None:
-            self.p.plot(np.abs(self.ydata), autoDownsample=True, downsampleMethod='subsample') # TODO: figure out whether these options do anything?
+            # self.p.plot(np.abs(self.ydata), downsample=100, autoDownsample=True, downsampleMethod='subsample') # TODO: figure out whether these options do anything?
+            self.p.plot(np.arange(0,self.ydata.size,self.dsrs[-1]), self.dscache[-1]) # Read straight from cache
         else:
             self.p.plot(self.xdata, np.abs(self.ydata), autoDownsample=True, downsampleMethod='subsample')
         self.p.setMouseEnabled(x=True,y=False)
+        self.curDsrIdx = -1 # On init, the maximum dsr is used
             
     def plotSpecgram(self, fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None, auto_transpose=True):
         self.fs = fs
@@ -165,5 +190,21 @@ class SignalView(QFrame):
 
     @Slot()
     def onZoom(self):
-        print(self.p.viewRange())
-        # TODO: use this to set up the downsampling on the plots?
+        # print(self.p.viewRange())
+        xstart = self.p.viewRange()[0][0]
+        xend = self.p.viewRange()[0][1]
+        self.viewboxlabel.setText("Zoom DSR: %d / %d" % (self.dsrs[self.curDsrIdx], self.dsrs[-1]))
+        
+        # Count how many points are in range
+        numPtsInRange = (xend-xstart)/self.dsrs[self.curDsrIdx]
+        print("%d points in range" % numPtsInRange)
+        if numPtsInRange < 1e5: # If few points, zoom in i.e. lower the DSR
+            if len(self.dsrs) + self.curDsrIdx > 0: # But only lower to the DSR of 1
+                self.curDsrIdx = self.curDsrIdx - 1
+                print("zoom in")
+        
+        if numPtsInRange > 1e6: # If too many points, zoom out i.e. increase the DSR
+            if self.curDsrIdx < -1:
+                self.curDsrIdx = self.curDsrIdx + 1
+                print("zoom out")
+
