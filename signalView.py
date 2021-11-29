@@ -28,7 +28,8 @@ class SignalView(QFrame):
 
         # Create a graphics view
         self.glw = pg.GraphicsLayoutWidget() # Window for the amplitude time plot
-        self.p = self.glw.addPlot(row=0,col=0) # The amp-time plotItem
+        self.p1 = self.glw.addPlot(row=0,col=0) # The amp-time plotItem
+        self.p = None # Placeholder for the absolute time PlotDataItem
         self.sp = pg.ImageItem()
         self.spw = self.glw.addPlot(row=1,col=0)
         self.spw.addItem(self.sp)
@@ -57,7 +58,7 @@ class SignalView(QFrame):
 
         # ViewBox statistics
         self.viewboxlabel = QLabel()
-        self.p.sigRangeChanged.connect(self.onZoom)
+        self.p1.sigRangeChanged.connect(self.onZoom)
 
         # Create the main layout
         self.layout = QVBoxLayout()
@@ -91,7 +92,7 @@ class SignalView(QFrame):
         self.xdata = (np.arange(self.ydata.size) * 1/self.fs) + self.startTime
 
     def setYData(self, ydata):
-        self.p.clear()
+        self.p1.clear()
         self.spw.clear()
         self.ydata = ydata
 
@@ -100,19 +101,21 @@ class SignalView(QFrame):
         self.plotSpecgram()
 
         # Equalize the widths of the y-axis?
-        self.p.getAxis('left').setWidth(30) # Hardcoded for now
+        self.p1.getAxis('left').setWidth(30) # Hardcoded for now
         self.spw.getAxis('left').setWidth(30) # TODO: evaluate maximum y values in both graphs, then set an appropriate value
 
         # Link axes
-        self.p.setXLink(self.spw)
+        self.p1.setXLink(self.spw)
 
     def plotAmpTime(self):
+        # Create and save the PlotDataItems as self.p
         if self.xdata is None:
             # self.p.plot(np.abs(self.ydata), downsample=100, autoDownsample=True, downsampleMethod='subsample') # TODO: figure out whether these options do anything?
-            self.p.plot(np.arange(0,self.ydata.size,self.dsrs[-1]), self.dscache[-1]) # Read straight from cache
+            self.p = self.p1.plot(np.arange(0,self.ydata.size,self.dsrs[-1]), self.dscache[-1], clipToView=True) # Read straight from cache
+            # TODO: adding clipToView creates unknown error with GraphicsLayoutWidget (autoRangeEnabled attribute ?)
         else:
-            self.p.plot(self.xdata, np.abs(self.ydata), autoDownsample=True, downsampleMethod='subsample')
-        self.p.setMouseEnabled(x=True,y=False)
+            self.p = self.p1.plot(self.xdata, np.abs(self.ydata), autoDownsample=True, downsampleMethod='subsample', clipToView=True)
+        self.p1.setMouseEnabled(x=True,y=False)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
             
     def plotSpecgram(self, fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None, auto_transpose=True):
@@ -155,14 +158,14 @@ class SignalView(QFrame):
                 # Then create the region object
                 self.linearRegion = pg.LinearRegionItem(values=(start,end))
                 # Add to the current plots?
-                self.p.addItem(self.linearRegion)
+                self.p1.addItem(self.linearRegion)
                 # Connect to slot for updates
                 self.linearRegion.sigRegionChanged.connect(self.onRegionChanged)
                 # Set the initial labels
                 self.linearRegionBoundsLabel.setText("%f : %f" % (start,end))
         
         else: # Otherwise remove it and delete it
-            self.p.removeItem(self.linearRegion)
+            self.p1.removeItem(self.linearRegion)
             self.linearRegion = None
             # Reset the text
             self.linearRegionStartEdit.setText("")
@@ -190,21 +193,27 @@ class SignalView(QFrame):
 
     @Slot()
     def onZoom(self):
-        # print(self.p.viewRange())
-        xstart = self.p.viewRange()[0][0]
-        xend = self.p.viewRange()[0][1]
-        self.viewboxlabel.setText("Zoom DSR: %d / %d" % (self.dsrs[self.curDsrIdx], self.dsrs[-1]))
+        xstart = self.p1.viewRange()[0][0]
+        xend = self.p1.viewRange()[0][1]
+        self.viewboxlabel.setText("Zoom Downsample Rate: %5d / %5d (Max)" % (self.dsrs[self.curDsrIdx], self.dsrs[-1]))
         
         # Count how many points are in range
-        numPtsInRange = (xend-xstart)/self.dsrs[self.curDsrIdx]
+        numPtsInRange = (xend-xstart)
+        targetDSR = 10**(np.floor(np.log10(numPtsInRange)) - 4)
+        print("curDsr = %d" % (self.dsrs[self.curDsrIdx]))
+        print("targetDSR = %d" % (targetDSR))
         print("%d points in range" % numPtsInRange)
-        if numPtsInRange < 1e5: # If few points, zoom in i.e. lower the DSR
+        if targetDSR < self.dsrs[self.curDsrIdx]: # If few points, zoom in i.e. lower the DSR
             if len(self.dsrs) + self.curDsrIdx > 0: # But only lower to the DSR of 1
                 self.curDsrIdx = self.curDsrIdx - 1
-                print("zoom in")
+                # Set the zoomed data on the PlotDataItem
+                dsr = self.dsrs[self.curDsrIdx]
+                self.p.setData(np.arange(0,self.ydata.size,dsr), self.dscache[self.curDsrIdx], clipToView=True)
         
-        if numPtsInRange > 1e6: # If too many points, zoom out i.e. increase the DSR
+        if targetDSR > self.dsrs[self.curDsrIdx]: # If too many points, zoom out i.e. increase the DSR
             if self.curDsrIdx < -1:
                 self.curDsrIdx = self.curDsrIdx + 1
-                print("zoom out")
+                # Set the zoomed data on the PlotDataItem
+                dsr = self.dsrs[self.curDsrIdx]
+                self.p.setData(np.arange(0,self.ydata.size,dsr), self.dscache[self.curDsrIdx], clipToView=True)
 
