@@ -111,10 +111,11 @@ class SignalView(QFrame):
         # Create and save the PlotDataItems as self.p
         if self.xdata is None:
             # self.p.plot(np.abs(self.ydata), downsample=100, autoDownsample=True, downsampleMethod='subsample') # TODO: figure out whether these options do anything?
-            self.p = self.p1.plot(np.arange(0,self.ydata.size,self.dsrs[-1]), self.dscache[-1], clipToView=True) # Read straight from cache
-            # TODO: adding clipToView creates unknown error with GraphicsLayoutWidget (autoRangeEnabled attribute ?)
+            self.p = self.p1.plot(np.arange(0,self.ydata.size,self.dsrs[-1]), self.dscache[-1])
+            self.p.setClipToView(True) # the plot function doesn't set the clipToView keyword correctly, but it works on the PlotDataItem returned
         else:
-            self.p = self.p1.plot(self.xdata, np.abs(self.ydata), autoDownsample=True, downsampleMethod='subsample', clipToView=True)
+            self.p = self.p1.plot(self.xdata, np.abs(self.ydata))
+            self.p.setClipToView(True)
         self.p1.setMouseEnabled(x=True,y=False)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
             
@@ -200,15 +201,15 @@ class SignalView(QFrame):
         # Count how many points are in range
         numPtsInRange = (xend-xstart)
         targetDSR = 10**(np.floor(np.log10(numPtsInRange)) - 4)
-        print("curDsr = %d" % (self.dsrs[self.curDsrIdx]))
-        print("targetDSR = %d" % (targetDSR))
-        print("%d points in range" % numPtsInRange)
+        # print("curDsr = %d" % (self.dsrs[self.curDsrIdx]))
+        # print("targetDSR = %d" % (targetDSR))
+        # print("%d points in range" % numPtsInRange)
         if targetDSR < self.dsrs[self.curDsrIdx]: # If few points, zoom in i.e. lower the DSR
             if len(self.dsrs) + self.curDsrIdx > 0: # But only lower to the DSR of 1
                 self.curDsrIdx = self.curDsrIdx - 1
                 # Set the zoomed data on the PlotDataItem
                 dsr = self.dsrs[self.curDsrIdx]
-                self.p.setData(np.arange(0,self.ydata.size,dsr), self.dscache[self.curDsrIdx], clipToView=True)
+                self.p.setData(np.arange(0,self.ydata.size,dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
         
         if targetDSR > self.dsrs[self.curDsrIdx]: # If too many points, zoom out i.e. increase the DSR
             if self.curDsrIdx < -1:
@@ -216,4 +217,6 @@ class SignalView(QFrame):
                 # Set the zoomed data on the PlotDataItem
                 dsr = self.dsrs[self.curDsrIdx]
                 self.p.setData(np.arange(0,self.ydata.size,dsr), self.dscache[self.curDsrIdx], clipToView=True)
+
+        # TODO: rightclick 'view all' bug: does not zoom out completely?
 
