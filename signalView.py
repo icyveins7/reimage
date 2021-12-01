@@ -117,6 +117,8 @@ class SignalView(QFrame):
             self.p = self.p1.plot(self.xdata, np.abs(self.ydata))
             self.p.setClipToView(True)
         self.p1.setMouseEnabled(x=True,y=False)
+        viewBufferX = 0.1 * self.ydata.size # TODO: adjust based on xdata as well
+        self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size + viewBufferX) # TODO: adjust based on xdata next time
         self.curDsrIdx = -1 # On init, the maximum dsr is used
             
     def plotSpecgram(self, fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None, auto_transpose=True):
