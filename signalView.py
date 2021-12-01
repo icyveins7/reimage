@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QApplication, QMenu
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
@@ -7,6 +7,10 @@ import scipy.signal as sps
 class SignalView(QFrame):
     def __init__(self, ydata, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
+
+        # Formatting
+        self.setMinimumWidth(800)
+
         # Attach the data (hopefully this doesn't copy)
         self.ydata = ydata
 
@@ -79,6 +83,7 @@ class SignalView(QFrame):
 
         self.setLayout(self.layout)
 
+
     def setDownsampleCache(self):
         # Clear existing cache
         self.dscache = []
@@ -127,6 +132,7 @@ class SignalView(QFrame):
             self.p = self.p1.plot(self.xdata, np.abs(self.ydata))
             self.p.setClipToView(True)
         self.p1.setMouseEnabled(x=True,y=False)
+        self.p1.setMenuEnabled(False)
         viewBufferX = 0.1 * self.ydata.size # TODO: adjust based on xdata as well
         self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size + viewBufferX) # TODO: adjust based on xdata next time
         self.curDsrIdx = -1 # On init, the maximum dsr is used
@@ -155,6 +161,10 @@ class SignalView(QFrame):
             
             self.spw.addItem(self.sp) # Must add it back because clears are done in setYData
             self.spw.setMouseEnabled(x=True,y=False)
+            self.spw.setMenuEnabled(False)
+
+            viewBufferX = 0.1 * self.ydata.size # TODO: adjust based on xdata as well
+            self.spw.setLimits(xMin = -viewBufferX, xMax = self.ydata.size + viewBufferX) # TODO: adjust based on xdata next time
 
 
     @Slot()
@@ -239,4 +249,27 @@ class SignalView(QFrame):
     def specMouseMoved(self, evt):
         mousePoint = self.spw.vb.mapSceneToView(evt[0])
         self.specCoordLabel.setText("Bottom: %f, %f" % (mousePoint.x(), mousePoint.y()))
+
+    # # Override default key press
+    # def keyPressEvent(self, event):
+    #     super().keyPressEvent(event)
+    #     print("Custom slot")
+
+    # Override default mouse press
+    def mousePressEvent(self, event):
+        modifiers = QApplication.keyboardModifiers()
+        if event.button() == Qt.LeftButton and bool(modifiers == Qt.ControlModifier):
+            print("Ctrl-leftclicked, implement the marking here")
+        else:
+            super().mousePressEvent(event)
+
+    # Override default context menu # TODO: move this to the graphics layout widget subclass instead, so we dont get to rclick outside the plots
+    def contextMenuEvent(self, event):
+        modifiers = QApplication.keyboardModifiers()
+        if bool(modifiers == Qt.ControlModifier): # Going to leave it as control-modifier, in case we want the pyqtgraph default menu back later on
+            menu = QMenu()
+            fftAction = menu.addAction("FFT Time Slice")
+            action = menu.exec_(self.mapToGlobal(event.pos()))
+            if action == fftAction:
+                print("fft to be implemented")
 
