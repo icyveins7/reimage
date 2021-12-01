@@ -34,6 +34,10 @@ class SignalView(QFrame):
         self.spw = self.glw.addPlot(row=1,col=0)
         self.spw.addItem(self.sp)
 
+        # Connections for the plots
+        self.p1proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.ampMouseMoved)
+        self.spwproxy = pg.SignalProxy(self.spw.scene().sigMouseMoved, rateLimit=60, slot=self.specMouseMoved)
+
         # Create a layout for linear region
         self.linearRegionInputLayout = QHBoxLayout()
         self.linearRegionStartEdit = QLineEdit()
@@ -57,14 +61,20 @@ class SignalView(QFrame):
         self.linearRegion = None # TODO: make ctrl-click add it instead of via button?
 
         # ViewBox statistics
+        self.viewboxLabelsLayout = QHBoxLayout()
         self.viewboxlabel = QLabel()
+        self.viewboxLabelsLayout.addWidget(self.viewboxlabel)
+        self.ampCoordLabel = QLabel()
+        self.viewboxLabelsLayout.addWidget(self.ampCoordLabel)
+        self.specCoordLabel = QLabel()
+        self.viewboxLabelsLayout.addWidget(self.specCoordLabel)
         self.p1.sigRangeChanged.connect(self.onZoom)
 
         # Create the main layout
         self.layout = QVBoxLayout()
         self.layout.addLayout(self.linearRegionInputLayout)
         self.layout.addLayout(self.linearRegionLabelsLayout)
-        self.layout.addWidget(self.viewboxlabel)
+        self.layout.addLayout(self.viewboxLabelsLayout)
         self.layout.addWidget(self.glw)
 
         self.setLayout(self.layout)
@@ -221,4 +231,12 @@ class SignalView(QFrame):
                 self.p.setData(np.arange(0,self.ydata.size,dsr), self.dscache[self.curDsrIdx], clipToView=True)
 
         # TODO: rightclick 'view all' bug: does not zoom out completely?
+
+    def ampMouseMoved(self, evt):
+        mousePoint = self.p1.vb.mapSceneToView(evt[0])
+        self.ampCoordLabel.setText("Top: %f, %f" % (mousePoint.x(), mousePoint.y()))
+
+    def specMouseMoved(self, evt):
+        mousePoint = self.spw.vb.mapSceneToView(evt[0])
+        self.specCoordLabel.setText("Bottom: %f, %f" % (mousePoint.x(), mousePoint.y()))
 
