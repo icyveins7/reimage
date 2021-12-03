@@ -4,6 +4,8 @@ import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
 
+from fftWindow import FFTWindow
+
 class SignalView(QFrame):
     def __init__(self, ydata, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
@@ -271,5 +273,14 @@ class SignalView(QFrame):
             fftAction = menu.addAction("FFT Time Slice")
             action = menu.exec_(self.mapToGlobal(event.pos()))
             if action == fftAction:
-                print("fft to be implemented")
+                if self.linearRegion is None: # Use all the data
+                    self.fftwin = FFTWindow(self.ydata)
+                    self.fftwin.show()
+                else: # Slice only that region
+                    region = self.linearRegion.getRegion()
+                    startIdx = int(region[0])
+                    endIdx = int(region[1])
+                    self.fftwin = FFTWindow(self.ydata[startIdx:endIdx], startIdx, endIdx)
+                    self.fftwin.show()
+                
 
