@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QApplication, QMenu
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
@@ -257,13 +257,19 @@ class SignalView(QFrame):
         print(evt)
         modifiers = QApplication.keyboardModifiers()
         if bool(modifiers == Qt.ControlModifier):
-            mousePoint = self.p1.vb.mapSceneToView(evt[0].pos())
-            print(mousePoint) # TODO: inaccurate values???
-            self.addMarkerLines([mousePoint.x()], ['test label'])
+            mousePoint = self.p1.vb.mapToView(evt[0].pos()) # use mapToView instead of mapSceneToView here, not sure why..
+            # Start a dialog for the label
+            label, ok = QInputDialog.getText(self,
+                                        "Add Marker Label",
+                                        "Marker Label:",
+                                        QLineEdit.Normal,
+                                        "%f, %f" % (mousePoint.x(), mousePoint.y()))
+            if ok and label:
+                self.addMarkerLines([mousePoint.x()], [label])
 
     def addMarkerLines(self, xvalues, labels):
         for i in range(len(xvalues)):
-            self.p1.addItem(pg.InfiniteLine(xvalues[i], label=labels[i]))
+            self.p1.addItem(pg.InfiniteLine(xvalues[i], label=labels[i], labelOpts={'position': 0.9})) # don't put 1.0, gets chopped off
 
     # # Override default key press
     # def keyPressEvent(self, event):
