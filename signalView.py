@@ -43,6 +43,7 @@ class SignalView(QFrame):
         # Connections for the plots
         self.p1proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.ampMouseMoved)
         self.spwproxy = pg.SignalProxy(self.spw.scene().sigMouseMoved, rateLimit=60, slot=self.specMouseMoved)
+        self.markerproxy = pg.SignalProxy(self.p1.scene().sigMouseClicked, rateLimit=60, slot=self.onAmpMouseClicked)
 
         # Create a layout for linear region
         self.linearRegionInputLayout = QHBoxLayout()
@@ -252,18 +253,35 @@ class SignalView(QFrame):
         mousePoint = self.spw.vb.mapSceneToView(evt[0])
         self.specCoordLabel.setText("Bottom: %f, %f" % (mousePoint.x(), mousePoint.y()))
 
+    def onAmpMouseClicked(self, evt):
+        print(evt)
+        modifiers = QApplication.keyboardModifiers()
+        if bool(modifiers == Qt.ControlModifier):
+            mousePoint = self.p1.vb.mapSceneToView(evt[0].pos())
+            print(mousePoint) # TODO: inaccurate values???
+            self.addMarkerLines([mousePoint.x()], ['test label'])
+
+    def addMarkerLines(self, xvalues, labels):
+        for i in range(len(xvalues)):
+            self.p1.addItem(pg.InfiniteLine(xvalues[i], label=labels[i]))
+
     # # Override default key press
     # def keyPressEvent(self, event):
     #     super().keyPressEvent(event)
     #     print("Custom slot")
 
-    # Override default mouse press
-    def mousePressEvent(self, event):
-        modifiers = QApplication.keyboardModifiers()
-        if event.button() == Qt.LeftButton and bool(modifiers == Qt.ControlModifier):
-            print("Ctrl-leftclicked, implement the marking here")
-        else:
-            super().mousePressEvent(event)
+    # # Override default mouse press
+    # def mousePressEvent(self, event):
+    #     modifiers = QApplication.keyboardModifiers()
+    #     if event.button() == Qt.LeftButton and bool(modifiers == Qt.ControlModifier):
+    #         print("Ctrl-leftclicked, implement the marking here")
+    #         print(event)
+    #         mousePoint = self.p1.vb.mapSceneToView(event[0])
+    #         self.addMarkerLines([mousePoint.x()], ['test label'])
+    #     else:
+    #         super().mousePressEvent(event)
+
+    
 
     # Override default context menu # TODO: move this to the graphics layout widget subclass instead, so we dont get to rclick outside the plots
     def contextMenuEvent(self, event):
