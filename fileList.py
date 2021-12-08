@@ -65,6 +65,7 @@ class FileListFrame(QFrame):
         r = sorted(r, key=operator.itemgetter(0)) # sort by the index, which is the first value in the tuples
         rpaths = [i[1] for i in r]
         self.flw.addItems(rpaths)
+        # TODO: sort all filepaths shown?
         
     ####################
     def prepareClearBtn(self):
