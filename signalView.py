@@ -1,20 +1,28 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog, QMessageBox
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
 
 from fftWindow import FFTWindow
+from markerdb import MarkerDB
 
 class SignalView(QFrame):
-    def __init__(self, ydata, parent=None, f=Qt.WindowFlags()):
+    def __init__(self, ydata, filelist=None, sampleStarts=None, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
 
         # Formatting
         self.setMinimumWidth(800)
 
+        # Markers Database
+        self.markerdb = MarkerDB()
+
         # Attach the data (hopefully this doesn't copy)
         self.ydata = ydata
+
+        # Placeholders for file list tracking (for markers)
+        self.filelist = filelist
+        self.sampleStarts = sampleStarts
 
         # Placeholder for xdata
         self.xdata = None
@@ -109,10 +117,12 @@ class SignalView(QFrame):
         self.startTime = startTime
         self.xdata = (np.arange(self.ydata.size) * 1/self.fs) + self.startTime
 
-    def setYData(self, ydata):
+    def setYData(self, ydata, filelist, sampleStarts):
         self.p1.clear()
         self.spw.clear()
         self.ydata = ydata
+        self.filelist = filelist
+        self.sampleStarts = sampleStarts
 
         self.setDownsampleCache()
         self.plotAmpTime()
@@ -265,29 +275,32 @@ class SignalView(QFrame):
                                         QLineEdit.Normal,
                                         "%f, %f" % (mousePoint.x(), mousePoint.y()))
             if ok and label:
-                self.addMarkerLines([mousePoint.x()], [label])
+                # Decide which filepath to pair this marker with
+                for i in range(len(self.sampleStarts)):
+                    if mousePoint.x() > self.sampleStarts[i]:
+                        dbfilepath = self.filelist[i]
+                        dbsamplestart = mousePoint.x() - self.sampleStarts[i]
+                        break
+
+                # Check if this marker has been saved before
+                blist = self.markerdb.checkMarkers([dbfilepath], [dbsamplestart])
+                if blist[0] == True:
+                    # Raise dialog to say already exists
+                    QMessageBox.warning(self,
+                                        "Marker already exists at this position!",
+                                        QMessageBox.Ok)
+
+                else: # Add the marker
+                    self.addMarkerLines([mousePoint.x()], [label])
+                    print("Saving with %s, %f" % (dbfilepath, dbsamplestart))
+                    self.markerdb.addMarkers([dbfilepath], [dbsamplestart], [label])
+                    
+
+                
 
     def addMarkerLines(self, xvalues, labels):
         for i in range(len(xvalues)):
-            self.p1.addItem(pg.InfiniteLine(xvalues[i], label=labels[i], labelOpts={'position': 0.9})) # don't put 1.0, gets chopped off
-
-    # # Override default key press
-    # def keyPressEvent(self, event):
-    #     super().keyPressEvent(event)
-    #     print("Custom slot")
-
-    # # Override default mouse press
-    # def mousePressEvent(self, event):
-    #     modifiers = QApplication.keyboardModifiers()
-    #     if event.button() == Qt.LeftButton and bool(modifiers == Qt.ControlModifier):
-    #         print("Ctrl-leftclicked, implement the marking here")
-    #         print(event)
-    #         mousePoint = self.p1.vb.mapSceneToView(event[0])
-    #         self.addMarkerLines([mousePoint.x()], ['test label'])
-    #     else:
-    #         super().mousePressEvent(event)
-
-    
+            self.p1.addItem(pg.InfiniteLine(xvalues[i], label=labels[i], labelOpts={'position': 0.9})) # don't put 1.0, gets chopped off    
 
     # Override default context menu # TODO: move this to the graphics layout widget subclass instead, so we dont get to rclick outside the plots
     def contextMenuEvent(self, event):

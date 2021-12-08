@@ -13,7 +13,7 @@ class MarkerDB:
         self.initTable()
 
     def initTable(self):
-        self.cur.execute("create table if not exists markers(filepath TEXT, samplenumber INTEGER, label TEXT)")
+        self.cur.execute("create table if not exists markers(filepath TEXT, samplenumber REAL, label TEXT, UNIQUE(filepath, samplenumber))")
         self.con.commit()
 
     def addMarkers(self, filepaths, sampleNumbers, labels):
@@ -33,3 +33,16 @@ class MarkerDB:
         for i in range(len(filepaths)):
             self.cur.execute("delete from markers where filepath=? and samplenumber=?", (filepaths[i], sampleNumbers[i]))
         self.con.commit()
+
+    def checkMarkers(self, filepaths, sampleNumbers):
+        blist = []
+        for i in range(len(filepaths)):
+            # Retrieve the existing pairs
+            self.cur.execute("select * from markers where filepath = ? and samplenumber = ?", (filepaths[i], sampleNumbers[i]))
+            r = self.cur.fetchone()
+            if r is None:
+                blist.append(False)
+            else:
+                blist.append(True)
+
+        return blist

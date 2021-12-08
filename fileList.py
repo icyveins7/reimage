@@ -14,7 +14,7 @@ class FileListItem(QListWidgetItem):
 
 #%%
 class FileListFrame(QFrame):
-    dataSignal = Signal(np.ndarray)
+    dataSignal = Signal(np.ndarray, list, list)
 
     def __init__(self, db, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
@@ -127,12 +127,14 @@ class FileListFrame(QFrame):
         print(filepaths)
 
         data = []
+        sampleStarts = [0]
         for filepath in filepaths:
             d = np.fromfile(filepath, dtype=np.int16) # TODO: Make type variable later
             data.append(d)
+            sampleStarts.append(d.size + sampleStarts[-1])
 
         data = np.array(data).flatten().astype(np.float32).view(np.complex64) # TODO: and change this to variable...
-        self.dataSignal.emit(data)
+        self.dataSignal.emit(data, filepaths, sampleStarts)
 
 
 
