@@ -131,7 +131,7 @@ class FileListFrame(QFrame):
         for filepath in filepaths:
             d = np.fromfile(filepath, dtype=np.int16) # TODO: Make type variable later
             data.append(d)
-            sampleStarts.append(d.size + sampleStarts[-1])
+            sampleStarts.append(int(d.size/2 + sampleStarts[-1]))
 
         data = np.array(data).flatten().astype(np.float32).view(np.complex64) # TODO: and change this to variable...
         self.dataSignal.emit(data, filepaths, sampleStarts)

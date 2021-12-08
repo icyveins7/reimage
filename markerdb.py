@@ -17,7 +17,8 @@ class MarkerDB:
         self.con.commit()
 
     def addMarkers(self, filepaths, sampleNumbers, labels):
-        self.cur.executemany("insert into markers values(?,?,?)", (filepaths, sampleNumbers, labels))
+        insertList = [(filepaths[i], sampleNumbers[i], labels[i]) for i in range(len(filepaths))]
+        self.cur.executemany("insert into markers values(?,?,?)", insertList)
         self.con.commit()
 
     def getMarkers(self, filepaths):

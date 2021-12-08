@@ -264,7 +264,6 @@ class SignalView(QFrame):
         self.specCoordLabel.setText("Bottom: %f, %f" % (mousePoint.x(), mousePoint.y()))
 
     def onAmpMouseClicked(self, evt):
-        print(evt)
         modifiers = QApplication.keyboardModifiers()
         if bool(modifiers == Qt.ControlModifier):
             mousePoint = self.p1.vb.mapToView(evt[0].pos()) # use mapToView instead of mapSceneToView here, not sure why..
@@ -276,10 +275,13 @@ class SignalView(QFrame):
                                         "%f, %f" % (mousePoint.x(), mousePoint.y()))
             if ok and label:
                 # Decide which filepath to pair this marker with
+                print(self.sampleStarts)
+                print(self.filelist)
                 for i in range(len(self.sampleStarts)):
-                    if mousePoint.x() > self.sampleStarts[i]:
-                        dbfilepath = self.filelist[i]
-                        dbsamplestart = mousePoint.x() - self.sampleStarts[i]
+                    dbsamplestart = self.sampleStarts[i] - mousePoint.x()
+                    if dbsamplestart > 0:
+                        dbfilepath = self.filelist[i-1] # this is offset by 1
+                        dbsamplestart = mousePoint.x() - self.sampleStarts[i-1] # revert to positive value
                         break
 
                 # Check if this marker has been saved before
@@ -287,6 +289,7 @@ class SignalView(QFrame):
                 if blist[0] == True:
                     # Raise dialog to say already exists
                     QMessageBox.warning(self,
+                                        "Marker Error",
                                         "Marker already exists at this position!",
                                         QMessageBox.Ok)
 
@@ -300,7 +303,7 @@ class SignalView(QFrame):
 
     def addMarkerLines(self, xvalues, labels):
         for i in range(len(xvalues)):
-            self.p1.addItem(pg.InfiniteLine(xvalues[i], label=labels[i], labelOpts={'position': 0.9})) # don't put 1.0, gets chopped off    
+            self.p1.addItem(pg.InfiniteLine(xvalues[i], label=labels[i], labelOpts={'position': 0.95})) # don't put 1.0, gets chopped off    
 
     # Override default context menu # TODO: move this to the graphics layout widget subclass instead, so we dont get to rclick outside the plots
     def contextMenuEvent(self, event):
