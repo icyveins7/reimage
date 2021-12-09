@@ -112,6 +112,21 @@ class SignalView(QFrame):
         print(self.dscache)
         print(self.dsrs)
 
+    def loadMarkers(self):
+        sfilepaths, samplestarts, labels = self.markerdb.getMarkers(self.filelist)
+
+        loadedsamples = []
+        loadedlabels = []
+        for i in range(len(sfilepaths)):
+            si = self.filelist.index(sfilepaths[i])
+            loadedsamples.append(samplestarts[i] + self.sampleStarts[si]) # offset by the file samples
+            loadedlabels.append(labels[i])
+        
+        # Add the lines
+        self.addMarkerLines(loadedsamples, loadedlabels)
+
+
+
     def setXData(self, fs, startTime=0):
         self.fs = fs
         self.startTime = startTime
@@ -123,6 +138,8 @@ class SignalView(QFrame):
         self.ydata = ydata
         self.filelist = filelist
         self.sampleStarts = sampleStarts
+
+        self.loadMarkers()
 
         self.setDownsampleCache()
         self.plotAmpTime()
