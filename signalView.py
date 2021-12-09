@@ -320,7 +320,23 @@ class SignalView(QFrame):
 
     def addMarkerLines(self, xvalues, labels):
         for i in range(len(xvalues)):
-            self.p1.addItem(pg.InfiniteLine(xvalues[i], label=labels[i], labelOpts={'position': 0.95})) # don't put 1.0, gets chopped off    
+            infline = pg.InfiniteLine(xvalues[i], label=labels[i], labelOpts={'position': 0.95}) # don't put 1.0, gets chopped off   
+            infline.sigClicked.connect(self.onMarkerLineClicked)
+            self.p1.addItem(infline)
+
+    @Slot(pg.InfiniteLine)
+    def onMarkerLineClicked(self, event: pg.InfiniteLine):
+        # Note that event here is actually the infiniteLine object
+        label = event.label.format # This should be the label
+        modifiers = QApplication.keyboardModifiers()
+        if bool(modifiers == Qt.ShiftModifier):
+            # Shift-click to delete, but raise dialog
+            r = QMessageBox.question(self,
+                                    "Delete Marker",
+                                    "Delete marker with label: '%s'?" % (label))
+            
+            if r == QMessageBox.StandardButton.Yes:
+                print("Delete the marker here")
 
     # Override default context menu # TODO: move this to the graphics layout widget subclass instead, so we dont get to rclick outside the plots
     def contextMenuEvent(self, event):
