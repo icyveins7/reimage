@@ -294,12 +294,8 @@ class SignalView(QFrame):
                 # Decide which filepath to pair this marker with
                 print(self.sampleStarts)
                 print(self.filelist)
-                for i in range(len(self.sampleStarts)):
-                    dbsamplestart = self.sampleStarts[i] - mousePoint.x()
-                    if dbsamplestart > 0:
-                        dbfilepath = self.filelist[i-1] # this is offset by 1
-                        dbsamplestart = mousePoint.x() - self.sampleStarts[i-1] # revert to positive value
-                        break
+
+                dbfilepath, dbsamplestart = self.getFileSamplePair(mousePoint.x())
 
                 # Check if this marker has been saved before
                 blist = self.markerdb.checkMarkers([dbfilepath], [dbsamplestart])
@@ -316,7 +312,15 @@ class SignalView(QFrame):
                     self.markerdb.addMarkers([dbfilepath], [dbsamplestart], [label])
                     
 
-                
+    def getFileSamplePair(self, x):
+        for i in range(len(self.sampleStarts)):
+            dbsamplestart = self.sampleStarts[i] - x
+            if dbsamplestart > 0:
+                dbfilepath = self.filelist[i-1] # this is offset by 1
+                dbsamplestart = x - self.sampleStarts[i-1] # revert to positive value
+                break
+        
+        return dbfilepath, dbsamplestart
 
     def addMarkerLines(self, xvalues, labels):
         for i in range(len(xvalues)):
@@ -336,7 +340,14 @@ class SignalView(QFrame):
                                     "Delete marker with label: '%s'?" % (label))
             
             if r == QMessageBox.StandardButton.Yes:
-                print("Delete the marker here")
+                # Get the file for this marker
+                print(event.p)
+                dbfilepath, dbsamplestart = self.getFileSamplePair(event.p[0])
+                # Remove from db
+                self.markerdb.delMarkers([dbfilepath], [dbsamplestart])
+                # Remove from the plot
+                self.p1.removeItem(event)
+                
 
     # Override default context menu # TODO: move this to the graphics layout widget subclass instead, so we dont get to rclick outside the plots
     def contextMenuEvent(self, event):
