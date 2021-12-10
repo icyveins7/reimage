@@ -282,6 +282,9 @@ class SignalView(QFrame):
 
     def onAmpMouseClicked(self, evt):
         modifiers = QApplication.keyboardModifiers()
+        if modifiers == Qt.ControlModifier | Qt.AltModifier:
+            print("Reserved for future use")
+
         if bool(modifiers == Qt.ControlModifier):
             mousePoint = self.p1.vb.mapToView(evt[0].pos()) # use mapToView instead of mapSceneToView here, not sure why..
             # Start a dialog for the label
@@ -341,7 +344,6 @@ class SignalView(QFrame):
             
             if r == QMessageBox.StandardButton.Yes:
                 # Get the file for this marker
-                print(event.p)
                 dbfilepath, dbsamplestart = self.getFileSamplePair(event.p[0])
                 # Remove from db
                 self.markerdb.delMarkers([dbfilepath], [dbsamplestart])
