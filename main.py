@@ -38,11 +38,28 @@ class ReimageMain(QtWidgets.QMainWindow):
         # Connections
         self.fileListFrame.dataSignal.connect(self.onNewData)
 
+        # Menu
+        self.setupMenu()
+
         
 
     @QtCore.Slot(np.ndarray, list, list)
     def onNewData(self, data, filelist, sampleStarts):
         self.sv.setYData(data, filelist, sampleStarts) # this calls the plot automatically
+
+    def setupMenu(self):
+        self.menubar = QtWidgets.QMenuBar()
+        self.setMenuBar(self.menubar)
+
+        self.settingsMenu = QtWidgets.QMenu("Settings", self)
+        self.fileFormatSettings = self.settingsMenu.addAction("File Formats")
+        self.fileFormatSettings.triggered.connect(self.openFileFormatSettings)
+        self.menubar.addMenu(self.settingsMenu)
+
+    @QtCore.Slot()
+    def openFileFormatSettings(self):
+
+        print("Open settings here, use QSettings?")
 
 
 
