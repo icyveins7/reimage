@@ -281,11 +281,12 @@ class SignalView(QFrame):
         self.specCoordLabel.setText("Bottom: %f, %f" % (mousePoint.x(), mousePoint.y()))
 
     def onAmpMouseClicked(self, evt):
+        # print(evt[0].button())
         modifiers = QApplication.keyboardModifiers()
         if modifiers == Qt.ControlModifier | Qt.AltModifier:
             print("Reserved for future use")
 
-        if bool(modifiers == Qt.ControlModifier):
+        elif modifiers == Qt.ControlModifier and Qt.MouseButton.LeftButton == evt[0].button():
             mousePoint = self.p1.vb.mapToView(evt[0].pos()) # use mapToView instead of mapSceneToView here, not sure why..
             # Start a dialog for the label
             label, ok = QInputDialog.getText(self,
