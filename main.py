@@ -6,6 +6,7 @@ import sqlite3 as sq
 from signalView import SignalView
 from fileList import FileListFrame
 from fileSettings import FileSettingsDialog
+from signalSettings import SignalSettingsDialog
 
 class ReimageMain(QtWidgets.QMainWindow):
     def __init__(self):
@@ -66,7 +67,16 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.settingsMenu = QtWidgets.QMenu("Settings", self)
         self.fileFormatSettings = self.settingsMenu.addAction("File Formats")
         self.fileFormatSettings.triggered.connect(self.openFileFormatSettings)
+
+        self.signalViewSettings = self.settingsMenu.addAction("Signal Viewer")
+        self.signalViewSettings.triggered.connect(self.openSignalViewSettings)
+
         self.menubar.addMenu(self.settingsMenu)
+
+    @QtCore.Slot()
+    def openSignalViewSettings(self):
+        dialog = SignalSettingsDialog()
+        dialog.exec()
 
     @QtCore.Slot()
     def openFileFormatSettings(self):
