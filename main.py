@@ -39,9 +39,16 @@ class ReimageMain(QtWidgets.QMainWindow):
         # Connections
         self.fileListFrame.dataSignal.connect(self.onNewData)
 
-        # # Application global settings
-        # QtCore.QCoreApplication.setOrganizationName("Seo")
-        # QtCore.QCoreApplication.setApplicationName("ReImage")
+        # Application global settings
+        QtCore.QCoreApplication.setOrganizationName("Seo")
+        QtCore.QCoreApplication.setApplicationName("ReImage")
+        # File Format Settings
+        self.filesettings = {
+            "fmt": "complex int16",
+            "headersize": 0,
+            "usefixedlen": False,
+            "fixedlen": -1
+        }
 
         # Menu
         self.setupMenu()
@@ -63,8 +70,23 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     @QtCore.Slot()
     def openFileFormatSettings(self):
-        dialog = FileSettingsDialog()
+        dialog = FileSettingsDialog(self.filesettings)
+        dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
         dialog.exec()
+
+    @QtCore.Slot(dict)
+    def saveFileFormatSettings(self, newsettings):
+        self.filesettings = newsettings
+        # Set the file list widget attributes
+        formatsToDtype = {
+            'complex int16': np.int16,
+            'complex float32': np.float32,
+            'complex float64': np.float64
+        } # TODO: keep this somewhere common
+        self.fileListFrame.fmt = formatsToDtype[self.filesettings['fmt']]
+        self.fileListFrame.headersize = self.filesettings['headersize']
+        self.fileListFrame.usefixedlen = self.filesettings['usefixedlen']
+        self.fileListFrame.fixedlen = self.filesettings['fixedlen']
         
 
 
