@@ -48,7 +48,7 @@ class ReimageMain(QtWidgets.QMainWindow):
             "headersize": 0,
             "usefixedlen": False,
             "fixedlen": -1
-        }
+        } # TODO: add cached settings instead of defaults, and load from a global place
 
         # Menu
         self.setupMenu()

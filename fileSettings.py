@@ -1,13 +1,14 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QFormLayout, QComboBox, QDialogButtonBox, QCheckBox
 from PySide6.QtCore import Qt, Signal, Slot
 import numpy as np
-import sqlite3 as sq
+# import sqlite3 as sq
 
 class FileSettingsDialog(QDialog):
     filesettingsSignal = Signal(dict)
 
     def __init__(self, filesettings: dict):
         super().__init__()
+        self.setWindowTitle("File Format Settings")
 
         ## Layout
         self.layout = QVBoxLayout()
