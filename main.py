@@ -5,6 +5,7 @@ import sqlite3 as sq
 
 from signalView import SignalView
 from fileList import FileListFrame
+from fileSettings import FileSettingsDialog
 
 class ReimageMain(QtWidgets.QMainWindow):
     def __init__(self):
@@ -38,6 +39,10 @@ class ReimageMain(QtWidgets.QMainWindow):
         # Connections
         self.fileListFrame.dataSignal.connect(self.onNewData)
 
+        # # Application global settings
+        # QtCore.QCoreApplication.setOrganizationName("Seo")
+        # QtCore.QCoreApplication.setApplicationName("ReImage")
+
         # Menu
         self.setupMenu()
 
@@ -58,8 +63,9 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     @QtCore.Slot()
     def openFileFormatSettings(self):
-
-        print("Open settings here, use QSettings?")
+        dialog = FileSettingsDialog()
+        dialog.exec()
+        
 
 
 
