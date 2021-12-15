@@ -100,7 +100,7 @@ class SignalView(QFrame):
         self.freqshift = None
         self.numTaps = None
         self.filtercutoff = None
-        self.dsr = None # TODO: handle DSR affecting fs values
+        self.dsr = None
 
 
     def setDownsampleCache(self):
@@ -154,6 +154,9 @@ class SignalView(QFrame):
 
         if self.dsr is not None:
             self.ydata = self.ydata[::self.dsr]
+            # After performing the downsample, we correct the fs value
+            self.fs = self.fs / self.dsr
+            self.dsr = None # Set it to None so we don't get confused
         
         self.filelist = filelist
         self.sampleStarts = sampleStarts
