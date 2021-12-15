@@ -26,7 +26,6 @@ class SignalView(QFrame):
 
         # Placeholder for xdata
         self.xdata = None
-        self.fs = None
         self.startTime = None
         
         # Placeholder for downsample rates
@@ -94,6 +93,15 @@ class SignalView(QFrame):
 
         self.setLayout(self.layout)
 
+        # DSP Settings
+        self.nperseg = 256
+        self.noverlap = 256/8
+        self.fs = 1
+        self.freqshift = None
+        self.numTaps = None
+        self.filtercutoff = None
+        self.dsr = None
+
 
     def setDownsampleCache(self):
         # Clear existing cache
@@ -127,8 +135,8 @@ class SignalView(QFrame):
 
 
 
-    def setXData(self, fs, startTime=0):
-        self.fs = fs
+    def setXData(self, startTime=0):
+        # self.fs = fs
         self.startTime = startTime
         self.xdata = (np.arange(self.ydata.size) * 1/self.fs) + self.startTime
 
@@ -168,9 +176,11 @@ class SignalView(QFrame):
         self.curDsrIdx = -1 # On init, the maximum dsr is used
             
     def plotSpecgram(self, fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None, auto_transpose=True):
-        self.fs = fs
+        # self.fs = fs
 
-        self.freqs, self.ts, self.sxx = sps.spectrogram(self.ydata, fs, window, nperseg, noverlap, nfft, return_onesided=False)
+        # self.freqs, self.ts, self.sxx = sps.spectrogram(self.ydata, fs, window, nperseg, noverlap, nfft, return_onesided=False)
+        self.freqs, self.ts, self.sxx = sps.spectrogram(
+            self.ydata, self.fs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False)
 
         self.freqs = np.fft.fftshift(self.freqs)
         self.sxx = np.fft.fftshift(self.sxx, axes=0)

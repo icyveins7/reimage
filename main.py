@@ -50,6 +50,16 @@ class ReimageMain(QtWidgets.QMainWindow):
             "usefixedlen": False,
             "fixedlen": -1
         } # TODO: add cached settings instead of defaults, and load from a global place
+        # Signal settings
+        self.signalsettings = {
+            'nperseg': 256,
+            'noverlap': 256/8,
+            'fs': 1,
+            'freqshift': None, 
+            'numTaps': None, 
+            'filtercutoff': None,
+            'dsr': None
+        }
 
         # Menu
         self.setupMenu()
@@ -75,7 +85,8 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     @QtCore.Slot()
     def openSignalViewSettings(self):
-        dialog = SignalSettingsDialog()
+        dialog = SignalSettingsDialog(self.signalsettings)
+        dialog.signalsettingsSignal.connect(self.saveSignalSettings)
         dialog.exec()
 
     @QtCore.Slot()
@@ -83,6 +94,18 @@ class ReimageMain(QtWidgets.QMainWindow):
         dialog = FileSettingsDialog(self.filesettings)
         dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
         dialog.exec()
+
+    @QtCore.Slot(dict)
+    def saveSignalSettings(self, newsettings):
+        self.signalsettings = newsettings
+        # Apply to signal view 
+        self.sv.nperseg = self.signalsettings['nperseg']
+        self.sv.noverlap = self.signalsettings['noverlap']
+        self.sv.fs = self.signalsettings['fs']
+        self.sv.freqshift = self.signalsettings['freqshift']
+        self.sv.numTaps = self.signalsettings['numTaps']
+        self.sv.filtercutoff = self.signalsettings['filtercutoff']
+        self.sv.dsr = self.signalsettings['dsr']
 
     @QtCore.Slot(dict)
     def saveFileFormatSettings(self, newsettings):
