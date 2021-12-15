@@ -100,13 +100,13 @@ class SignalView(QFrame):
         self.freqshift = None
         self.numTaps = None
         self.filtercutoff = None
-        self.dsr = None
+        self.dsr = None # TODO: handle DSR affecting fs values
 
 
     def setDownsampleCache(self):
         # Clear existing cache
         self.dscache = []
-        self.dsrs = []
+        self.dsrs = [] # Note that this is the cached downsample values, unlike self.dsr (the pre-processing value)
         # We cache the original sample rate to use as the bootstrap
         self.dscache.append(np.abs(self.ydata))
         self.dsrs.append(1)
@@ -133,17 +133,28 @@ class SignalView(QFrame):
         # Add the lines
         self.addMarkerLines(loadedsamples, loadedlabels)
 
-
-
-    def setXData(self, startTime=0):
-        # self.fs = fs
-        self.startTime = startTime
-        self.xdata = (np.arange(self.ydata.size) * 1/self.fs) + self.startTime
+    def getTimevec(self, curDSR):
+        return np.arange(0, self.ydata.size, curDSR) / self.fs
 
     def setYData(self, ydata, filelist, sampleStarts):
         self.p1.clear()
         self.spw.clear()
         self.ydata = ydata
+
+        # Apply initial processing
+        if self.freqshift is not None:
+            print("Initial freqshift..")
+            tone = np.exp(1j*2*np.pi*self.freqshift*np.arange(ydata.size)/self.fs)
+            self.ydata = self.ydata * tone
+        
+        if self.numTaps is not None:
+            print("Initial filter..")
+            taps = sps.firwin(self.numTaps, self.filtercutoff/self.fs)
+            self.ydata = sps.lfilter(taps,1,self.ydata)
+
+        if self.dsr is not None:
+            self.ydata = self.ydata[::self.dsr]
+        
         self.filelist = filelist
         self.sampleStarts = sampleStarts
 
@@ -162,17 +173,14 @@ class SignalView(QFrame):
 
     def plotAmpTime(self):
         # Create and save the PlotDataItems as self.p
-        if self.xdata is None:
-            # self.p.plot(np.abs(self.ydata), downsample=100, autoDownsample=True, downsampleMethod='subsample') # TODO: figure out whether these options do anything?
-            self.p = self.p1.plot(np.arange(0,self.ydata.size,self.dsrs[-1]), self.dscache[-1])
-            self.p.setClipToView(True) # the plot function doesn't set the clipToView keyword correctly, but it works on the PlotDataItem returned
-        else:
-            self.p = self.p1.plot(self.xdata, np.abs(self.ydata))
-            self.p.setClipToView(True)
+        timevec = self.getTimevec(self.dsrs[-1])
+        self.p = self.p1.plot(timevec, self.dscache[-1])
+        self.p.setClipToView(True)
+
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
-        viewBufferX = 0.1 * self.ydata.size # TODO: adjust based on xdata as well
-        self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size + viewBufferX) # TODO: adjust based on xdata next time
+        viewBufferX = 0.1 * self.ydata.size / self.fs 
+        self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / self.fs + viewBufferX)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
             
     def plotSpecgram(self, fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None, auto_transpose=True):
@@ -203,8 +211,8 @@ class SignalView(QFrame):
             self.spw.setMouseEnabled(x=True,y=False)
             self.spw.setMenuEnabled(False)
 
-            viewBufferX = 0.1 * self.ydata.size # TODO: adjust based on xdata as well
-            self.spw.setLimits(xMin = -viewBufferX, xMax = self.ydata.size + viewBufferX) # TODO: adjust based on xdata next time
+            viewBufferX = 0.1 * self.ydata.size/self.fs
+            self.spw.setLimits(xMin = -viewBufferX, xMax = self.ydata.size/self.fs + viewBufferX)
 
 
     @Slot()
@@ -263,22 +271,20 @@ class SignalView(QFrame):
         # Count how many points are in range
         numPtsInRange = (xend-xstart)
         targetDSR = 10**(np.floor(np.log10(numPtsInRange)) - 4)
-        # print("curDsr = %d" % (self.dsrs[self.curDsrIdx]))
-        # print("targetDSR = %d" % (targetDSR))
-        # print("%d points in range" % numPtsInRange)
+
         if targetDSR < self.dsrs[self.curDsrIdx]: # If few points, zoom in i.e. lower the DSR
             if len(self.dsrs) + self.curDsrIdx > 0: # But only lower to the DSR of 1
                 self.curDsrIdx = self.curDsrIdx - 1
                 # Set the zoomed data on the PlotDataItem
                 dsr = self.dsrs[self.curDsrIdx]
-                self.p.setData(np.arange(0,self.ydata.size,dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
+                self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
         
         if targetDSR > self.dsrs[self.curDsrIdx]: # If too many points, zoom out i.e. increase the DSR
             if self.curDsrIdx < -1:
                 self.curDsrIdx = self.curDsrIdx + 1
                 # Set the zoomed data on the PlotDataItem
                 dsr = self.dsrs[self.curDsrIdx]
-                self.p.setData(np.arange(0,self.ydata.size,dsr), self.dscache[self.curDsrIdx], clipToView=True)
+                self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True)
 
         # TODO: rightclick 'view all' bug: does not zoom out completely?
 
