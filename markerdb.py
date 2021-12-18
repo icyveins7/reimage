@@ -4,6 +4,12 @@ from PySide6.QtCore import Qt, Signal, Slot, QRectF
 '''
 Database is designed with just one table called 'markers'.
 Columns are 'filepath, samplenumber, label'.
+
+Note that samplenumber here is with respect to a sample rate of 1.
+This is akin to saving (time) * (fs) as the sample rate.
+If markers are added/deleted from the database while the signal viewer
+has a different sample rate (due to settings of fs, dsr) then it should be
+scaled back to the sample rate of 1 (by multiplying with the fs alone) first.
 '''
 
 class MarkerDB:
