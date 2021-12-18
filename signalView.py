@@ -127,14 +127,22 @@ class SignalView(QFrame):
         loadedlabels = []
         for i in range(len(sfilepaths)):
             si = self.filelist.index(sfilepaths[i])
-            loadedsamples.append(samplestarts[i] + self.sampleStarts[si]) # offset by the file samples
+            normalizedSample = (samplestarts[i] + self.sampleStarts[si]) / self.fs  # offset by file
+            print("normalized sample = %f " % (normalizedSample))
+            loadedsamples.append(normalizedSample)
             loadedlabels.append(labels[i])
         
         # Add the lines
         self.addMarkerLines(loadedsamples, loadedlabels)
 
+    def getDisplayedFs(self):
+        # This is usually the fs value used in all functions, other than the preprocessing steps
+        # and the marker values (which are normalised)
+        return self.fs if self.dsr is None else self.fs/self.dsr
+
     def getTimevec(self, curDSR):
-        return np.arange(0, self.ydata.size, curDSR) / self.fs
+        dfs = self.getDisplayedFs()
+        return np.arange(0, self.ydata.size, curDSR) / dfs
 
     def setYData(self, ydata, filelist, sampleStarts):
         self.p1.clear()
@@ -154,9 +162,7 @@ class SignalView(QFrame):
 
         if self.dsr is not None:
             self.ydata = self.ydata[::self.dsr]
-            # After performing the downsample, we correct the fs value
-            self.fs = self.fs / self.dsr
-            self.dsr = None # Set it to None so we don't get confused
+            print("Using displayed fs %d" % (self.getDisplayedFs()))
         
         self.filelist = filelist
         self.sampleStarts = sampleStarts
@@ -182,16 +188,17 @@ class SignalView(QFrame):
 
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
-        viewBufferX = 0.1 * self.ydata.size / self.fs 
-        self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / self.fs + viewBufferX)
+
+        dfs = self.getDisplayedFs()
+        viewBufferX = 0.1 * self.ydata.size / dfs
+        self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
             
-    def plotSpecgram(self, fs=1.0, window=('tukey',0.25), nperseg=None, noverlap=None, nfft=None, auto_transpose=True):
-        # self.fs = fs
-
+    def plotSpecgram(self, window=('tukey',0.25), auto_transpose=True):
+        dfs = self.getDisplayedFs()
         # self.freqs, self.ts, self.sxx = sps.spectrogram(self.ydata, fs, window, nperseg, noverlap, nfft, return_onesided=False)
         self.freqs, self.ts, self.sxx = sps.spectrogram(
-            self.ydata, self.fs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False)
+            self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False)
 
         self.freqs = np.fft.fftshift(self.freqs)
         self.sxx = np.fft.fftshift(self.sxx, axes=0)
@@ -214,8 +221,8 @@ class SignalView(QFrame):
             self.spw.setMouseEnabled(x=True,y=False)
             self.spw.setMenuEnabled(False)
 
-            viewBufferX = 0.1 * self.ydata.size/self.fs
-            self.spw.setLimits(xMin = -viewBufferX, xMax = self.ydata.size/self.fs + viewBufferX)
+            viewBufferX = 0.1 * self.ydata.size/dfs
+            self.spw.setLimits(xMin = -viewBufferX, xMax = self.ydata.size/dfs + viewBufferX)
 
 
     @Slot()
@@ -272,7 +279,8 @@ class SignalView(QFrame):
         self.viewboxlabel.setText("Zoom Downsample Rate: %5d / %5d (Max)" % (self.dsrs[self.curDsrIdx], self.dsrs[-1]))
         
         # Count how many points are in range
-        numPtsInRange = (xend-xstart)
+        dfs = self.getDisplayedFs()
+        numPtsInRange = (xend-xstart) * dfs # Scale by the sample rate
         targetDSR = 10**(np.floor(np.log10(numPtsInRange)) - 4)
 
         if targetDSR < self.dsrs[self.curDsrIdx]: # If few points, zoom in i.e. lower the DSR
@@ -318,7 +326,8 @@ class SignalView(QFrame):
                 print(self.sampleStarts)
                 print(self.filelist)
 
-                dbfilepath, dbsamplestart = self.getFileSamplePair(mousePoint.x())
+                scaled_x = mousePoint.x() * self.fs # Scale to the sample fs, (not displayed fs)
+                dbfilepath, dbsamplestart = self.getFileSamplePair(scaled_x)
 
                 # Check if this marker has been saved before
                 blist = self.markerdb.checkMarkers([dbfilepath], [dbsamplestart])
@@ -364,7 +373,7 @@ class SignalView(QFrame):
             
             if r == QMessageBox.StandardButton.Yes:
                 # Get the file for this marker
-                dbfilepath, dbsamplestart = self.getFileSamplePair(event.p[0])
+                dbfilepath, dbsamplestart = self.getFileSamplePair(event.p[0] * self.fs) # Scale to sample rate (not displayed fs)
                 # Remove from db
                 self.markerdb.delMarkers([dbfilepath], [dbsamplestart])
                 # Remove from the plot
