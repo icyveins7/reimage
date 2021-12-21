@@ -52,20 +52,6 @@ class SignalView(QFrame):
         self.spwproxy = pg.SignalProxy(self.spw.scene().sigMouseMoved, rateLimit=60, slot=self.specMouseMoved)
         self.markerproxy = pg.SignalProxy(self.p1.scene().sigMouseClicked, rateLimit=60, slot=self.onAmpMouseClicked)
 
-        # Create a layout for linear region
-        self.linearRegionInputLayout = QHBoxLayout()
-        self.linearRegionStartEdit = QLineEdit()
-        self.linearRegionEndEdit = QLineEdit()
-        self.linearRegionColon = QLabel(":")
-        self.linearRegionBtn = QPushButton("Add/Remove Time Slice")
-        self.linearRegionBtn.clicked.connect(self.onLinearRegionBtnClicked)
-        self.linearRegionStartEdit.editingFinished.connect(self.onStartEdited)
-        self.linearRegionEndEdit.editingFinished.connect(self.onEndEdited)
-        self.linearRegionInputLayout.addWidget(self.linearRegionStartEdit)
-        self.linearRegionInputLayout.addWidget(self.linearRegionColon)
-        self.linearRegionInputLayout.addWidget(self.linearRegionEndEdit)
-        self.linearRegionInputLayout.addWidget(self.linearRegionBtn)
-
         # Corresponding labels for linear region
         self.linearRegionLabelsLayout = QHBoxLayout()
         self.linearRegionBoundsLabel = QLabel()
@@ -87,7 +73,6 @@ class SignalView(QFrame):
 
         # Create the main layout
         self.layout = QVBoxLayout()
-        self.layout.addLayout(self.linearRegionInputLayout)
         self.layout.addLayout(self.linearRegionLabelsLayout)
         self.layout.addLayout(self.viewboxLabelsLayout)
         self.layout.addWidget(self.glw)
@@ -225,29 +210,6 @@ class SignalView(QFrame):
             viewBufferX = 0.1 * self.ydata.size/dfs
             self.spw.setLimits(xMin = -viewBufferX, xMax = self.ydata.size/dfs + viewBufferX)
 
-
-    @Slot()
-    def onLinearRegionBtnClicked(self):
-        if self.linearRegion is None: # Then make it and add it
-            start = float(self.linearRegionStartEdit.text())
-            end = float(self.linearRegionEndEdit.text())
-
-            # Clear the edits
-            self.linearRegionStartEdit.clear()
-            self.linearRegionEndEdit.clear()
-
-            self.createLinearRegions(start, end)
-
-        else: # Otherwise remove it and delete it
-            self.p1.removeItem(self.linearRegion)
-            self.spw.removeItem(self.specLinearRegion)
-            self.linearRegion = None
-            self.specLinearRegion = None
-            # Reset the text
-            self.linearRegionStartEdit.setText("")
-            self.linearRegionEndEdit.setText("")
-            self.linearRegionBoundsLabel.clear()
-
     @Slot()
     def createLinearRegions(self, start, end):
         if end > start:
@@ -266,6 +228,14 @@ class SignalView(QFrame):
             # Connect to slot for updates as well
             self.specLinearRegion.sigRegionChanged.connect(self.onSpecRegionChanged)
             
+    @Slot()
+    def deleteLinearRegions(self):
+        self.p1.removeItem(self.linearRegion)
+        self.spw.removeItem(self.specLinearRegion)
+        self.linearRegion = None
+        self.specLinearRegion = None
+        # Reset the text
+        self.linearRegionBoundsLabel.clear()
 
     @Slot()
     def onAmpRegionChanged(self):
@@ -281,21 +251,6 @@ class SignalView(QFrame):
         self.linearRegionBoundsLabel.setText("%f : %f" % (region[0], region[1]))
         # Change the other region to match
         self.linearRegion.setRegion(region)
-
-
-    @Slot()
-    def onStartEdited(self):
-        if self.linearRegion is not None:
-            region = self.linearRegion.getRegion()
-            self.linearRegion.setRegion((float(self.linearRegionStartEdit.text()), region[1]))
-            self.linearRegionStartEdit.clear()
-
-    @Slot()
-    def onEndEdited(self):
-        if self.linearRegion is not None:
-            region = self.linearRegion.getRegion()
-            self.linearRegion.setRegion((region[0], float(self.linearRegionEndEdit.text())))
-            self.linearRegionEndEdit.clear()
 
     @Slot()
     def onZoom(self):
@@ -336,9 +291,21 @@ class SignalView(QFrame):
         # print(evt[0].button())
         modifiers = QApplication.keyboardModifiers()
         if modifiers == Qt.ControlModifier | Qt.AltModifier:
-            print("Reserved for future use")
+            # Add Window ie LinearRegion
+            if self.linearRegion is None:
+                mousePoint = self.p1.vb.mapToView(evt[0].pos())
+                start = mousePoint.x()
+                # Get a rough estimate of the current zoom
+                viewrange = self.p1.viewRange()[0]
+                end = start + (viewrange[1] - viewrange[0]) / 10 # Just initialize with roughly 10%
+                # Create the regions
+                self.createLinearRegions(start,end)
+            else:
+                self.deleteLinearRegions()
+
 
         elif modifiers == Qt.ControlModifier and Qt.MouseButton.LeftButton == evt[0].button():
+            # Add Marker
             mousePoint = self.p1.vb.mapToView(evt[0].pos()) # use mapToView instead of mapSceneToView here, not sure why..
             # Start a dialog for the label
             label, ok = QInputDialog.getText(self,
