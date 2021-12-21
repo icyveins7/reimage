@@ -377,7 +377,13 @@ class SignalView(QFrame):
         modifiers = QApplication.keyboardModifiers()
         if bool(modifiers == Qt.ControlModifier): # Going to leave it as control-modifier, in case we want the pyqtgraph default menu back later on
             menu = QMenu()
+            # Menu Entries
             fftAction = menu.addAction("FFT Time Slice")
+            #
+            addSliceAction = menu.addAction("Add/Remove Time Window")
+            # addSliceAction.setShortcut("Ctrl+Alt+Click") # This doesn't work
+            
+            # Start the menu
             action = menu.exec_(self.mapToGlobal(event.pos()))
             if action == fftAction:
                 if self.linearRegion is None: # Use all the data
@@ -389,5 +395,16 @@ class SignalView(QFrame):
                     endIdx = int(region[1])
                     self.fftwin = FFTWindow(self.ydata[startIdx:endIdx], startIdx, endIdx)
                     self.fftwin.show()
-                
 
+            elif action == addSliceAction:
+                if self.linearRegion is None:
+                    mousePoint = self.p1.vb.mapToView(event.pos()) # this is not exact, but doesn't matter
+                    start = mousePoint.x()
+                    # Get a rough estimate of the current zoom
+                    viewrange = self.p1.viewRange()[0]
+                    end = start + (viewrange[1] - viewrange[0]) / 10 # Just initialize with roughly 10%
+                    # Create the regions
+                    self.createLinearRegions(start,end)
+                else:
+                    self.deleteLinearRegions()
+                
