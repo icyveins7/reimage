@@ -73,6 +73,7 @@ class SignalView(QFrame):
 
         # Placeholders for linear regions 
         self.linearRegion = None # TODO: make ctrl-click add it instead of via button?
+        self.specLinearRegion = None # Replicate the region in both
 
         # ViewBox statistics
         self.viewboxLabelsLayout = QHBoxLayout()
@@ -235,28 +236,52 @@ class SignalView(QFrame):
             self.linearRegionStartEdit.clear()
             self.linearRegionEndEdit.clear()
 
-            if end > start:
-                # Then create the region object
-                self.linearRegion = pg.LinearRegionItem(values=(start,end))
-                # Add to the current plots?
-                self.p1.addItem(self.linearRegion)
-                # Connect to slot for updates
-                self.linearRegion.sigRegionChanged.connect(self.onRegionChanged)
-                # Set the initial labels
-                self.linearRegionBoundsLabel.setText("%f : %f" % (start,end))
-        
+            self.createLinearRegions(start, end)
+
         else: # Otherwise remove it and delete it
             self.p1.removeItem(self.linearRegion)
+            self.spw.removeItem(self.specLinearRegion)
             self.linearRegion = None
+            self.specLinearRegion = None
             # Reset the text
             self.linearRegionStartEdit.setText("")
             self.linearRegionEndEdit.setText("")
             self.linearRegionBoundsLabel.clear()
 
     @Slot()
-    def onRegionChanged(self):
+    def createLinearRegions(self, start, end):
+        if end > start:
+            # Then create the region object
+            self.linearRegion = pg.LinearRegionItem(values=(start,end))
+            # Add to the current plots?
+            self.p1.addItem(self.linearRegion)
+            # Connect to slot for updates
+            self.linearRegion.sigRegionChanged.connect(self.onAmpRegionChanged)
+            # Set the initial labels
+            self.linearRegionBoundsLabel.setText("%f : %f" % (start,end))
+
+            # Create a similar region object for the specgram
+            self.specLinearRegion = pg.LinearRegionItem(values=(start,end))
+            self.spw.addItem(self.specLinearRegion)
+            # Connect to slot for updates as well
+            self.specLinearRegion.sigRegionChanged.connect(self.onSpecRegionChanged)
+            
+
+    @Slot()
+    def onAmpRegionChanged(self):
         region = self.linearRegion.getRegion()
         self.linearRegionBoundsLabel.setText("%f : %f" % (region[0], region[1]))
+        # Change the other region to match
+        self.specLinearRegion.setRegion(region)
+
+
+    @Slot()
+    def onSpecRegionChanged(self):
+        region = self.specLinearRegion.getRegion()
+        self.linearRegionBoundsLabel.setText("%f : %f" % (region[0], region[1]))
+        # Change the other region to match
+        self.linearRegion.setRegion(region)
+
 
     @Slot()
     def onStartEdited(self):
