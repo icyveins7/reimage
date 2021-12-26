@@ -5,6 +5,7 @@ import numpy as np
 import scipy.signal as sps
 
 from fftWindow import FFTWindow
+from estBaudWindow import EstimateBaudWindow
 from markerdb import MarkerDB
 
 class SignalView(QFrame):
@@ -378,10 +379,13 @@ class SignalView(QFrame):
         if bool(modifiers == Qt.ControlModifier): # Going to leave it as control-modifier, in case we want the pyqtgraph default menu back later on
             menu = QMenu()
             # Menu Entries
+            # ===
             fftAction = menu.addAction("FFT Time Slice")
-            #
+            # ===
             addSliceAction = menu.addAction("Add/Remove Time Window")
             # addSliceAction.setShortcut("Ctrl+Alt+Click") # This doesn't work
+            # ===
+            estBaudAction = menu.addAction("Estimate Baud Rate (Cyclostationary)")
             
             # Start the menu
             action = menu.exec_(self.mapToGlobal(event.pos()))
@@ -407,4 +411,16 @@ class SignalView(QFrame):
                     self.createLinearRegions(start,end)
                 else:
                     self.deleteLinearRegions()
+
+            elif action == estBaudAction:
+                if self.linearRegion is None: # Use all the data
+                    self.fftwin = EstimateBaudWindow(self.ydata, fs=self.fs)
+                    self.fftwin.show()
+                else: # Slice that region
+                    region = self.linearRegion.getRegion()
+                    startIdx = int(region[0])
+                    endIdx = int(region[1])
+                    self.fftwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, f=self.fs)
+                    self.fftwin.show()
+
                 
