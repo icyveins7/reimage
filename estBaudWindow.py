@@ -40,9 +40,11 @@ class EstimateBaudWindow(QMainWindow):
         self.p = self.glw.addPlot(row=0,col=0)
         if startIdx is not None and endIdx is not None:
             self.p.setLabels(title="Sample %d to %d" % (startIdx, endIdx))
-        self.p.addLegend() # TODO: fix legend not appearing?
+        self.plegend = self.p.addLegend() # TODO: fix legend not appearing?
         self.plt = pg.PlotDataItem() # Original data
-        self.pltf = pg.PlotDataItem() # for the filtered version
+        self.pltf = pg.PlotDataItem(pen='r') # for the filtered version
+        self.plegend.addItem(self.plt, 'Original FFT')
+        self.plegend.addItem(self.pltf, 'Filtered FFT at Baseband')
         self.p.addItem(self.plt)
         self.p.addItem(self.pltf)
         
@@ -82,11 +84,9 @@ class EstimateBaudWindow(QMainWindow):
         self.oglw = pg.GraphicsLayoutWidget()
         self.layout.addWidget(self.oglw)
         self.op = self.oglw.addPlot(row=0,col=0)
-        if startIdx is not None and endIdx is not None:
-            self.op.setLabels(title="Sample %d to %d" % (startIdx, endIdx))
         self.op.addLegend()
         self.oplt = pg.PlotDataItem() # Original data
-        self.opltf = pg.PlotDataItem() # for the filtered version
+        self.opltmarkers = pg.ScatterPlotItem() # For the idx markers
         self.op.addItem(self.oplt)
 
         # Plot the left (initial data fft) side first
@@ -117,17 +117,14 @@ class EstimateBaudWindow(QMainWindow):
     def leftplot(self):
         self.plt.setData(
             np.fft.fftshift(makeFreq(self.datafft.size, self.fs)),
-            np.fft.fftshift(20*np.log10(np.abs(self.datafft))),
-            name='Original FFT'
+            np.fft.fftshift(20*np.log10(np.abs(self.datafft)))
         )
 
         if self.filteredfft is not None:
             print("Plotting filtered fft")
             self.pltf.setData(
                 np.fft.fftshift(makeFreq(self.filteredfft.size, self.fs)),
-                np.fft.fftshift(20*np.log10(np.abs(self.filteredfft))),
-                pen='r',
-                name='Filtered FFT at Baseband'
+                np.fft.fftshift(20*np.log10(np.abs(self.filteredfft)))
             )
 
     @Slot()
@@ -155,5 +152,23 @@ class EstimateBaudWindow(QMainWindow):
         self.leftplot()
 
         # Now run the actual cyclostationary process
-        
+        estBaud, idx1, idx2, Xf, Xfreq = estimateBaud(self.filtered, self.fs)
 
+        # And plot the results on the right
+        self.rightplot(estBaud, idx1, idx2, Xf, Xfreq)
+
+    def rightplot(self, estBaud, idx1, idx2, Xf, Xfreq):
+        self.oplt.setData(
+            Xfreq,
+            np.abs(Xf)
+        )
+
+        # Place markers for the indices used
+        self.opltmarkers.setData(
+            [Xfreq[idx1], Xfreq[idx2]],
+            np.abs([Xf[idx1], Xf[idx2]]),
+            symbol='x'
+        )
+
+        # Set the title to reflect the baud rate estimate
+        self.op.setLabels(title="Est. Baudrate = %f" % (estBaud))

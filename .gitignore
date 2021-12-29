@@ -131,3 +131,4 @@ dmypy.json
 
 # Additional
 *.db
+exampledata/
