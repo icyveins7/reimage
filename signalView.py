@@ -414,13 +414,13 @@ class SignalView(QFrame):
 
             elif action == estBaudAction:
                 if self.linearRegion is None: # Use all the data
-                    self.fftwin = EstimateBaudWindow(self.ydata, fs=self.fs)
-                    self.fftwin.show()
+                    self.baudwin = EstimateBaudWindow(self.ydata, fs=self.fs)
+                    self.baudwin.show()
                 else: # Slice that region
                     region = self.linearRegion.getRegion()
                     startIdx = int(region[0])
                     endIdx = int(region[1])
-                    self.fftwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, f=self.fs)
-                    self.fftwin.show()
+                    self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, f=self.fs)
+                    self.baudwin.show()
 
                 
