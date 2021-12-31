@@ -420,7 +420,7 @@ class SignalView(QFrame):
                     region = self.linearRegion.getRegion()
                     startIdx = int(region[0])
                     endIdx = int(region[1])
-                    self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, f=self.fs)
+                    self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=self.fs)
                     self.baudwin.show()
 
                 
