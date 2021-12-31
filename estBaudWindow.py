@@ -84,10 +84,13 @@ class EstimateBaudWindow(QMainWindow):
         self.oglw = pg.GraphicsLayoutWidget()
         self.layout.addWidget(self.oglw)
         self.op = self.oglw.addPlot(row=0,col=0)
-        self.op.addLegend()
+        self.oplegend = self.op.addLegend()
         self.oplt = pg.PlotDataItem() # Original data
-        self.opltmarkers = pg.ScatterPlotItem() # For the idx markers
+        self.opltmarkers = pg.ScatterPlotItem(symbol='x', pen='r', brush='r') # For the idx markers
+        self.oplegend.addItem(self.oplt, "Output Cyclostationary Spectrum")
+        self.oplegend.addItem(self.opltmarkers, "Peaks Used in Baud Estimation")
         self.op.addItem(self.oplt)
+        self.op.addItem(self.opltmarkers)
 
         # Plot the left (initial data fft) side first
         self.leftplot()
@@ -165,8 +168,8 @@ class EstimateBaudWindow(QMainWindow):
 
         # Place markers for the indices used
         self.opltmarkers.setData(
-            [Xfreq[idx1], Xfreq[idx2]],
-            np.abs([Xf[idx1], Xf[idx2]]),
+            x=[Xfreq[idx1], Xfreq[idx2]],
+            y=np.abs([Xf[idx1], Xf[idx2]]),
             symbol='x'
         )
 
