@@ -395,8 +395,7 @@ class SignalView(QFrame):
                     self.fftwin.show()
                 else: # Slice only that region
                     region = self.linearRegion.getRegion()
-                    startIdx = int(region[0])
-                    endIdx = int(region[1])
+                    startIdx, endIdx = self.convertRegionToIndices(region)
                     self.fftwin = FFTWindow(self.ydata[startIdx:endIdx], startIdx, endIdx)
                     self.fftwin.show()
 
@@ -418,9 +417,17 @@ class SignalView(QFrame):
                     self.baudwin.show()
                 else: # Slice that region
                     region = self.linearRegion.getRegion()
-                    startIdx = int(region[0])
-                    endIdx = int(region[1])
+                    startIdx, endIdx = self.convertRegionToIndices(region)
                     self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=self.fs)
                     self.baudwin.show()
 
-                
+    def convertRegionToIndices(self, region):
+        # First make sure it's clipped to the start/end of the data only
+        rstart = region[0] if region[0] >=0 else 0
+        rend = region[1] if region[1] < self.ydata.size/self.fs else (self.ydata.size-1)/self.fs
+
+        startIdx = int(rstart*self.fs)
+        endIdx = int(rend*self.fs)
+        
+        return startIdx, endIdx
+

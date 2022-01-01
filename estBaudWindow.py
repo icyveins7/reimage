@@ -163,13 +163,13 @@ class EstimateBaudWindow(QMainWindow):
     def rightplot(self, estBaud, idx1, idx2, Xf, Xfreq):
         self.oplt.setData(
             Xfreq,
-            np.abs(Xf)
+            20*np.log10(np.abs(Xf))
         )
 
         # Place markers for the indices used
         self.opltmarkers.setData(
             x=[Xfreq[idx1], Xfreq[idx2]],
-            y=np.abs([Xf[idx1], Xf[idx2]]),
+            y=20*np.log10(np.abs([Xf[idx1], Xf[idx2]])),
             symbol='x'
         )
 
