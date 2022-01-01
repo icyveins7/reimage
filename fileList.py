@@ -71,7 +71,13 @@ class FileListFrame(QFrame):
         r = cur.fetchall()
         r = sorted(r, key=operator.itemgetter(0)) # sort by the index, which is the first value in the tuples
         rpaths = [i[1] for i in r]
-        self.flw.addItems(rpaths)
+        for i in range(len(rpaths)):
+            item = QListWidgetItem(rpaths[i])
+            item.setToolTip("Size: %d bytes" % (os.path.getsize(rpaths[i])))
+            self.flw.addItem(item)
+
+
+        # self.flw.addItems(rpaths) # DEPRECATED
         
     ####################
     def prepareClearBtn(self):
@@ -100,7 +106,11 @@ class FileListFrame(QFrame):
         fileNames, selectedFilter = QFileDialog.getOpenFileNames(self,
             "Open Complex Data Files", ".", "Complex Data Files (*.bin *.dat);;All Files (*)")
         if len(fileNames) > 0: # When cancelled, it returns an empty list
-            self.flw.addItems(fileNames)
+            # self.flw.addItems(fileNames) # DEPRECATED
+            for i in range(len(fileNames)):
+                item = QListWidgetItem(fileNames[i])
+                item.setToolTip("Size: %d bytes" % (os.path.getsize(fileNames[i])))
+                self.flw.addItem(item)
         # Update cache
         self.updateFileListDBCache()
 
@@ -117,7 +127,12 @@ class FileListFrame(QFrame):
         if folderName is not None and len(folderName)>0:
             folderFiles = os.listdir(folderName)
             fileNames = [os.path.join(folderName, i) for i in folderFiles]
-            self.flw.addItems(fileNames)
+            for i in range(len(fileNames)):
+                item = QListWidgetItem(fileNames[i])
+                item.setToolTip("Size: %d bytes" % (os.path.getsize(fileNames[i])))
+                self.flw.addItem(item)
+            
+            # self.flw.addItems(fileNames) # DEPRECATED
         # Update cache
         self.updateFileListDBCache()
     
