@@ -386,7 +386,11 @@ class SignalView(QFrame):
             # addSliceAction.setShortcut("Ctrl+Alt+Click") # This doesn't work
             # ===
             estBaudAction = menu.addAction("Estimate Baud Rate (Cyclostationary)")
-            
+            # ===
+            demodSubmenu = menu.addMenu("Demodulate")
+            pskdemodAction = demodSubmenu.addAction("PSK (TODO)")
+            cpmdemodAction = demodSubmenu.addAction("CPM (TODO)")
+
             # Start the menu
             action = menu.exec_(self.mapToGlobal(event.pos()))
             if action == fftAction:
@@ -421,6 +425,12 @@ class SignalView(QFrame):
                     self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=self.fs)
                     self.baudwin.show()
 
+            elif action == pskdemodAction:
+                print("TODO: PSK DEMODULATION") # TODO
+
+            elif action == cpmdemodAction:
+                print("TODO: CPM DEMODULATION") # TODO
+
     def convertRegionToIndices(self, region):
         # First make sure it's clipped to the start/end of the data only
         rstart = region[0] if region[0] >=0 else 0
@@ -428,6 +438,6 @@ class SignalView(QFrame):
 
         startIdx = int(rstart*self.fs)
         endIdx = int(rend*self.fs)
-        
+
         return startIdx, endIdx
 
