@@ -6,6 +6,7 @@ import scipy.signal as sps
 
 from fftWindow import FFTWindow
 from estBaudWindow import EstimateBaudWindow
+from thresholdWindow import ThresholdWindow
 from markerdb import MarkerDB
 
 class SignalView(QFrame):
@@ -387,6 +388,8 @@ class SignalView(QFrame):
             # ===
             estBaudAction = menu.addAction("Estimate Baud Rate (Cyclostationary)")
             # ===
+            energyDetectAction = menu.addAction("Detect Energy (Thresholding)")
+            # ===
             demodSubmenu = menu.addMenu("Demodulate")
             pskdemodAction = demodSubmenu.addAction("PSK (TODO)")
             cpmdemodAction = demodSubmenu.addAction("CPM (TODO)")
@@ -424,6 +427,10 @@ class SignalView(QFrame):
                     startIdx, endIdx = self.convertRegionToIndices(region)
                     self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=self.fs)
                     self.baudwin.show()
+
+            elif action == energyDetectAction:
+                self.threshwin = ThresholdWindow(self.freqs, self.ts, self.sxx)
+                self.threshwin.show()
 
             elif action == pskdemodAction:
                 print("TODO: PSK DEMODULATION") # TODO
