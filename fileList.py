@@ -73,12 +73,13 @@ class FileListFrame(QFrame):
         rpaths = [i[1] for i in r]
         for i in range(len(rpaths)):
             item = QListWidgetItem(rpaths[i])
-            item.setToolTip("Size: %d bytes" % (os.path.getsize(rpaths[i])))
-            self.flw.addItem(item)
+            if os.path.exists(rpaths[i]): # If file still exists
+                item.setToolTip("Size: %d bytes" % (os.path.getsize(rpaths[i])))
+                self.flw.addItem(item)
 
+        # Update the cache again (in case some files were deleted)
+        self.updateFileListDBCache()
 
-        # self.flw.addItems(rpaths) # DEPRECATED
-        
     ####################
     def prepareClearBtn(self):
         self.clearBtn = QPushButton("Clear")
