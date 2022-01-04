@@ -27,12 +27,15 @@ class ThresholdWindow(QMainWindow):
         # Main layout
         widget = QWidget()
         self.layout = QHBoxLayout()
+        self.plotLayout = QHBoxLayout()
+        self.plotLayout.setSpacing(0)
         widget.setLayout(self.layout)
         self.setCentralWidget(widget)
+        self.layout.addLayout(self.plotLayout)
 
         # Add the plot widget
         self.glw = pg.GraphicsLayoutWidget()
-        self.layout.addWidget(self.glw)
+        self.plotLayout.addWidget(self.glw)
         self.p = self.glw.addPlot(row=0,col=0)
         self.plt = pg.ImageItem()
         self.p.addItem(self.plt)
@@ -45,24 +48,27 @@ class ThresholdWindow(QMainWindow):
                 self.freqs[0]-self.fgap/2, self.tspan+self.tgap, self.fspan+self.fgap
             )
         ) # Proper setting of the box boundaries
+        viewBufferX = 0.1 * self.ts[-1]
+        self.p.setLimits(xMin = -viewBufferX, xMax = self.ts[-1] + viewBufferX)
+        
+        # Make another plot for the histogram of powers
+        self.hglw = pg.HistogramLUTWidget(image=self.plt)
+        self.plotLayout.addWidget(self.hglw)
+
+        # Set colours (after creating HistogramLUT, otherwise it resets colour)
         cm2use = pg.colormap.getFromMatplotlib('viridis')
         self.plt.setLookupTable(cm2use.getLookupTable())
         self.p.setMouseEnabled(x=True,y=False)
         self.p.setMenuEnabled(False)
 
-        viewBufferX = 0.1 * self.ts[-1]
-        self.p.setLimits(xMin = -viewBufferX, xMax = self.ts[-1] + viewBufferX)
-        
-        # Make another plot for the histogram of powers
-        self.hglw = pg.GraphicsLayoutWidget()
-        self.layout.addWidget(self.hglw)
-
-        self.histoplt = pg.HistogramLUTItem()
-        self.histoplt.setImageItem(self.plt)
-        self.hglw.addItem(self.histoplt)
-
         # Create the options
         self.optLayout = QFormLayout()
         self.runBtn = QPushButton("Run")
+        self.runBtn.clicked.connect(self.run)
         self.optLayout.addWidget(self.runBtn)
         self.layout.addLayout(self.optLayout)
+
+    @Slot()
+    def onRun(self):
+        print("TODO")
+
