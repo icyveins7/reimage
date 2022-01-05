@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QComboBox, QFormLayout
-from PySide6.QtWidgets import QPushButton
+from PySide6.QtWidgets import QPushButton, QRadioButton, QButtonGroup, QGroupBox
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
@@ -54,21 +54,47 @@ class ThresholdWindow(QMainWindow):
         # Make another plot for the histogram of powers
         self.hglw = pg.HistogramLUTWidget(image=self.plt)
         self.plotLayout.addWidget(self.hglw)
+        # Manually make the lower line non-adjustable, and the region non-draggable
+        for region in self.hglw.item.regions:
+            region.setMovable(False)
+            region.lines[1].setMovable(True) # Only allow upper line to move
+        # Then fix the limits of viewbox
+        self.hglw.item.vb.setMouseEnabled(x=False, y=False) 
+        self.hglw.item.vb.setMaximumHeight(self.hglw.item.getLevels()[1]*1.1) # TODO: this doesn't stop the y-axis extending when dragging the region..
 
         # Set colours (after creating HistogramLUT, otherwise it resets colour)
         cm2use = pg.colormap.getFromMatplotlib('viridis')
         self.plt.setLookupTable(cm2use.getLookupTable())
         self.p.setMouseEnabled(x=True,y=False)
         self.p.setMenuEnabled(False)
+        self.hglw.gradient.loadPreset("viridis")
 
         # Create the options
-        self.optLayout = QFormLayout()
-        self.runBtn = QPushButton("Run")
-        self.runBtn.clicked.connect(self.run)
-        self.optLayout.addWidget(self.runBtn)
+        self.optLayout = QVBoxLayout()
         self.layout.addLayout(self.optLayout)
+
+        self.typeBtnGroup = QButtonGroup()
+        self.oneSigBtn = QRadioButton("Only One Signal")
+        self.oneSigBtn.setChecked(True)
+        self.manySigBtn = QRadioButton("Possibly Many Signals")
+        self.typeBtnGroup.addButton(self.oneSigBtn)
+        self.typeBtnGroup.addButton(self.manySigBtn)
+        self.optLayout.addWidget(self.oneSigBtn)
+        self.optLayout.addWidget(self.manySigBtn)
+
+        self.formLayout = QFormLayout()
+        self.runBtn = QPushButton("Run")
+        self.runBtn.clicked.connect(self.onRun)
+        self.formLayout.addWidget(self.runBtn)
+        self.optLayout.addLayout(self.formLayout)
 
     @Slot()
     def onRun(self):
+        # Get the histogram LUT values
+        histoItem = self.hglw.item
+        histlvls = histoItem.getLevels()
+        print(histlvls)
+
+
         print("TODO")
 
