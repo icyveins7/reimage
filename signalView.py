@@ -206,11 +206,14 @@ class SignalView(QFrame):
             self.sp.setLookupTable(cm2use.getLookupTable())
             
             self.spw.addItem(self.sp) # Must add it back because clears are done in setYData
-            self.spw.setMouseEnabled(x=True,y=False)
+            # self.spw.setMouseEnabled(x=True,y=False)
             self.spw.setMenuEnabled(False)
 
             viewBufferX = 0.1 * self.ydata.size/dfs
-            self.spw.setLimits(xMin = -viewBufferX, xMax = self.ydata.size/dfs + viewBufferX)
+            viewBufferY = 0.1 * fspan
+            self.spw.setLimits(
+                xMin = -viewBufferX, xMax = self.ydata.size/dfs + viewBufferX, 
+                yMin = self.freqs[0] - viewBufferY, yMax = self.freqs[-1] + viewBufferY)
 
     @Slot()
     def createLinearRegions(self, start, end):
