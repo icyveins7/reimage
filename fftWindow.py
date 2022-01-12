@@ -4,12 +4,15 @@ import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
 
+from dsp import makeFreq
+
 class FFTWindow(QMainWindow):
-    def __init__(self, slicedData=None, startIdx=None, endIdx=None):
+    def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
         super().__init__()
 
         # Attaching data
         self.slicedData = slicedData
+        self.fs = fs
 
         # Aesthetics..
         self.setWindowTitle("FFT Time Slice")
@@ -41,7 +44,7 @@ class FFTWindow(QMainWindow):
 
     def setupFFTDropdown(self):
         self.fftlenDropdown = QComboBox()
-        self.fftlenDropdown.addItems([str(i) for i in [256,512,1024,2048,4096,8192,16384,32768,65536]])
+        self.fftlenDropdown.addItems([str(i) for i in [1024,2048,4096,8192,16384,32768,65536]])
         self.fftlenLayout.addWidget(self.fftlenDropdown)
         self.fftlenDropdown.activated.connect(self.on_fftlen_selected)
 
@@ -52,4 +55,6 @@ class FFTWindow(QMainWindow):
 
     def plot(self):
         f = np.fft.fft(self.slicedData, int(self.fftlenDropdown.currentText()))
-        self.plt.setData(20*np.log10(np.abs(np.fft.fftshift(f))))
+        self.plt.setData(
+            x=np.fft.fftshift(makeFreq(int(self.fftlenDropdown.currentText()), self.fs)),
+            y=20*np.log10(np.abs(np.fft.fftshift(f))))

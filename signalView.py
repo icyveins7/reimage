@@ -398,12 +398,12 @@ class SignalView(QFrame):
             action = menu.exec_(self.mapToGlobal(event.pos()))
             if action == fftAction:
                 if self.linearRegion is None: # Use all the data
-                    self.fftwin = FFTWindow(self.ydata)
+                    self.fftwin = FFTWindow(self.ydata, fs=self.fs)
                     self.fftwin.show()
                 else: # Slice only that region
                     region = self.linearRegion.getRegion()
                     startIdx, endIdx = self.convertRegionToIndices(region)
-                    self.fftwin = FFTWindow(self.ydata[startIdx:endIdx], startIdx, endIdx)
+                    self.fftwin = FFTWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, self.fs)
                     self.fftwin.show()
 
             elif action == addSliceAction:
