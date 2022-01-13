@@ -83,6 +83,7 @@ class SignalSettingsDialog(QDialog):
         nperseg = int(txt)
         self.specNoverlapDropdown.setRange(0, nperseg-1)
         self.specNoverlapLabel.setText("Spectrogram Overlap (samples) [default: %d]" % (nperseg/8))
+        self.specNoverlapDropdown.setValue(nperseg/8)
 
     def accept(self):
         newsettings = {
