@@ -7,8 +7,8 @@ import scipy.signal as sps
 
 
 class ThresholdWindow(QMainWindow):
-    def __init__(self, freqs, ts, sxx):
-        super().__init__()
+    def __init__(self, freqs, ts, sxx, parent=None):
+        super().__init__(parent)
 
         # Attaching specgram data
         self.freqs = freqs
@@ -39,6 +39,8 @@ class ThresholdWindow(QMainWindow):
         self.p = self.glw.addPlot(row=0,col=0)
         self.plt = pg.ImageItem()
         self.p.addItem(self.plt)
+        self.scatter = pg.ScatterPlotItem(pen='r', brush='r')
+        self.p.addItem(self.scatter)
 
         # Initialize with the same spectrogram immediately
         self.plt.setImage(self.sxx)
@@ -64,6 +66,7 @@ class ThresholdWindow(QMainWindow):
 
         # Set colours (after creating HistogramLUT, otherwise it resets colour)
         cm2use = pg.colormap.getFromMatplotlib('viridis')
+        print(cm2use)
         self.plt.setLookupTable(cm2use.getLookupTable())
         self.p.setMouseEnabled(x=True,y=False)
         self.p.setMenuEnabled(False)
@@ -94,6 +97,21 @@ class ThresholdWindow(QMainWindow):
         histoItem = self.hglw.item
         histlvls = histoItem.getLevels()
         print(histlvls)
+
+        # Mark everything in range (above the upper cutoff)
+        idx = np.argwhere(self.sxx > histlvls[1])
+        xidx = idx[:,0]
+        yidx = idx[:,1]
+        tmarks = self.ts[xidx]
+        ymarks = self.freqs[yidx]
+
+        self.scatter.setData(x=tmarks, y=ymarks) # TODO: modify so that this shows on drag of the LUT instead
+
+        if self.oneSigBtn.isChecked():
+            print("Boxing with one sig only")
+
+        elif self.manySigBtn.isChecked():
+            print("Boxing with many sigs")
 
 
         print("TODO")

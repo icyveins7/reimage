@@ -162,8 +162,8 @@ class SignalView(QFrame):
         self.plotSpecgram()
 
         # Equalize the widths of the y-axis?
-        self.p1.getAxis('left').setWidth(30) # Hardcoded for now
-        self.spw.getAxis('left').setWidth(30) # TODO: evaluate maximum y values in both graphs, then set an appropriate value
+        self.p1.getAxis('left').setWidth(60) # Hardcoded for now
+        self.spw.getAxis('left').setWidth(60) # TODO: evaluate maximum y values in both graphs, then set an appropriate value
 
         # Link axes
         self.p1.setXLink(self.spw)
@@ -432,7 +432,7 @@ class SignalView(QFrame):
                     self.baudwin.show()
 
             elif action == energyDetectAction:
-                self.threshwin = ThresholdWindow(self.freqs, self.ts, self.sxx)
+                self.threshwin = ThresholdWindow(self.freqs, self.ts, self.sxx, self)
                 self.threshwin.show()
 
             elif action == pskdemodAction:
