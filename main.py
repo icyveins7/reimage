@@ -7,6 +7,7 @@ from signalView import SignalView
 from fileList import FileListFrame
 from fileSettings import FileSettingsDialog
 from signalSettings import SignalSettingsDialog
+from predetections import PredetectAmpDialog
 
 class ReimageMain(QtWidgets.QMainWindow):
     def __init__(self):
@@ -82,6 +83,18 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.signalViewSettings.triggered.connect(self.openSignalViewSettings)
 
         self.menubar.addMenu(self.settingsMenu)
+        # ===========
+        self.predetectMenu = QtWidgets.QMenu("Predetect", self)
+        self.predetectAmp = self.predetectMenu.addAction("Via Amplitude")
+        self.predetectAmp.triggered.connect(self.openPredetectAmp)
+
+        self.menubar.addMenu(self.predetectMenu)
+
+    @QtCore.Slot()
+    def openPredetectAmp(self):
+        dialog = PredetectAmpDialog()
+        dialog.exec()
+
 
     @QtCore.Slot()
     def openSignalViewSettings(self):
