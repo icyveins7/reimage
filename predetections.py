@@ -1,7 +1,9 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, QFormLayout, QComboBox, QDialogButtonBox, QCheckBox
-from PySide6.QtWidgets import QLabel, QRadioButton, QGroupBox
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtWidgets import QLabel, QRadioButton, QGroupBox, QProgressDialog
+from PySide6.QtCore import Qt, Signal, Slot, QThread, QObject
 import numpy as np
+
+import time
 
 class PredetectAmpDialog(QDialog):
     predetectAmpSignal = Signal(dict)
@@ -55,9 +57,43 @@ class PredetectAmpDialog(QDialog):
         }
         self.predetectAmpSignal.emit(options)
 
+        # Launch a thread?
+        worker = PredetectAmpWorker([], options)
+        worker.resultReady.connect(self.handleResults)
+        worker.finished.connect(worker.deleteLater)
+        worker.start()
+
+        # Launch a progress dialog
+        progress = QProgressDialog(
+            "Running predetection on files",
+            "",
+            0, 5, parent=self)
+        worker.progressNow.connect(progress.setValue)
+
         super().accept()
 
     @Slot(str)
     def displayNewSNR(self, s: str):
         if len(s) > 0:
             self.signalSNRdb.setText(str(10*np.log10(float(s))))
+
+    @Slot(list)
+    def handleResults(results: list):
+        print("TODO: handle results")
+
+class PredetectAmpWorker(QThread):
+    resultReady = Signal(list)
+    progressNow = Signal(int)
+
+    def __init__(self, filelist: list, options: dict, parent=None):
+        super().__init__(parent)
+
+        self.filelist = filelist
+        self.options = options
+
+    def run(self):
+        for i in range(5):
+            time.sleep(1)
+            self.progressNow.emit(i+1)
+
+        self.resultReady.emit([])
