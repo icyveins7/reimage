@@ -52,6 +52,10 @@ class FileListFrame(QFrame):
         self.fixedlen = -1
 
     ####################
+    def getCurrentFilelist(self):
+        return [self.flw.item(i).text() for i in range(self.flw.count())]
+
+    ####################
     def initFileListDBCache(self):
         cur = self.db.cursor()
         cur.execute("create table if not exists filelistcache(idx INTEGER primary key, path TEXT NOT NULL UNIQUE);")
