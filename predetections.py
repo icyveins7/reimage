@@ -47,7 +47,7 @@ class PredetectAmpDialog(QDialog):
         self.noiseGroupBox.setLayout(self.noiseLayout)
         self.formlayout.addRow("Noise Estimation Method", self.noiseGroupBox)
         # Signal
-        self.signalSNR = QLineEdit("2")
+        self.signalSNR = QLineEdit("10")
         self.formlayout.addRow("Signal Amplitude Ratio (Linear)", self.signalSNR)
         self.signalSNRdb = QLineEdit()
         self.signalSNRdb.setEnabled(False)
@@ -65,18 +65,19 @@ class PredetectAmpDialog(QDialog):
 
 
         # Launch a thread?
-        worker = PredetectAmpWorker(self.filelist, options)
-        worker.resultReady.connect(self.handleResults)
-        worker.finished.connect(worker.deleteLater)
-        worker.start()
+        self.worker = PredetectAmpWorker(self.filelist, options, parent=self)
+        self.worker.resultReady.connect(self.handleResults)
+        # self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.start()
 
         # Launch a progress dialog
         progress = QProgressDialog(
             "Running predetection on files",
             None,
             0, len(self.filelist), parent=self)
-        worker.progressNow.connect(progress.setValue)
+        self.worker.progressNow.connect(progress.setValue)
         progress.exec() # exec at the end, this will close along with the worker, ensuring no segfaults
+        # TODO: known bug with qt.qpa.xcb BadWindow error in console, but nothing is wrong?
 
         super().accept()
 
@@ -86,10 +87,11 @@ class PredetectAmpDialog(QDialog):
             self.signalSNRdb.setText(str(10*np.log10(float(s))))
 
     @Slot(list)
-    def handleResults(results: list):
+    def handleResults(self, results):
         print(results)
-        print("TODO: handle results")
+        self.predetectAmpSignal.emit(results)
 
+# =================================
 class PredetectAmpWorker(QThread):
     resultReady = Signal(list)
     progressNow = Signal(int)
@@ -101,11 +103,11 @@ class PredetectAmpWorker(QThread):
         self.options = options
 
     def run(self):
-        results = [False for i in range(len(self.filelist))]
+        self.results = [False for i in range(len(self.filelist))]
 
         for i in range(len(self.filelist)):
             # Open the file
-            data = np.fromfile(self.filelist[i]) # TODO: get the file settings
+            data = np.fromfile(self.filelist[i], dtype=np.int16) # TODO: get the file settings
             data = data.astype(np.float32).view(np.complex64)
             absdata = np.abs(data)
 
@@ -118,12 +120,8 @@ class PredetectAmpWorker(QThread):
 
             # Detect signal presence
             found = np.any(absdata > (noisefloor * self.options['snr']))
-            # results.append(found)
-            results[i] = found
-
-            time.sleep(0.1)
+            self.results[i] = found
 
             self.progressNow.emit(i+1)
             
-        print(results)
-        self.resultReady.emit(results)
+        self.resultReady.emit(self.results)

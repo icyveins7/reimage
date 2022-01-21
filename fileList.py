@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtGui import QColor, QBrush
 import os
 import numpy as np
 import sqlite3 as sq
@@ -54,6 +55,15 @@ class FileListFrame(QFrame):
     ####################
     def getCurrentFilelist(self):
         return [self.flw.item(i).text() for i in range(self.flw.count())]
+
+    @Slot(list)
+    def highlightFiles(self, bools: list):
+        for i in range(self.flw.count()):
+            if bools[i]:
+                self.flw.item(i).setForeground(Qt.red)
+
+            else:
+                self.flw.item(i).setForeground(Qt.black)
 
     ####################
     def initFileListDBCache(self):

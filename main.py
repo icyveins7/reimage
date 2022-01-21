@@ -93,6 +93,7 @@ class ReimageMain(QtWidgets.QMainWindow):
     @QtCore.Slot()
     def openPredetectAmp(self):
         dialog = PredetectAmpDialog(self.fileListFrame.getCurrentFilelist())
+        dialog.predetectAmpSignal.connect(self.fileListFrame.highlightFiles)
         dialog.exec()
 
 
