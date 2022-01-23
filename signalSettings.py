@@ -32,12 +32,12 @@ class SignalSettingsDialog(QDialog):
 
         # Specgram Noverlap
         nperseg = int(self.specNpersegDropdown.currentText())
-        self.specNoverlapDropdown = QSpinBox()
-        self.specNoverlapDropdown.setValue(signalsettings['noverlap'])
-        self.specNoverlapDropdown.setRange(0, nperseg-1)
+        self.specNoverlapSpinbox = QSpinBox()
+        self.specNoverlapSpinbox.setRange(0, nperseg-1)
+        self.specNoverlapSpinbox.setValue(signalsettings['noverlap'])
         self.specNpersegDropdown.currentTextChanged.connect(self.onNpersegChanged)
         self.specNoverlapLabel = QLabel("Spectrogram Overlap (samples) [default: %d]" % (nperseg/8) )
-        self.formlayout.addRow(self.specNoverlapLabel, self.specNoverlapDropdown)
+        self.formlayout.addRow(self.specNoverlapLabel, self.specNoverlapSpinbox)
 
         # Sample Rate
         self.fsEdit = QLineEdit(str(signalsettings['fs']))
@@ -81,14 +81,14 @@ class SignalSettingsDialog(QDialog):
     def onNpersegChanged(self, txt: str):
         # We edit the Noverlapdropdown
         nperseg = int(txt)
-        self.specNoverlapDropdown.setRange(0, nperseg-1)
+        self.specNoverlapSpinbox.setRange(0, nperseg-1)
         self.specNoverlapLabel.setText("Spectrogram Overlap (samples) [default: %d]" % (nperseg/8))
-        self.specNoverlapDropdown.setValue(nperseg/8)
+        self.specNoverlapSpinbox.setValue(nperseg/8)
 
     def accept(self):
         newsettings = {
             'nperseg': int(self.specNpersegDropdown.currentText()),
-            'noverlap': int(self.specNoverlapDropdown.text()),
+            'noverlap': self.specNoverlapSpinbox.value(),
             'fs': int(self.fsEdit.text()),
             'freqshift': float(self.freqshiftEdit.text()) if self.freqshiftCheckbox.isChecked() else None,
             'numTaps': int(self.numTapsDropdown.currentText()) if self.filterCheckbox.isChecked() else None,
