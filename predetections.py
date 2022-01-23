@@ -8,12 +8,13 @@ import time
 class PredetectAmpDialog(QDialog):
     predetectAmpSignal = Signal(list)
 
-    def __init__(self, filelist: list, parent=None):
+    def __init__(self, filelist: list, filesettings: dict, parent=None):
 
         super().__init__()
         self.setWindowTitle("Predetect via Amplitude")
 
         self.filelist = filelist
+        self.filesettings = filesettings
         print(self.filelist)
 
         ## Layout
