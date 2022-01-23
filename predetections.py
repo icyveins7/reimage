@@ -34,7 +34,19 @@ class PredetectAmpDialog(QDialog):
         buttonBox.rejected.connect(self.reject)
         self.layout.addWidget(buttonBox)
 
-        ## Fill in the options
+        ## Fill in both modes
+        self.ratioMode = QRadioButton("Ratio")
+        self.ratioMode.setChecked(True)
+        self.thresholdMode = QRadioButton("Threshold")
+        self.modeBox = QGroupBox()
+        self.modeBox.setStyleSheet("border: 0px;")
+        self.modeLayout = QHBoxLayout()
+        self.modeLayout.addWidget(self.ratioMode)
+        self.modeLayout.addWidget(self.thresholdMode)
+        self.modeBox.setLayout(self.modeLayout)
+        self.formlayout.addRow("Detect via minimum", self.modeBox)
+
+        ## Fill in the options for Ratio
         # Noise
         self.useMeanNoise = QRadioButton("Mean (fast)")
         self.useMeanNoise.setChecked(True)
@@ -55,14 +67,28 @@ class PredetectAmpDialog(QDialog):
         self.displayNewSNR(self.signalSNR.text())
         self.formlayout.addRow("Signal Amplitude Ratio (dB)", self.signalSNRdb)
 
+        ## Fill in the options for Threshold
+        # Level
+        self.minThresholdEdit = QLineEdit()
+        self.minThresholdEdit.setEnabled(False) # Default to ratio mode
+        self.formlayout.addRow("Signal Minimum Threshold", self.minThresholdEdit)
+
+        ## Connect the modes to the widgets
+        self.ratioMode.toggled.connect(self.noiseGroupBox.setEnabled)
+        self.ratioMode.toggled.connect(self.signalSNR.setEnabled)
+
+        self.thresholdMode.toggled.connect(self.minThresholdEdit.setEnabled)
+
 
     def accept(self):
         options = {
+            "ratioMode": self.ratioMode.isChecked(),
+            "thresholdMode": self.thresholdMode.isChecked(),
             "meanNoise": self.useMeanNoise.isChecked(),
             "medianNoise": self.useMedianNoise.isChecked(),
-            "snr": float(self.signalSNR.text())
+            "snr": float(self.signalSNR.text()),
+            "threshold": float(self.minThresholdEdit.text())
         }
-
 
         # Launch a thread?
         self.worker = PredetectAmpWorker(self.filelist, options, parent=self)
@@ -105,23 +131,39 @@ class PredetectAmpWorker(QThread):
     def run(self):
         self.results = [False for i in range(len(self.filelist))]
 
-        for i in range(len(self.filelist)):
-            # Open the file
-            data = np.fromfile(self.filelist[i], dtype=np.int16) # TODO: get the file settings
-            data = data.astype(np.float32).view(np.complex64)
-            absdata = np.abs(data)
+        if self.options['ratioMode']:
+            for i in range(len(self.filelist)):
+                # Open the file
+                data = np.fromfile(self.filelist[i], dtype=np.int16) # TODO: get the file settings
+                data = data.astype(np.float32).view(np.complex64)
+                absdata = np.abs(data)
 
-            # Noise floor determination
-            if self.options['meanNoise']:
-                noisefloor = np.mean(absdata)
+                # Noise floor determination
+                if self.options['meanNoise']:
+                    noisefloor = np.mean(absdata)
 
-            elif self.options['medianNoise']:
-                noisefloor = np.median(absdata)
+                elif self.options['medianNoise']:
+                    noisefloor = np.median(absdata)
 
-            # Detect signal presence
-            found = np.any(absdata > (noisefloor * self.options['snr']))
-            self.results[i] = found
+                # Detect signal presence
+                found = np.any(absdata > (noisefloor * self.options['snr']))
+                self.results[i] = found
 
-            self.progressNow.emit(i+1)
-            
-        self.resultReady.emit(self.results)
+                self.progressNow.emit(i+1)
+                
+            self.resultReady.emit(self.results)
+
+        elif self.options['thresholdMode']:
+            for i in range(len(self.filelist)):
+                # Open the file
+                data = np.fromfile(self.filelist[i], dtype=np.int16) # TODO: get the file settings
+                data = data.astype(np.float32).view(np.complex64)
+                absdata = np.abs(data)
+
+                # Detect signal presence
+                found = np.any(absdata > self.options['threshold'])
+                self.results[i] = found
+
+                self.progressNow.emit(i+1)
+                
+            self.resultReady.emit(self.results)
