@@ -26,6 +26,17 @@ class FileListFrame(QFrame):
         self.flw.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.flw.setDragEnabled(True)
         self.flw.setSortingEnabled(True)
+
+        # Create the ordering list widget
+        self.ow = QListWidget()
+        self.ow.setFixedWidth(30)
+        # TODO: complete this ordering list
+        
+        # Need a horizontal layout for the two lists
+        self.hlayout = QHBoxLayout()
+        self.hlayout.setSpacing(0)
+        self.hlayout.addWidget(self.flw)
+        self.hlayout.addWidget(self.ow)
         
         # Sublayout for buttons
         self.btnLayout = QHBoxLayout() # TODO: change layout max width?
@@ -38,7 +49,8 @@ class FileListFrame(QFrame):
         # Create the main layout
         self.layout = QVBoxLayout()
         self.layout.addLayout(self.btnLayout) # Buttons at the top
-        self.layout.addWidget(self.flw) # List below it
+        self.layout.addLayout(self.hlayout)
+        # self.layout.addWidget(self.flw) # List below it
         self.setLayout(self.layout)
 
         # Initialize database for the filelist cache
