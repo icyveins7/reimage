@@ -92,8 +92,9 @@ class PredetectAmpDialog(QDialog):
         }
 
         # Launch a thread?
-        self.worker = PredetectAmpWorker(self.filelist, options, parent=self)
-        self.worker.resultReady.connect(self.handleResults)
+        results = [False for i in range(len(self.filelist))]
+        self.worker = PredetectAmpWorker(self.filelist, options, results, parent=self)
+        # self.worker.resultReady.connect(self.handleResults)
         # self.worker.finished.connect(self.worker.deleteLater)
         self.worker.start()
 
@@ -105,6 +106,8 @@ class PredetectAmpDialog(QDialog):
         self.worker.progressNow.connect(progress.setValue)
         progress.exec() # exec at the end, this will close along with the worker, ensuring no segfaults
         # TODO: known bug with qt.qpa.xcb BadWindow error in console, but nothing is wrong?
+
+        self.handleResults(results)
 
         super().accept()
 
@@ -123,14 +126,14 @@ class PredetectAmpWorker(QThread):
     resultReady = Signal(list)
     progressNow = Signal(int)
 
-    def __init__(self, filelist: list, options: dict, parent=None):
+    def __init__(self, filelist: list, options: dict, results: list, parent=None):
         super().__init__(parent)
 
         self.filelist = filelist
         self.options = options
+        self.results = results
 
     def run(self):
-        self.results = [False for i in range(len(self.filelist))]
 
         if self.options['ratioMode']:
             for i in range(len(self.filelist)):
@@ -152,7 +155,7 @@ class PredetectAmpWorker(QThread):
 
                 self.progressNow.emit(i+1)
                 
-            self.resultReady.emit(self.results)
+            # self.resultReady.emit(self.results)
 
         elif self.options['thresholdMode']:
             for i in range(len(self.filelist)):
@@ -167,4 +170,4 @@ class PredetectAmpWorker(QThread):
 
                 self.progressNow.emit(i+1)
                 
-            self.resultReady.emit(self.results)
+            # self.resultReady.emit(self.results)
