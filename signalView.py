@@ -181,6 +181,7 @@ class SignalView(QFrame):
         viewBufferX = 0.1 * self.ydata.size / dfs
         self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
+        self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
             
     def plotSpecgram(self, window=('tukey',0.25), auto_transpose=True):
         dfs = self.getDisplayedFs()
@@ -214,6 +215,7 @@ class SignalView(QFrame):
             self.spw.setLimits(
                 xMin = -viewBufferX, xMax = self.ydata.size/dfs + viewBufferX, 
                 yMin = self.freqs[0] - viewBufferY, yMax = self.freqs[-1] + viewBufferY)
+            self.spw.setYRange(self.freqs[0] - viewBufferY, self.freqs[-1] + viewBufferY) # Set to zoomed out by default
 
     @Slot()
     def createLinearRegions(self, start, end):
