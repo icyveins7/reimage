@@ -142,6 +142,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.fileListFrame.headersize = self.filesettings['headersize']
         self.fileListFrame.usefixedlen = self.filesettings['usefixedlen']
         self.fileListFrame.fixedlen = self.filesettings['fixedlen']
+        self.fileListFrame.invSpec = self.filesettings['invSpec']
         
 
 

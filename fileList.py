@@ -67,6 +67,7 @@ class FileListFrame(QFrame):
         self.headersize = 0
         self.usefixedlen = False
         self.fixedlen = -1
+        self.invSpec = False
 
     ####################
     def getCurrentFilelist(self):
@@ -201,6 +202,8 @@ class FileListFrame(QFrame):
         for i in range(len(filepaths)):
             filepath = filepaths[i]
             d = np.fromfile(filepath, dtype=self.fmt, count=cnt*2, offset=self.headersize) # x2 for complex samples
+            if self.invSpec:
+                d = d.conj()
             data.append(d)
             sampleStarts.append(int(d.size/2 + sampleStarts[-1]))
             # Put the number next to each row index

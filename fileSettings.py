@@ -47,12 +47,17 @@ class FileSettingsDialog(QDialog):
         self.formlayout.addRow("Use Fixed Length Per File", self.fixedlenCheckbox)
         self.formlayout.addRow("Data Length Per File (samples)", self.fixedlenEdit)
 
+        # Inverted Spectrum
+        self.invertspecCheckbox = QCheckBox()
+        self.formlayout.addRow("Inverted Spectrum?", self.invertspecCheckbox)
+
     def accept(self):
         newsettings = {
             "fmt": self.datafmtDropdown.currentText(),
             "headersize": int(self.headersizeEdit.text()),
             "usefixedlen": self.fixedlenCheckbox.isChecked(),
-            "fixedlen": int(self.fixedlenEdit.text())
+            "fixedlen": int(self.fixedlenEdit.text()),
+            "invSpec": self.invertspecCheckbox.isChecked()
         }
         self.filesettingsSignal.emit(newsettings)
         super().accept()
