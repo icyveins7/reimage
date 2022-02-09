@@ -29,8 +29,12 @@ class FileListFrame(QFrame):
 
         # Create the ordering list widget
         self.ow = QListWidget()
-        self.ow.setFixedWidth(30)
-        # TODO: complete this ordering list
+        self.ow.setFixedWidth(25)
+        self.flw.verticalScrollBar().valueChanged.connect(self.ow.verticalScrollBar().setValue)
+        self.ow.verticalScrollBar().hide()
+        self.ow.horizontalScrollBar().hide()
+        self.ow.verticalScrollBar().setStyleSheet("width: 0px")
+        self.ow.horizontalScrollBar().setStyleSheet("height: 0px")
         
         # Need a horizontal layout for the two lists
         self.hlayout = QHBoxLayout()
@@ -105,6 +109,9 @@ class FileListFrame(QFrame):
 
         # Update the cache again (in case some files were deleted)
         self.updateFileListDBCache()
+        # Set order widget
+        self.initOrderWidget()
+        
 
     ####################
     def prepareClearBtn(self):
@@ -140,6 +147,8 @@ class FileListFrame(QFrame):
                 self.flw.addItem(item)
         # Update cache
         self.updateFileListDBCache()
+        # Set order widget
+        self.initOrderWidget()
 
     ####################
     def prepareFolderBtn(self):
@@ -162,6 +171,8 @@ class FileListFrame(QFrame):
             # self.flw.addItems(fileNames) # DEPRECATED
         # Update cache
         self.updateFileListDBCache()
+        # Set order widget
+        self.initOrderWidget()
     
     ####################
     def prepareAddBtn(self):
@@ -173,7 +184,9 @@ class FileListFrame(QFrame):
     @Slot()
     def onAddBtnClicked(self):
         filepaths = [i.text() for i in self.flw.selectedItems()]
+        rows = [i.row() for i in self.flw.selectionModel().selectedIndexes()]
         print(filepaths)
+        print(rows)
 
         data = []
         sampleStarts = [0]
@@ -183,15 +196,25 @@ class FileListFrame(QFrame):
         else:
             cnt = -1
 
-        for filepath in filepaths:
+        # Reset the order first
+        self.initOrderWidget()
+        for i in range(len(filepaths)):
+            filepath = filepaths[i]
             d = np.fromfile(filepath, dtype=self.fmt, count=cnt*2, offset=self.headersize) # x2 for complex samples
             data.append(d)
             sampleStarts.append(int(d.size/2 + sampleStarts[-1]))
+            # Put the number next to each row index
+            self.ow.item(rows[i]).setText(str(i))
 
         data = np.array(data).flatten().astype(np.float32).view(np.complex64)
         self.dataSignal.emit(data, filepaths, sampleStarts)
 
-
+    ##################
+    def initOrderWidget(self):
+        self.ow.clear()
+        self.ow.addItems(["-" for i in range(self.flw.count())])
+        for i in range(self.ow.count()):
+            self.ow.item(i).setTextAlignment(Qt.AlignRight)
 
 
     
