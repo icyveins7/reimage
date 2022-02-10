@@ -49,7 +49,8 @@ class ReimageMain(QtWidgets.QMainWindow):
             "fmt": "complex int16",
             "headersize": 0,
             "usefixedlen": False,
-            "fixedlen": -1
+            "fixedlen": -1,
+            "invSpec": False
         } # TODO: add cached settings instead of defaults, and load from a global place
         # Signal settings
         self.signalsettings = {

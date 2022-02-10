@@ -202,15 +202,17 @@ class FileListFrame(QFrame):
         for i in range(len(filepaths)):
             filepath = filepaths[i]
             d = np.fromfile(filepath, dtype=self.fmt, count=cnt*2, offset=self.headersize) # x2 for complex samples
-            if self.invSpec:
-                d = d.conj()
             data.append(d)
+            
             sampleStarts.append(int(d.size/2 + sampleStarts[-1]))
             # Put the number next to each row index
             self.ow.item(rows[i]).setText(str(i))
 
         data = np.array(data).flatten().astype(np.float32).view(np.complex64)
+        if self.invSpec:
+            data = data.conj()
         self.dataSignal.emit(data, filepaths, sampleStarts)
+
 
     ##################
     def initOrderWidget(self):

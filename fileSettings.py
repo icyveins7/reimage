@@ -49,6 +49,7 @@ class FileSettingsDialog(QDialog):
 
         # Inverted Spectrum
         self.invertspecCheckbox = QCheckBox()
+        self.invertspecCheckbox.setChecked(filesettings['invSpec'])
         self.formlayout.addRow("Inverted Spectrum?", self.invertspecCheckbox)
 
     def accept(self):
