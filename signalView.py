@@ -381,6 +381,8 @@ class SignalView(QFrame):
 
     # Override default context menu # TODO: move this to the graphics layout widget subclass instead, so we dont get to rclick outside the plots
     def contextMenuEvent(self, event):
+        dfs = self.getDisplayedFs()
+
         modifiers = QApplication.keyboardModifiers()
         if bool(modifiers == Qt.ControlModifier): # Going to leave it as control-modifier, in case we want the pyqtgraph default menu back later on
             menu = QMenu()
@@ -403,12 +405,12 @@ class SignalView(QFrame):
             action = menu.exec_(self.mapToGlobal(event.pos()))
             if action == fftAction:
                 if self.linearRegion is None: # Use all the data
-                    self.fftwin = FFTWindow(self.ydata, fs=self.fs)
+                    self.fftwin = FFTWindow(self.ydata, fs=dfs)
                     self.fftwin.show()
                 else: # Slice only that region
                     region = self.linearRegion.getRegion()
                     startIdx, endIdx = self.convertRegionToIndices(region)
-                    self.fftwin = FFTWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, self.fs)
+                    self.fftwin = FFTWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, dfs)
                     self.fftwin.show()
 
             elif action == addSliceAction:
@@ -425,12 +427,12 @@ class SignalView(QFrame):
 
             elif action == estBaudAction:
                 if self.linearRegion is None: # Use all the data
-                    self.baudwin = EstimateBaudWindow(self.ydata, fs=self.fs)
+                    self.baudwin = EstimateBaudWindow(self.ydata, fs=dfs)
                     self.baudwin.show()
                 else: # Slice that region
                     region = self.linearRegion.getRegion()
                     startIdx, endIdx = self.convertRegionToIndices(region)
-                    self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=self.fs)
+                    self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
                     self.baudwin.show()
 
             elif action == energyDetectAction:
