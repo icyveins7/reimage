@@ -444,12 +444,14 @@ class SignalView(QFrame):
                 print("TODO: CPM DEMODULATION") # TODO
 
     def convertRegionToIndices(self, region):
+        dfs = self.getDisplayedFs()
+
         # First make sure it's clipped to the start/end of the data only
         rstart = region[0] if region[0] >=0 else 0
-        rend = region[1] if region[1] < self.ydata.size/self.fs else (self.ydata.size-1)/self.fs
+        rend = region[1] if region[1] < self.ydata.size/dfs else (self.ydata.size-1)/dfs
 
-        startIdx = int(rstart*self.fs)
-        endIdx = int(rend*self.fs)
+        startIdx = int(rstart*dfs)
+        endIdx = int(rend*dfs)
 
         return startIdx, endIdx
 
