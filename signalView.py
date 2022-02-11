@@ -9,6 +9,8 @@ from estBaudWindow import EstimateBaudWindow
 from thresholdWindow import ThresholdWindow
 from markerdb import MarkerDB
 
+import time
+
 class SignalView(QFrame):
     def __init__(self, ydata, filelist=None, sampleStarts=None, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
@@ -140,13 +142,19 @@ class SignalView(QFrame):
         # Apply initial processing
         if self.freqshift is not None:
             print("Initial freqshift..")
+            t1 = time.time()
             tone = np.exp(1j*2*np.pi*self.freqshift*np.arange(ydata.size)/self.fs)
+            t2 = time.time()
             self.ydata = self.ydata * tone
+            print("Tone gen: %fs.\n" % (t2-t1))
         
         if self.numTaps is not None:
             print("Initial filter..")
             taps = sps.firwin(self.numTaps, self.filtercutoff/self.fs)
+            t1 = time.time()
             self.ydata = sps.lfilter(taps,1,self.ydata)
+            t2 = time.time()
+            print("Filter: %fs.\n" % (t2-t1))
 
         if self.dsr is not None:
             self.ydata = self.ydata[::self.dsr]
