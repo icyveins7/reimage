@@ -224,6 +224,7 @@ class SignalView(QFrame):
                 xMin = -viewBufferX, xMax = self.ydata.size/dfs + viewBufferX, 
                 yMin = self.freqs[0] - viewBufferY, yMax = self.freqs[-1] + viewBufferY)
             self.spw.setYRange(self.freqs[0] - viewBufferY, self.freqs[-1] + viewBufferY) # Set to zoomed out by default
+            self.spw.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start, you must repeat this here, not just in the abs time widget, otherwise on increasing x plot lengths it will fail to zoom out
 
     @Slot()
     def createLinearRegions(self, start, end):
