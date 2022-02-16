@@ -6,8 +6,10 @@ import scipy.signal as sps
 
 from fftWindow import FFTWindow
 from estBaudWindow import EstimateBaudWindow
+from cmWindow import EstimateFreqWindow
 from thresholdWindow import ThresholdWindow
 from markerdb import MarkerDB
+
 
 import time
 
@@ -404,6 +406,8 @@ class SignalView(QFrame):
             # ===
             estBaudAction = menu.addAction("Estimate Baud Rate (Cyclostationary)")
             # ===
+            estFreqAction = menu.addAction("Estimate Carrier Offset (Cyclostationary)")
+            # ===
             energyDetectAction = menu.addAction("Detect Energy (Thresholding)")
             # ===
             demodSubmenu = menu.addMenu("Demodulate")
@@ -443,6 +447,16 @@ class SignalView(QFrame):
                     startIdx, endIdx = self.convertRegionToIndices(region)
                     self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
                     self.baudwin.show()
+
+            elif action == estFreqAction:
+                if self.linearRegion is None:
+                    self.freqwin = EstimateFreqWindow(self.ydata, fs=dfs)
+                    self.freqwin.show()
+                else:
+                    region = self.linearRegion.getRegion()
+                    startIdx, endIdx = self.convertRegionToIndices(region)
+                    self.freqwin = EstimateFreqWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
+                    self.freqwin.show()
 
             elif action == energyDetectAction:
                 self.threshwin = ThresholdWindow(self.freqs, self.ts, self.sxx, self)
