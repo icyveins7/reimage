@@ -26,13 +26,10 @@ class EstimateFreqWindow(QMainWindow):
         # Left FFT Plot
         self.fftwidget = pg.GraphicsLayoutWidget()
         self.fftplot = self.fftwidget.addPlot()
+        self.fftplot.setMouseEnabled(x=True, y=False)
         self.fftplotItem = pg.PlotDataItem()
         self.fftplot.addItem(self.fftplotItem)
         self.layout.addWidget(self.fftwidget)
-        # Freq selection region
-        self.cztRegion = pg.LinearRegionItem(values=(-0.25*fs,0.25*fs))
-        # Add to the current plots?
-        self.fftplot.addItem(self.cztRegion)
 
         # Centre Control Panel
         self.ctrlLayout = QVBoxLayout()
@@ -51,22 +48,19 @@ class EstimateFreqWindow(QMainWindow):
         self.formLayout.addRow("Zoomed Resolution (Hz)", self.cresEdit)
 
         self.ctrlLayout.addLayout(self.formLayout)
-        self.zoomBtn = QPushButton("Zoom FFT Plot ->")
+        self.zoomBtn = QPushButton("Zoom FFT Plot")
         self.ctrlLayout.addWidget(self.zoomBtn)
 
         self.layout.addLayout(self.ctrlLayout)
 
-        # Right CZT Plot
-        self.cztwidget = pg.GraphicsLayoutWidget()
-        self.cztplot = self.cztwidget.addPlot()
-        self.cztplotItem = pg.PlotDataItem()
-        self.cztplot.addItem(self.cztplotItem)
-        self.layout.addWidget(self.cztwidget)
+        # CZT Plot Item
+        self.cztplotItem = pg.PlotDataItem(pen='r')
+        self.fftplot.addItem(self.cztplotItem)
         
         # Initialize FFT plot
         self.odata = None # Some placeholders
         self.f = None
-        self.ffreq = None 
+        self.ffreq =  np.fft.fftfreq(self.slicedData.size, 1/self.fs)
         self.replotFFT()
 
         # Link order changes to replot
@@ -75,11 +69,13 @@ class EstimateFreqWindow(QMainWindow):
         # Link button for czt plot
         self.zoomBtn.clicked.connect(self.replotCZT)
 
+        # TODO: add options for manual zoom viewbox setting for exact CZT freq windows
+
     @Slot()
     def replotFFT(self):
         self.odata = self.calculateCM()
         self.f = np.fft.fft(self.odata)
-        self.ffreq = np.fft.fftfreq(self.odata.size, 1/self.fs)
+        
         self.fftplotItem.setData(
             np.fft.fftshift(self.ffreq),
             np.fft.fftshift(20*np.log10(np.abs(self.f))))
@@ -90,24 +86,21 @@ class EstimateFreqWindow(QMainWindow):
 
     @Slot()
     def replotCZT(self):
-        # Retrieve the freq region
-        region = self.cztRegion.getRegion()
-        startFreq = region[0]
+        # Retrieve the freq region from current viewbox
+        xviewrange = self.fftplot.viewRange()[0]
         cztRes = float(self.cresEdit.text())
-        numPts = int((region[1] - startFreq) / cztRes) # Estimate number of czt points
-        czt = self.calculateCztCM(self.slicedData, numPts, startFreq, cztRes)
-        cztfreq = np.arange(numPts) * cztRes + startFreq
+        numPts = int((xviewrange[1] - xviewrange[0]) / cztRes + 1) # Estimate number of czt points
+        czt = self.calculateCztCM(numPts, xviewrange[0], xviewrange[1], cztRes)
+        cztfreq = np.arange(numPts) * cztRes + xviewrange[0]
         # Now plot it
         self.cztplotItem.setData(
             cztfreq, 20*np.log10(np.abs(czt))
         )
 
 
-    def calculateCztCM(self, data, numPts, startFreq, cztRes):
-        order = int(self.orderDropdown.currentText())
-        w = np.exp(-1j*2*np.pi*cztRes/data.size)
-        a = np.exp(1j*2*np.pi*startFreq/data.size)
-        czt = sps.czt(data**order, numPts, w, a)
-        # cztfreq = sps.czt_points(numPts, w, a) # not working as expected
-        
+    def calculateCztCM(self, numPts, startFreq, endFreq, cztRes):
+        w = np.exp(-1j*2*np.pi*(endFreq-startFreq+cztRes)/(numPts*self.fs))
+        a = np.exp(1j*2*np.pi*startFreq/self.fs)
+        czt = sps.czt(self.odata, numPts, w, a) # CM already calculated before CZT
+
         return czt
