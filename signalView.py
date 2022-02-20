@@ -71,6 +71,10 @@ class SignalView(QFrame):
         self.viewboxLabelsLayout = QHBoxLayout()
         self.viewboxlabel = QLabel()
         self.viewboxLabelsLayout.addWidget(self.viewboxlabel)
+
+        self.viewboxLabelsLayout.addStretch()
+        self.xCoordLabel = QLabel()
+        self.viewboxLabelsLayout.addWidget(self.xCoordLabel)
         self.ampCoordLabel = QLabel()
         self.viewboxLabelsLayout.addWidget(self.ampCoordLabel)
         self.specCoordLabel = QLabel()
@@ -299,11 +303,12 @@ class SignalView(QFrame):
 
     def ampMouseMoved(self, evt):
         mousePoint = self.p1.vb.mapSceneToView(evt[0])
-        self.ampCoordLabel.setText("Top: %f, %f" % (mousePoint.x(), mousePoint.y()))
+        self.xCoordLabel.setText("X: %f" % (mousePoint.x()))
+        self.ampCoordLabel.setText("Y (Top): %f" % (mousePoint.y()))
 
     def specMouseMoved(self, evt):
         mousePoint = self.spw.vb.mapSceneToView(evt[0])
-        self.specCoordLabel.setText("Bottom: %f, %f" % (mousePoint.x(), mousePoint.y()))
+        self.specCoordLabel.setText("Y (Bottom): %f" % (mousePoint.y()))
 
     def onAmpMouseClicked(self, evt):
         # print(evt[0].button())
