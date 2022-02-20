@@ -26,13 +26,17 @@ class EstimateFreqWindow(QMainWindow):
         # Left FFT Plot
         self.fftwidget = pg.GraphicsLayoutWidget()
         self.fftplot = self.fftwidget.addPlot()
+        self.fftplot.setDefaultPadding(0)
         self.fftplot.setMouseEnabled(x=True, y=False)
         self.fftplotItem = pg.PlotDataItem()
         self.fftplot.addItem(self.fftplotItem)
         self.layout.addWidget(self.fftwidget)
 
         # Centre Control Panel
+        self.ctrlWidget = QWidget() # we need this to set fixed width on the whole pane
+        self.ctrlWidget.setFixedWidth(350)
         self.ctrlLayout = QVBoxLayout()
+        self.ctrlWidget.setLayout(self.ctrlLayout)
 
         # Control Panel Form
         self.formLayout = QFormLayout()
@@ -47,11 +51,27 @@ class EstimateFreqWindow(QMainWindow):
         self.cresEdit = QLineEdit("0.1")
         self.formLayout.addRow("Zoomed Resolution (Hz)", self.cresEdit)
 
+        self.cmanualCheckbox = QCheckBox()
+        self.formLayout.addRow("Manually Set Freq. Range?", self.cmanualCheckbox)
+
+        self.cf1Edit = QLineEdit()
+        self.cf1Edit.setEnabled(False)
+        self.formLayout.addRow("Zoomed Start Freq. (Hz)", self.cf1Edit)
+        self.cf1Edit.editingFinished.connect(self.setZoom)
+        self.cf2Edit = QLineEdit()
+        self.cf2Edit.setEnabled(False)
+        self.formLayout.addRow("Zoomed End Freq. (Hz)", self.cf2Edit)
+        self.cf2Edit.editingFinished.connect(self.setZoom)
+        self.fftplot.sigXRangeChanged.connect(self.onZoom)
+
+        self.cmanualCheckbox.toggled.connect(self.cf1Edit.setEnabled)
+        self.cmanualCheckbox.toggled.connect(self.cf2Edit.setEnabled)
+
         self.ctrlLayout.addLayout(self.formLayout)
         self.zoomBtn = QPushButton("Zoom FFT Plot")
         self.ctrlLayout.addWidget(self.zoomBtn)
 
-        self.layout.addLayout(self.ctrlLayout)
+        self.layout.addWidget(self.ctrlWidget)
 
         # CZT Plot Item
         self.cztplotItem = pg.PlotDataItem(pen='r')
@@ -70,6 +90,21 @@ class EstimateFreqWindow(QMainWindow):
         self.zoomBtn.clicked.connect(self.replotCZT)
 
         # TODO: add options for manual zoom viewbox setting for exact CZT freq windows
+
+    @Slot()
+    def onZoom(self):
+        if not self.cmanualCheckbox.isChecked(): # only update the strings if not manual mode
+            xviewrange = self.fftplot.viewRange()[0]
+            self.cf1Edit.setText(str(xviewrange[0]))
+            self.cf2Edit.setText(str(xviewrange[1]))
+
+    @Slot()
+    def setZoom(self):
+        if self.cmanualCheckbox.isChecked(): # only update the plot if in manual mode
+            f1 = float(self.cf1Edit.text())
+            f2 = float(self.cf2Edit.text())
+
+            self.fftplot.setXRange(f1, f2)
 
     @Slot()
     def replotFFT(self):
