@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog
-from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
+from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QLineEdit
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor, QBrush
 import os
@@ -50,12 +50,21 @@ class FileListFrame(QFrame):
         self.prepareClearBtn()
         self.prepareAddBtn()
 
+        # Create a searchbar
+        self.searchEdit = QLineEdit()
+        self.searchEdit.setPlaceholderText("Filter files..")
+        self.searchEdit.textEdited.connect(self.filterFiles)
+
         # Create the main layout
         self.layout = QVBoxLayout()
         self.layout.addLayout(self.btnLayout) # Buttons at the top
+        self.layout.addWidget(self.searchEdit)
         self.layout.addLayout(self.hlayout)
         # self.layout.addWidget(self.flw) # List below it
         self.setLayout(self.layout)
+
+        # Internal memory
+        self.filepaths = []
 
         # Initialize database for the filelist cache
         self.db = db # Sqlite3 connection object
@@ -68,6 +77,21 @@ class FileListFrame(QFrame):
         self.usefixedlen = False
         self.fixedlen = -1
         self.invSpec = False
+
+        
+
+    ####################
+    @Slot(str)
+    def filterFiles(self, txt: str):
+        if txt == '':
+            # Reload the internal memory
+            self.flw.clear()
+            self.flw.addItems(self.filepaths)
+        else:
+            # Query internal memory
+            searchFiles = [f for f in self.filepaths if txt in f]
+            self.flw.clear()
+            self.flw.addItems(searchFiles)
 
     ####################
     def getCurrentFilelist(self):
@@ -112,6 +136,8 @@ class FileListFrame(QFrame):
         self.updateFileListDBCache()
         # Set order widget
         self.initOrderWidget()
+        # Update internal memory
+        self.filepaths.extend(rpaths)
         
 
     ####################
@@ -127,6 +153,8 @@ class FileListFrame(QFrame):
         self.flw.clear()
         # Update cache
         self.updateFileListDBCache()
+        # Update internal list
+        self.filepaths = []
 
 
     ####################
@@ -150,6 +178,8 @@ class FileListFrame(QFrame):
         self.updateFileListDBCache()
         # Set order widget
         self.initOrderWidget()
+        # Update internal memory
+        self.filepaths.extend(fileNames)
 
     ####################
     def prepareFolderBtn(self):
@@ -169,7 +199,9 @@ class FileListFrame(QFrame):
                 item.setToolTip("Size: %d bytes" % (os.path.getsize(fileNames[i])))
                 self.flw.addItem(item)
             
-            # self.flw.addItems(fileNames) # DEPRECATED
+        # Update internal memory
+        self.filepaths.extend(fileNames)
+
         # Update cache
         self.updateFileListDBCache()
         # Set order widget
