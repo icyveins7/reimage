@@ -35,12 +35,19 @@ class FileListFrame(QFrame):
         self.ow.horizontalScrollBar().hide()
         self.ow.verticalScrollBar().setStyleSheet("width: 0px")
         self.ow.horizontalScrollBar().setStyleSheet("height: 0px")
+        self.ow.setFixedHeight(self.flw.height() - self.flw.horizontalScrollBar().height()) # This aligns now when the scroll bar is present, but causes extra space when it isn't (i.e. short paths present only)
         
+        # Need a vertical layout for the orderwidget to align
+        self.ovlayout = QVBoxLayout()
+        self.ovlayout.addWidget(self.ow)
+        self.ovlayout.addStretch()
+
         # Need a horizontal layout for the two lists
         self.hlayout = QHBoxLayout()
         self.hlayout.setSpacing(0)
         self.hlayout.addWidget(self.flw)
-        self.hlayout.addWidget(self.ow)
+        # self.hlayout.addWidget(self.ow)
+        self.hlayout.addLayout(self.ovlayout)
         
         # Sublayout for buttons
         self.btnLayout = QHBoxLayout() # TODO: change layout max width?
@@ -65,6 +72,7 @@ class FileListFrame(QFrame):
 
         # Internal memory
         self.filepaths = []
+        self.order = {}
 
         # Initialize database for the filelist cache
         self.db = db # Sqlite3 connection object
@@ -92,6 +100,10 @@ class FileListFrame(QFrame):
             searchFiles = [f for f in self.filepaths if txt in f]
             self.flw.clear()
             self.flw.addItems(searchFiles)
+        
+        # Reload the order widget based on the file list
+        self.initOrderWidget()
+        self.refreshOrderWidget()
 
     ####################
     def getCurrentFilelist(self):
@@ -230,6 +242,7 @@ class FileListFrame(QFrame):
             cnt = -1
 
         # Reset the order first
+        self.order.clear()
         self.initOrderWidget()
         for i in range(len(filepaths)):
             filepath = filepaths[i]
@@ -237,8 +250,11 @@ class FileListFrame(QFrame):
             data.append(d)
             
             sampleStarts.append(int(d.size/2 + sampleStarts[-1]))
-            # Put the number next to each row index
-            self.ow.item(rows[i]).setText(str(i))
+
+            # Add to internal memory of current files
+            self.order[filepath] = i
+
+        self.refreshOrderWidget()
 
         data = np.array(data).flatten().astype(np.float32).view(np.complex64)
         if self.invSpec:
@@ -252,6 +268,14 @@ class FileListFrame(QFrame):
         self.ow.addItems(["-" for i in range(self.flw.count())])
         for i in range(self.ow.count()):
             self.ow.item(i).setTextAlignment(Qt.AlignRight)
+
+    def refreshOrderWidget(self):
+        # This method assumes the internal memory is set, so use that to repaint the widget
+        # Also remember to first call the initOrderWidget() if the file list changes
+        for i in range(self.flw.count()):
+            if self.flw.item(i).text() in self.order:
+                self.ow.item(i).setText(str(self.order[self.flw.item(i).text()]))
+        
 
 
     
