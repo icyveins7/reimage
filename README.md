@@ -33,12 +33,12 @@ The pre-built binaries in the Releases section are created using [PyInstaller](h
 ## Quick-start
 
 1. Populate the file list via 'Open File(s)' or 'Open Folder'.
-2. Select some files in the file list (via Ctrl-Click or Shift-Click).
-3. Click 'Add to Viewer' to open the files and view the Amplitude-Time (top) and Spectrogram (bottom) plots.
-4. Scroll in/out using mouse wheel and/or use Left-Click to drag the plots.
-5. Use Ctrl-RightClick on the plots to see additional options.
+2. Select some files in the file list (via Ctrl-Click or Shift-Click). Clear the entire list with the 'Clear' button or specific files via the Delete key.
+4. Click 'Add to Viewer' to open the files and view the Amplitude-Time (top) and Spectrogram (bottom) plots.
+5. Scroll in/out using mouse wheel and/or use Left-Click to drag the plots.
+6. Use Ctrl-RightClick on the plots to see additional options.
 
 ## Issues
 
-This is a personal project and is a constant work-in-progress. As such, there are likely to be many bugs; I will try to attend to any issues posted ASAP but don't count on it being fixed expeditiously.
+This is a personal project and is a constant work-in-progress. As such, there are likely to be many bugs; I will try to attend to any issues posted ASAP but don't count on it being fixed expeditiously. However, if you have ideas on what functionalities you'd like to see, I'd be happy to consider them.
 
