@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog
-from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QLineEdit
+from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QLineEdit, QMessageBox
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtGui import QColor, QBrush
+from PySide6.QtGui import QColor, QBrush, QShortcut, QKeySequence
 import os
 import numpy as np
 import sqlite3 as sq
@@ -74,6 +74,10 @@ class FileListFrame(QFrame):
         self.filepaths = []
         self.order = {}
 
+        # Create keyboard shortcut for file deletion
+        self.delShortcut = QShortcut(QKeySequence("Delete"), self)
+        self.delShortcut.activated.connect(self.removeFilesFromList)
+
         # Initialize database for the filelist cache
         self.db = db # Sqlite3 connection object
         self.initFileListDBCache()
@@ -86,7 +90,26 @@ class FileListFrame(QFrame):
         self.fixedlen = -1
         self.invSpec = False
 
-        
+    ####################
+    @Slot()
+    def removeFilesFromList(self):
+        filepaths = [i.text() for i in self.flw.selectedItems()]
+        rows = [i.row() for i in self.flw.selectionModel().selectedIndexes()]
+
+        # Raise a dialog to check
+        confirmation = QMessageBox.question(self,
+            "Confirm files' removal from list",
+            "Are you sure you want to remove these %d files?" % len(rows),
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Yes
+        )
+
+        if confirmation == QMessageBox.Yes:
+            # Iterate backwards so the row numbers don't change
+            for i in range(self.flw.count()-1,-1,-1):
+                if i in rows:
+                    self.flw.takeItem(i)
+
 
     ####################
     @Slot(str)
