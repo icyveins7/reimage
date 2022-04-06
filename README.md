@@ -2,7 +2,7 @@
 
 ReImage is a Python 3 + PySide6 + PyQtGraph app for quickly visualizing recorded RF data in the form of real and imaginary samples. Think of it as Adobe Audition or Audacity, but for raw complex samples.
 
-The goals for this project are to provide quick, offline ways of examining recorded data. As such, it is not meant to do everything DSP-related. It is aimed to be used after performing test recordings to verify that the recordings will be useful for further processing later on.
+The goals for this project are to provide quick, offline ways of examining recorded data. As such, it is not meant to do everything DSP-related. It is aimed to be used after performing test recordings to verify that the recordings will be useful for further processing later on. In particular, ReImage attempts to maximise smoothness (frames-per-second) of plots via caching of successive downsampled versions of the data, for a better user experience. This alleviates the 'laggy plot' issue often encountered when using Matplotlib to visualise raw signal data with over about 1 million points, and when using PyQtGraph with over about 10-100M points.
 
 ## Installation and Usage (From Source)
 
@@ -31,6 +31,8 @@ python main.py
 The pre-built binaries in the Releases section are created using [PyInstaller](https://github.com/pyinstaller/pyinstaller). Simply download the tar.gz relevant to your OS and unzip where desired. Then run the 'main' executable.
 
 ## Quick-start
+
+![](screenshot.jpg)
 
 1. Populate the file list via 'Open File(s)' or 'Open Folder'.
 2. Select some files in the file list (via Ctrl-Click or Shift-Click). Clear the entire list with the 'Clear' button or specific files via the Delete key.
