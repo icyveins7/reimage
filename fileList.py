@@ -273,8 +273,11 @@ class FileListFrame(QFrame):
             else:
                 # Only load the single wav file
                 samplerate, wavdata = sio.wavfile.read(filepaths[0])
+                scaling = 2**(wavdata.dtype.itemsize * 8) if wavdata.dtype != np.float32 else 1.0 # Scale appropriately for all integer-based
+                print("scaling = %f" % scaling)
                 # Compress to single channel and write as floats
-                wavdata = np.sum(wavdata.astype(np.float32), axis=1)
+                wavdata = np.sum(wavdata.astype(np.float32), axis=1) / scaling
+                assert(np.all(np.abs(wavdata) <= 1.0))
                 data.append(wavdata)
                 data = np.array(data).flatten()
                 print(data.shape)

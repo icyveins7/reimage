@@ -13,6 +13,13 @@ class AudioWindow(QMainWindow):
         self.slicedData = slicedData
         self.fs = fs
 
+        # Pre-generate the FFT of the signal
+        self.dataFFT = np.fft.fft(self.slicedData)
+        # And also the spectrogram form
+        self.fSpec, self.tSpec, self.dataSpec = sps.spectrogram(self.slicedData, self.fs)
+        self.fSpec = np.fft.fftshift(self.fSpec)
+        self.dataSpec = np.fft.fftshift(self.dataSpec, axes=0)
+
         # Aesthetics..
         self.setWindowTitle("Audio Manipulation")
 
@@ -58,3 +65,9 @@ class AudioWindow(QMainWindow):
 
         # # Plot the data
         # self.plot()
+
+    def plot(self):
+        # Plot just like in signalView, but no need to downsample
+        self.topPlot.plot(self.slicedData) # and no need to abs
+        self.btmPlot.plot()
+
