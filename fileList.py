@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QColor, QBrush, QShortcut, QKeySequence
 import os
 import numpy as np
+import scipy.io as sio
 import sqlite3 as sq
 import operator
 
@@ -258,6 +259,34 @@ class FileListFrame(QFrame):
 
         data = []
         sampleStarts = [0]
+
+        ### TODO: have a more structured way of reading wavs
+        if any(".wav" in file for file in filepaths):
+            if len(filepaths) > 1:
+                # Raise a dialog to check
+                wavError = QMessageBox.critical(self,
+                    "Wav file support is limited to one at a time.",
+                    QMessageBox.Ok,
+                    QMessageBox.Ok
+                )
+            
+            else:
+                # Only load the single wav file
+                samplerate, wavdata = sio.wavfile.read(filepaths[0])
+                # Compress to single channel and write as floats
+                wavdata = np.sum(wavdata.astype(np.float32), axis=1)
+                data.append(wavdata)
+                data = np.array(data).flatten()
+                print(data.shape)
+                self.dataSignal.emit(data, filepaths, sampleStarts)
+                # Properly format the order widget
+                self.order.clear()
+                self.initOrderWidget()
+                self.order[filepaths[0]] = 0
+                self.refreshOrderWidget()
+                return
+
+        ### TODO: end of wav file handling
 
         if self.usefixedlen:
             cnt = self.fixedlen

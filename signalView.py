@@ -8,8 +8,9 @@ from fftWindow import FFTWindow
 from estBaudWindow import EstimateBaudWindow
 from cmWindow import EstimateFreqWindow
 from thresholdWindow import ThresholdWindow
-from markerdb import MarkerDB
+from audioWindow import AudioWindow
 
+from markerdb import MarkerDB
 
 import time
 
@@ -415,6 +416,8 @@ class SignalView(QFrame):
             # ===
             energyDetectAction = menu.addAction("Detect Energy (Thresholding)")
             # ===
+            audioAction = menu.addAction("Audio Manipulation")
+            # ===
             demodSubmenu = menu.addMenu("Demodulate")
             pskdemodAction = demodSubmenu.addAction("PSK (TODO)")
             cpmdemodAction = demodSubmenu.addAction("CPM (TODO)")
@@ -466,6 +469,16 @@ class SignalView(QFrame):
             elif action == energyDetectAction:
                 self.threshwin = ThresholdWindow(self.freqs, self.ts, self.sxx, self)
                 self.threshwin.show()
+
+            elif action == audioAction:
+                if self.linearRegion is None:
+                    self.audiowin = AudioWindow(self.ydata, fs=dfs)
+                    self.audiowin.show()
+                else:
+                    region = self.linearRegion.getRegion()
+                    startIdx, endIdx = self.convertRegionToIndices(region)
+                    self.audiowin = AudioWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
+                    slef.audiowin.show()
 
             elif action == pskdemodAction:
                 print("TODO: PSK DEMODULATION") # TODO
