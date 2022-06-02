@@ -5,6 +5,7 @@ import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
 import sounddevice as sd
+import threading
 
 class AudioWindow(QMainWindow):
     def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
@@ -98,13 +99,50 @@ class AudioWindow(QMainWindow):
         print("TODO: roll frequency")
         pass
 
+    #%% For sounddevice stream
+    def _callback(outdata, frames, time, status):
+        if status:
+            print(status)
+
+        global current_frame
+        if status:
+            print(status)
+        chunksize = min(len(data) - current_frame, frames)
+        outdata[:chunksize] = data[current_frame:current_frame + chunksize]
+        if chunksize < frames:
+            outdata[chunksize:] = 0
+            raise sd.CallbackStop()
+        current_frame += chunksize
+
+        # outdata[:] = 
+
+        # if any(indata):
+        #     magnitude = np.abs(np.fft.rfft(indata[:, 0], n=fftsize))
+        #     magnitude *= args.gain / fftsize
+        #     line = (gradient[int(np.clip(x, 0, 1) * (len(gradient) - 1))]
+        #             for x in magnitude[low_bin:low_bin + args.columns])
+        #     print(*line, sep='', end='\x1b[0m\n')
+        # else:
+        #     print('no input')
+
     #%% Playback controls
     def play(self):
-        sd.play(self.slicedData, self.fs)
+        # sd.play(self.slicedData, self.fs) # simple playback
+
+        # With stream
+        event = threading.Event()
+        with sd.Outputstream(
+            samplerate = self.fs,
+            channels=1,
+            callback=self._callback,
+            dtype=np.float32,
+            finished_callback=event.set
+        ) as stream:
+            event.wait()
+
 
     def pause(self):
         sd.stop()
 
     def reset(self):
         pass
-
