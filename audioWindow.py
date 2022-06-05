@@ -18,7 +18,7 @@ class AudioWindow(QMainWindow):
 
         # Pre-generate the FFT of the signal
         print("Pre-calcing FFT")
-        self.dataFFT = np.fft.fft(self.slicedData)
+        self.dataFFT = np.fft.fft(self.slicedData.reshape((-1,256)), axis=1) # Pre-compute as 256 windows TODO: make variable
         # And also the spectrogram form
         print("Pre-calcing specgram")
         self.fSpec, self.tSpec, self.dataSpec = sps.spectrogram(self.slicedData, self.fs)
@@ -49,6 +49,12 @@ class AudioWindow(QMainWindow):
         self.playBtn.clicked.connect(self.play)
         self.pauseBtn.clicked.connect(self.pause)
         self.resetBtn.clicked.connect(self.reset)
+
+        # And then some audio feedback stats
+        self.audioStatsLayout = QHBoxLayout()
+        self.layout.addLayout(self.audioStatsLayout)
+        self.audioTimeLabel = QLabel("%.2f" % 0)
+        self.audioStatsLayout.addWidget(self.audioTimeLabel)
 
         # Add the top and bottom plots
         self.plotLayout = QHBoxLayout()
@@ -86,6 +92,11 @@ class AudioWindow(QMainWindow):
         # Plot the data
         self.plot()
 
+        # Definitions for audio streams
+        self.current_frame = 0
+        self.stream = None
+        self.initAudioStream() # self.stream is initialised
+
     def plot(self):
         # Plot just like in signalView, but no need to downsample
         self.topPlot.plot(np.arange(self.slicedData.size)/self.fs, self.slicedData) # and no need to abs
@@ -100,49 +111,71 @@ class AudioWindow(QMainWindow):
         pass
 
     #%% For sounddevice stream
-    def _callback(outdata, frames, time, status):
+    def _callback(self, outdata, frames, time, status):
         if status:
             print(status)
 
-        global current_frame
-        if status:
-            print(status)
-        chunksize = min(len(data) - current_frame, frames)
-        outdata[:chunksize] = data[current_frame:current_frame + chunksize]
+        chunksize = min(len(self.slicedData) - self.current_frame, frames)
+        # outdata[:chunksize] = self.slicedData[self.current_frame:self.current_frame + chunksize]
+         # for now, hotfix the single channel
+        outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize]
         if chunksize < frames:
             outdata[chunksize:] = 0
             raise sd.CallbackStop()
-        current_frame += chunksize
+        self.current_frame += chunksize
 
-        # outdata[:] = 
-
-        # if any(indata):
-        #     magnitude = np.abs(np.fft.rfft(indata[:, 0], n=fftsize))
-        #     magnitude *= args.gain / fftsize
-        #     line = (gradient[int(np.clip(x, 0, 1) * (len(gradient) - 1))]
-        #             for x in magnitude[low_bin:low_bin + args.columns])
-        #     print(*line, sep='', end='\x1b[0m\n')
-        # else:
-        #     print('no input')
+        # Update the label?
+        # print("Input", time.inputBufferAdcTime)
+        self.audioTimeLabel.setText("%.2f" % time.inputBufferAdcTime)
+        # print("Output", time.outputBufferDacTime) # These 2 are a bit useless
+        # print(time.currentTime)
 
     #%% Playback controls
+    def initAudioStream(self):
+        self.stream = sd.OutputStream(
+            samplerate = self.fs,
+            channels = 1,
+            callback = self._callback,
+            dtype = np.float32
+        )
+
     def play(self):
         # sd.play(self.slicedData, self.fs) # simple playback
 
         # With stream
-        event = threading.Event()
-        with sd.Outputstream(
-            samplerate = self.fs,
-            channels=1,
-            callback=self._callback,
-            dtype=np.float32,
-            finished_callback=event.set
-        ) as stream:
-            event.wait()
+        # event = threading.Event()
+        # with sd.OutputStream(
+        #     samplerate = self.fs,
+        #     channels=1,
+        #     callback=self._callback,
+        #     dtype=np.float32,
+        #     finished_callback=event.set
+        # ) as stream:
+        #     event.wait()
+        self.stream.start()
 
 
     def pause(self):
-        sd.stop()
+        # sd.stop()
+
+        # Stop the stream
+        self.stream.stop()
+        self.current_frame = 0 # Reset it as well
 
     def reset(self):
         pass
+
+
+#%% TODO: create worker QThread for audio playback, emit audio stats back to UI to prevent crash?
+# from PySide6.QtCore import QObject
+
+# class AudioWorker(QObject):
+#     Q_OBJECT
+# slots: = public()
+#     def doWork(parameter):
+#         result = QString()
+#         /* ... here is the expensive or blocking operation ... */
+#         resultReady.emit(result)
+
+# signals:
+#     def resultReady(result):
