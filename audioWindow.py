@@ -7,6 +7,10 @@ import scipy.signal as sps
 import sounddevice as sd
 import threading
 
+#%% Target for smoothness up to 50kHz sample rate.
+# This should cover the typical sample rates of 44.1k to 48k.
+
+
 class AudioWindow(QMainWindow):
     def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
         super().__init__()
@@ -15,13 +19,15 @@ class AudioWindow(QMainWindow):
         self.slicedData = slicedData
         self.fs = fs
         print(self.fs)
+        self.timevec = np.arange(self.slicedData.size) / self.fs # pre-generate time
+
 
         # Pre-generate the FFT of the signal
         print("Pre-calcing FFT")
         self.dataFFT = np.fft.fft(self.slicedData.reshape((-1,256)), axis=1) # Pre-compute as 256 windows TODO: make variable
         # And also the spectrogram form
         print("Pre-calcing specgram")
-        self.fSpec, self.tSpec, self.dataSpec = sps.spectrogram(self.slicedData, self.fs)
+        self.fSpec, self.tSpec, self.dataSpec = sps.spectrogram(self.slicedData, self.fs, return_onesided=False)
         self.fSpec = np.fft.fftshift(self.fSpec)
         self.dataSpec = np.fft.fftshift(self.dataSpec, axes=0)
         self.dataSpec = self.dataSpec.T # auto-transpose
@@ -90,6 +96,9 @@ class AudioWindow(QMainWindow):
         # self.layout.addLayout(self.fftlenLayout)
 
         # Plot the data
+        self.timeBlock = 1.0 # constant for now
+        self.timeExtent = np.array([0, 2 * self.timeBlock]) # initial time extent to plot
+        self.extent = (self.timeExtent * self.fs).astype(np.uint32)
         self.plot()
 
         # Definitions for audio streams
@@ -99,11 +108,27 @@ class AudioWindow(QMainWindow):
 
     def plot(self):
         # Plot just like in signalView, but no need to downsample
-        self.topPlot.plot(np.arange(self.slicedData.size)/self.fs, self.slicedData) # and no need to abs
+        # self.topPlot.plot(np.arange(self.slicedData.size)/self.fs, self.slicedData) # and no need to abs
+        self.topPlot.plot(
+            self.timevec[self.extent[0]:self.extent[1]],
+            self.slicedData[self.extent[0]:self.extent[1]]) # Plot 20 seconds only
+
         self.btmImg.setImage(self.dataSpec)
         self.btmImg.setRect(QRectF(0.0, -self.fs/2, self.slicedData.size/self.fs, self.fs))
         cm2use = pg.colormap.getFromMatplotlib('viridis')
         self.btmImg.setLookupTable(cm2use.getLookupTable())
+
+        # Set limits
+        viewBufferX = 0.1 * self.slicedData.size / self.fs
+        self.topPlot.setLimits(xMin = -viewBufferX, xMax = self.slicedData.size/self.fs + viewBufferX)
+        viewBufferY = 0.1 * (self.fSpec[-1]-self.fSpec[0])
+        self.btmPlot.setLimits(
+            xMin = -viewBufferX, xMax = self.slicedData.size/self.fs + viewBufferX,
+            yMin = self.fSpec[0] - viewBufferY, yMax = self.fSpec[-1] + viewBufferY
+        )
+
+        # Set initial zoom (10 seconds only)
+        self.topPlot.vb.setXRange(self.timeExtent[0], self.timeExtent[1])
 
     #%% Frequency manipulation
     def rollFreq(self):
