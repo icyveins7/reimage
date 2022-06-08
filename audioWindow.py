@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QComboBox
 from PySide6.QtWidgets import QPushButton, QSlider
-from PySide6.QtCore import Qt, Signal, Slot, QRectF
+from PySide6.QtCore import Qt, Signal, Slot, QRectF, QThread, QObject
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
@@ -12,6 +12,9 @@ import threading
 
 
 class AudioWindow(QMainWindow):
+    audioPause = Signal()
+    audioReset = Signal()
+
     def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
         super().__init__()
 
@@ -101,10 +104,13 @@ class AudioWindow(QMainWindow):
         self.extent = (self.timeExtent * self.fs).astype(np.uint32)
         self.plot()
 
-        # Definitions for audio streams
-        self.current_frame = 0
-        self.stream = None
-        self.initAudioStream() # self.stream is initialised
+        # Set up audio playback tracking lines
+        self.topline, self.btmline = self.setupPlayLines()
+
+        # # Definitions for audio streams
+        # self.current_frame = 0
+        # self.stream = None
+        # self.initAudioStream() # self.stream is initialised
 
     def plot(self):
         # Plot just like in signalView, but no need to downsample
@@ -113,8 +119,8 @@ class AudioWindow(QMainWindow):
             self.timevec[self.extent[0]:self.extent[1]],
             self.slicedData[self.extent[0]:self.extent[1]]) # Plot 20 seconds only
 
-        self.btmImg.setImage(self.dataSpec)
-        self.btmImg.setRect(QRectF(0.0, -self.fs/2, self.slicedData.size/self.fs, self.fs))
+        self.btmImg.setImage(self.dataSpec[:,self.extent[0]:self.extent[1]])
+        self.btmImg.setRect(QRectF(self.timeExtent[0], -self.fs/2, self.timeExtent[1], self.fs))
         cm2use = pg.colormap.getFromMatplotlib('viridis')
         self.btmImg.setLookupTable(cm2use.getLookupTable())
 
@@ -130,10 +136,98 @@ class AudioWindow(QMainWindow):
         # Set initial zoom (10 seconds only)
         self.topPlot.vb.setXRange(self.timeExtent[0], self.timeExtent[1])
 
+    def setupPlayLines(self):
+        topline = pg.InfiniteLine(0)
+        btmline = pg.InfiniteLine(0)
+        self.topPlot.addItem(topline)
+        self.btmPlot.addItem(btmline)
+        return topline, btmline
+
     #%% Frequency manipulation
     def rollFreq(self):
         print("TODO: roll frequency")
         pass
+
+    # #%% For sounddevice stream
+    # def _callback(self, outdata, frames, time, status):
+    #     if status:
+    #         print(status)
+
+    #     chunksize = min(len(self.slicedData) - self.current_frame, frames)
+    #     # outdata[:chunksize] = self.slicedData[self.current_frame:self.current_frame + chunksize]
+    #      # for now, hotfix the single channel
+    #     outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize]
+    #     if chunksize < frames:
+    #         outdata[chunksize:] = 0
+    #         raise sd.CallbackStop()
+    #     self.current_frame += chunksize
+
+    #     # Update the label?
+    #     # print("Input", time.inputBufferAdcTime)
+    #     self.audioTimeLabel.setText("%.2f" % time.inputBufferAdcTime)
+    #     # print("Output", time.outputBufferDacTime) # These 2 are a bit useless
+    #     # print(time.currentTime)
+
+    # #%% Playback controls
+    # def initAudioStream(self):
+    #     self.stream = sd.OutputStream(
+    #         samplerate = self.fs,
+    #         channels = 1,
+    #         callback = self._callback,
+    #         dtype = np.float32
+    #     )
+
+    def play(self):
+        # Using a QThread
+        self.thread = QThread()
+        self.worker = AudioWorker(self.fs, self.slicedData)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+
+        self.worker.progress.connect(self.updateAudioProgress)
+        self.audioPause.connect(self.worker.stop)
+        self.audioReset.connect(self.worker.reset)
+
+        self.thread.start()
+
+        # TODO: initialize thread in ctor, make another slot to 'operate' the thread to start playing
+
+
+    @Slot(float)
+    def updateAudioProgress(self, t: float):
+        # print("Audio progress is %f" % t)
+        self.topline.setValue(t)
+        self.btmline.setValue(t)
+        self.audioTimeLabel.setText("%.2f" % t)
+
+    def pause(self):
+        self.audioPause.emit()
+
+    def reset(self):
+        self.audioReset.emit()
+
+
+#%% TODO: create worker QThread for audio playback, emit audio stats back to UI to prevent crash?
+
+class AudioWorker(QObject):
+    finished = Signal()
+    progress = Signal(float)
+    current_frame = 0
+
+    def __init__(self, fs, slicedData):
+        super().__init__()
+
+        self.slicedData = slicedData
+        self.stream = sd.OutputStream(
+            samplerate = fs,
+            channels = 1,
+            callback = self._callback,
+            dtype = np.float32
+        )
+
 
     #%% For sounddevice stream
     def _callback(self, outdata, frames, time, status):
@@ -146,61 +240,27 @@ class AudioWindow(QMainWindow):
         outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize]
         if chunksize < frames:
             outdata[chunksize:] = 0
+            self.finished.emit()
             raise sd.CallbackStop()
         self.current_frame += chunksize
 
         # Update the label?
         # print("Input", time.inputBufferAdcTime)
-        self.audioTimeLabel.setText("%.2f" % time.inputBufferAdcTime)
+        # self.audioTimeLabel.setText("%.2f" % time.inputBufferAdcTime)
+        self.progress.emit(time.inputBufferAdcTime)
         # print("Output", time.outputBufferDacTime) # These 2 are a bit useless
         # print(time.currentTime)
 
-    #%% Playback controls
-    def initAudioStream(self):
-        self.stream = sd.OutputStream(
-            samplerate = self.fs,
-            channels = 1,
-            callback = self._callback,
-            dtype = np.float32
-        )
-
-    def play(self):
-        # sd.play(self.slicedData, self.fs) # simple playback
-
-        # With stream
-        # event = threading.Event()
-        # with sd.OutputStream(
-        #     samplerate = self.fs,
-        #     channels=1,
-        #     callback=self._callback,
-        #     dtype=np.float32,
-        #     finished_callback=event.set
-        # ) as stream:
-        #     event.wait()
+    def run(self):
         self.stream.start()
 
-
-    def pause(self):
-        # sd.stop()
-
-        # Stop the stream
+    @Slot()
+    def stop(self):
         self.stream.stop()
-        self.current_frame = 0 # Reset it as well
+        # self.current_frame = 0
+        self.finished.emit()
 
+    @Slot()
     def reset(self):
-        pass
-
-
-#%% TODO: create worker QThread for audio playback, emit audio stats back to UI to prevent crash?
-# from PySide6.QtCore import QObject
-
-# class AudioWorker(QObject):
-#     Q_OBJECT
-# slots: = public()
-#     def doWork(parameter):
-#         result = QString()
-#         /* ... here is the expensive or blocking operation ... */
-#         resultReady.emit(result)
-
-# signals:
-#     def resultReady(result):
+        self.current_frame = 0
+        self.progress.emit(0)
