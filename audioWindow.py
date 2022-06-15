@@ -14,9 +14,11 @@ import threading
 class AudioWindow(QMainWindow):
     audioPause = Signal()
     audioReset = Signal()
+    audioStart = Signal()
 
     def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
         super().__init__()
+        self.setAttribute(Qt.WA_DeleteOnClose) # Ensure deletion so threads are cleanedup
 
         # Attaching data
         self.slicedData = slicedData
@@ -81,7 +83,6 @@ class AudioWindow(QMainWindow):
         self.topPlot.getAxis('left').setWidth(60) # Hardcoded for now
         self.btmPlot.getAxis('left').setWidth(60) # TODO: evaluate maximum y values in both graphs, then set an appropriate value
 
-
         # Add the image item
         self.btmImg = pg.ImageItem()
         self.btmPlot.addItem(self.btmImg)
@@ -90,13 +91,6 @@ class AudioWindow(QMainWindow):
         #     self.p.setLabels(title="Sample %d to %d" % (startIdx, endIdx))
         # self.plt = pg.PlotDataItem()
         # self.p.addItem(self.plt)
-        
-        # # Create the options
-        # self.fftlenLayout = QHBoxLayout()
-        # self.fftlenLabel = QLabel("FFT Length: ")
-        # self.fftlenLayout.addWidget(self.fftlenLabel)
-        # self.setupFFTDropdown()
-        # self.layout.addLayout(self.fftlenLayout)
 
         # Plot the data
         self.timeBlock = 1.0 # constant for now
@@ -107,11 +101,36 @@ class AudioWindow(QMainWindow):
         # Set up audio playback tracking lines
         self.topline, self.btmline = self.setupPlayLines()
 
-        # # Definitions for audio streams
+        # Definitions for audio streams
+        # Using a QThread
+        self.thread = QThread(parent=self)
+        self.worker = AudioWorker(self.fs, self.slicedData)
+        self.worker.moveToThread(self.thread)
+        # self.thread.started.connect(self.worker.run) # Do not run on start
+        # self.worker.finished.connect(self.thread.quit) # Do not quit either when finished
+        # self.worker.finished.connect(self.worker.deleteLater)
+        # self.thread.finished.connect(self.thread.deleteLater) # No deletions
+
+        self.worker.progress.connect(self.updateAudioProgress)
+        self.audioPause.connect(self.worker.stop)
+        self.audioReset.connect(self.worker.reset)
+        self.audioStart.connect(self.worker.run)
+
+        self.thread.start()
+
         # self.current_frame = 0
         # self.stream = None
         # self.initAudioStream() # self.stream is initialised
 
+    # In order to ensure proper thread cleanup,
+    def closeEvent(self, evnt):
+        # Stop thread 
+        self.worker.stop()
+        self.thread.quit()
+        # Wait for it
+        self.thread.wait()
+        super().closeEvent(evnt)
+        
     def plot(self):
         # Plot just like in signalView, but no need to downsample
         # self.topPlot.plot(np.arange(self.slicedData.size)/self.fs, self.slicedData) # and no need to abs
@@ -134,7 +153,8 @@ class AudioWindow(QMainWindow):
         )
 
         # Set initial zoom (10 seconds only)
-        self.topPlot.vb.setXRange(self.timeExtent[0], self.timeExtent[1])
+        # self.topPlot.vb.setXRange(self.timeExtent[0], self.timeExtent[1])
+        self.topPlot.vb.setXRange(0, self.slicedData.size/self.fs) # Full extent for debugging
 
     def setupPlayLines(self):
         topline = pg.InfiniteLine(0)
@@ -148,52 +168,9 @@ class AudioWindow(QMainWindow):
         print("TODO: roll frequency")
         pass
 
-    # #%% For sounddevice stream
-    # def _callback(self, outdata, frames, time, status):
-    #     if status:
-    #         print(status)
-
-    #     chunksize = min(len(self.slicedData) - self.current_frame, frames)
-    #     # outdata[:chunksize] = self.slicedData[self.current_frame:self.current_frame + chunksize]
-    #      # for now, hotfix the single channel
-    #     outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize]
-    #     if chunksize < frames:
-    #         outdata[chunksize:] = 0
-    #         raise sd.CallbackStop()
-    #     self.current_frame += chunksize
-
-    #     # Update the label?
-    #     # print("Input", time.inputBufferAdcTime)
-    #     self.audioTimeLabel.setText("%.2f" % time.inputBufferAdcTime)
-    #     # print("Output", time.outputBufferDacTime) # These 2 are a bit useless
-    #     # print(time.currentTime)
-
-    # #%% Playback controls
-    # def initAudioStream(self):
-    #     self.stream = sd.OutputStream(
-    #         samplerate = self.fs,
-    #         channels = 1,
-    #         callback = self._callback,
-    #         dtype = np.float32
-    #     )
-
     def play(self):
-        # Using a QThread
-        self.thread = QThread()
-        self.worker = AudioWorker(self.fs, self.slicedData)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-
-        self.worker.progress.connect(self.updateAudioProgress)
-        self.audioPause.connect(self.worker.stop)
-        self.audioReset.connect(self.worker.reset)
-
-        self.thread.start()
-
-        # TODO: initialize thread in ctor, make another slot to 'operate' the thread to start playing
+        # Simply emit the signal
+        self.audioStart.emit()
 
 
     @Slot(float)
@@ -210,15 +187,16 @@ class AudioWindow(QMainWindow):
         self.audioReset.emit()
 
 
-#%% TODO: create worker QThread for audio playback, emit audio stats back to UI to prevent crash?
-
+#%% 
 class AudioWorker(QObject):
     finished = Signal()
     progress = Signal(float)
     current_frame = 0
 
-    def __init__(self, fs, slicedData):
-        super().__init__()
+    def __init__(self, fs, slicedData, parent=None):
+        super().__init__(parent=parent)
+
+        self.fs = fs
 
         self.slicedData = slicedData
         self.stream = sd.OutputStream(
@@ -247,10 +225,12 @@ class AudioWorker(QObject):
         # Update the label?
         # print("Input", time.inputBufferAdcTime)
         # self.audioTimeLabel.setText("%.2f" % time.inputBufferAdcTime)
-        self.progress.emit(time.inputBufferAdcTime)
+        # self.progress.emit(time.inputBufferAdcTime)
+        self.progress.emit(self.current_frame / self.fs)
         # print("Output", time.outputBufferDacTime) # These 2 are a bit useless
         # print(time.currentTime)
 
+    @Slot()
     def run(self):
         self.stream.start()
 
