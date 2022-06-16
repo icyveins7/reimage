@@ -17,6 +17,8 @@ class FileListItem(QListWidgetItem):
 #%%
 class FileListFrame(QFrame):
     dataSignal = Signal(np.ndarray, list, list)
+    sampleRateSignal = Signal(int)
+    newFilesSignal = Signal(str)
 
     def __init__(self, db, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
@@ -250,8 +252,33 @@ class FileListFrame(QFrame):
 
         self.addBtn.clicked.connect(self.onAddBtnClicked)
 
+    '''This now invokes the settings dialog first.'''
     @Slot()
     def onAddBtnClicked(self):
+        filepaths = [i.text() for i in self.flw.selectedItems()]
+        # We can now handle the case where .wav files are loaded
+        if any(".wav" in file for file in filepaths):
+            if len(filepaths) > 1:
+                # Raise a dialog to check
+                wavError = QMessageBox.critical(self,
+                    "Wav file support is limited to one at a time.",
+                    QMessageBox.Ok,
+                    QMessageBox.Ok
+                )
+            else:
+                samplerate, _ = sio.wavfile.read(filepaths[0])
+                self.sampleRateSignal.emit(samplerate)
+                self.newFilesSignal.emit("wav")
+
+
+        # For everything else, as it used to be
+        else:
+            self.newFilesSignal.emit("")
+
+
+    '''This is now the second step of loading, after settings are confirmed.'''
+    @Slot()
+    def loadFiles(self):
         filepaths = [i.text() for i in self.flw.selectedItems()]
         rows = [i.row() for i in self.flw.selectionModel().selectedIndexes()]
         print(filepaths)
@@ -262,33 +289,24 @@ class FileListFrame(QFrame):
 
         ### TODO: have a more structured way of reading wavs
         if any(".wav" in file for file in filepaths):
-            if len(filepaths) > 1:
-                # Raise a dialog to check
-                wavError = QMessageBox.critical(self,
-                    "Wav file support is limited to one at a time.",
-                    QMessageBox.Ok,
-                    QMessageBox.Ok
-                )
-            
-            else:
-                # Only load the single wav file
-                samplerate, wavdata = sio.wavfile.read(filepaths[0])
-                print(samplerate)
-                scaling = 2**(wavdata.dtype.itemsize * 8) if wavdata.dtype != np.float32 else 1.0 # Scale appropriately for all integer-based
-                print("scaling = %f" % scaling)
-                # Compress to single channel and write as floats
-                wavdata = np.sum(wavdata.astype(np.float32), axis=1) / scaling
-                assert(np.all(np.abs(wavdata) <= 1.0))
-                data.append(wavdata)
-                data = np.array(data).flatten()
-                print(data.shape)
-                self.dataSignal.emit(data, filepaths, sampleStarts)
-                # Properly format the order widget
-                self.order.clear()
-                self.initOrderWidget()
-                self.order[filepaths[0]] = 0
-                self.refreshOrderWidget()
-                return
+            # Only load the single wav file
+            samplerate, wavdata = sio.wavfile.read(filepaths[0])
+            print(samplerate)
+            scaling = 2**(wavdata.dtype.itemsize * 8) if wavdata.dtype != np.float32 else 1.0 # Scale appropriately for all integer-based
+            print("scaling = %f" % scaling)
+            # Compress to single channel and write as floats
+            wavdata = np.sum(wavdata.astype(np.float32), axis=1) / scaling
+            assert(np.all(np.abs(wavdata) <= 1.0))
+            data.append(wavdata)
+            data = np.array(data).flatten()
+            print(data.shape)
+            self.dataSignal.emit(data, filepaths, sampleStarts)
+            # Properly format the order widget
+            self.order.clear()
+            self.initOrderWidget()
+            self.order[filepaths[0]] = 0
+            self.refreshOrderWidget()
+            return
 
         ### TODO: end of wav file handling
 

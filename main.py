@@ -1,3 +1,4 @@
+from importlib.abc import Loader
 from PySide6 import QtCore, QtWidgets, QtGui
 import sys
 import numpy as np
@@ -5,11 +6,14 @@ import sqlite3 as sq
 
 from signalView import SignalView
 from fileList import FileListFrame
-from fileSettings import FileSettingsDialog
-from signalSettings import SignalSettingsDialog
+# from fileSettings import FileSettingsDialog
+# from signalSettings import SignalSettingsDialog
 from predetections import PredetectAmpDialog
+from loaderSettings import LoaderSettingsDialog
 
 class ReimageMain(QtWidgets.QMainWindow):
+    triggerLoadFilesSignal = QtCore.Signal()
+
     def __init__(self):
         super().__init__()
 
@@ -40,6 +44,10 @@ class ReimageMain(QtWidgets.QMainWindow):
 
         # Connections
         self.fileListFrame.dataSignal.connect(self.onNewData)
+        self.fileListFrame.newFilesSignal.connect(self.newFilesHandler)
+        self.fileListFrame.sampleRateSignal.connect(self.setSampleRate)
+        self.triggerLoadFilesSignal.connect(self.fileListFrame.loadFiles)
+
 
         # Application global settings
         QtCore.QCoreApplication.setOrganizationName("Seo")
@@ -76,14 +84,14 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.menubar = QtWidgets.QMenuBar()
         self.setMenuBar(self.menubar)
 
-        self.settingsMenu = QtWidgets.QMenu("Settings", self)
-        self.fileFormatSettings = self.settingsMenu.addAction("File Formats")
-        self.fileFormatSettings.triggered.connect(self.openFileFormatSettings)
+        # self.settingsMenu = QtWidgets.QMenu("Settings", self)
+        # self.fileFormatSettings = self.settingsMenu.addAction("File Formats")
+        # self.fileFormatSettings.triggered.connect(self.openFileFormatSettings)
 
-        self.signalViewSettings = self.settingsMenu.addAction("Signal Viewer")
-        self.signalViewSettings.triggered.connect(self.openSignalViewSettings)
+        # self.signalViewSettings = self.settingsMenu.addAction("Signal Viewer")
+        # self.signalViewSettings.triggered.connect(self.openSignalViewSettings)
 
-        self.menubar.addMenu(self.settingsMenu)
+        # self.menubar.addMenu(self.settingsMenu)
         # ===========
         self.predetectMenu = QtWidgets.QMenu("Predetect", self)
         self.predetectAmp = self.predetectMenu.addAction("Via Amplitude")
@@ -105,18 +113,37 @@ class ReimageMain(QtWidgets.QMainWindow):
         dialog.predetectAmpSignal.connect(self.fileListFrame.highlightFiles)
         dialog.exec()
 
+    @QtCore.Slot(int)
+    def setSampleRate(self, samplerate: int):
+        # Main use-case is for automatic loading of rate from .wav files
+        self.signalsettings['fs'] = samplerate
+        print("Set sample rate to %d" % self.signalsettings['fs'])
 
-    @QtCore.Slot()
-    def openSignalViewSettings(self):
-        dialog = SignalSettingsDialog(self.signalsettings)
+    @QtCore.Slot(str)
+    def newFilesHandler(self, specialType: str=None):
+        # We spawn the new amalgamated loader settings
+        dialog = LoaderSettingsDialog(self.filesettings, self.signalsettings, specialType)
         dialog.signalsettingsSignal.connect(self.saveSignalSettings)
+        dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
+        dialog.accepted.connect(self.triggerLoadFiles) # If accepted then we load files
         dialog.exec()
 
     @QtCore.Slot()
-    def openFileFormatSettings(self):
-        dialog = FileSettingsDialog(self.filesettings)
-        dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
-        dialog.exec()
+    def triggerLoadFiles(self):
+        self.triggerLoadFilesSignal.emit()
+
+
+    # @QtCore.Slot()
+    # def openSignalViewSettings(self):
+    #     dialog = SignalSettingsDialog(self.signalsettings)
+    #     dialog.signalsettingsSignal.connect(self.saveSignalSettings)
+    #     dialog.exec()
+
+    # @QtCore.Slot()
+    # def openFileFormatSettings(self):
+    #     dialog = FileSettingsDialog(self.filesettings)
+    #     dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
+    #     dialog.exec()
 
     @QtCore.Slot(dict)
     def saveSignalSettings(self, newsettings):
