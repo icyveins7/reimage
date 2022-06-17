@@ -5,7 +5,6 @@ import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
 import sounddevice as sd
-import threading
 
 #%% Target for smoothness up to 50kHz sample rate.
 # This should cover the typical sample rates of 44.1k to 48k.
@@ -33,9 +32,11 @@ class AudioWindow(QMainWindow):
         self.dataFFT = np.fft.fft(self.slicedData.reshape((-1,256)), axis=1) # Pre-compute as 256 windows TODO: make variable
         # And also the spectrogram form
         print("Pre-calcing specgram")
-        self.fSpec, self.tSpec, self.dataSpec = sps.spectrogram(self.slicedData, self.fs, return_onesided=False)
-        self.fSpec = np.fft.fftshift(self.fSpec)
-        self.dataSpec = np.fft.fftshift(self.dataSpec, axes=0)
+        # self.fSpec, self.tSpec, self.dataSpec = sps.spectrogram(self.slicedData, self.fs, return_onesided=False)
+        self.fSpec, self.tSpec, self.dataSpec = sps.spectrogram(self.slicedData, self.fs, return_onesided=True) # No point doing 2-sided
+        # self.fSpec = np.fft.fftshift(self.fSpec) # only fftshift if two-sided
+        # self.dataSpec = np.fft.fftshift(self.dataSpec, axes=0) # only fftshift if two sided
+        self.dataSpec = self.dataSpec[:,::-1] # flip frequencies if one-sided
         self.dataSpec = self.dataSpec.T # auto-transpose
 
         # Aesthetics..
@@ -67,6 +68,9 @@ class AudioWindow(QMainWindow):
         self.layout.addLayout(self.audioStatsLayout)
         self.audioTimeLabel = QLabel("%.2f" % 0)
         self.audioStatsLayout.addWidget(self.audioTimeLabel)
+        self.audioSlider = QSlider(Qt.Horizontal)
+        self.audioSlider.setRange(0, self.slicedData.size)
+        self.audioStatsLayout.addWidget(self.audioSlider)
 
         # Add the top and bottom plots
         self.plotLayout = QHBoxLayout()
@@ -146,8 +150,11 @@ class AudioWindow(QMainWindow):
         self.topPlot.vb.disableAutoRange(axis=pg.ViewBox.XAxis) # This prevents every frame from updating the axis limits
         self.btmPlot.vb.disableAutoRange(axis=pg.ViewBox.XAxis) # Need to do this for both, then the graph will not consume excessive resources
 
-        self.btmImg.setImage(self.dataSpec[:,self.extent[0]:self.extent[1]])
-        self.btmImg.setRect(QRectF(self.timeExtent[0], -self.fs/2, self.timeExtent[1], self.fs))
+        # self.btmImg.setImage(self.dataSpec[:,self.extent[0]:self.extent[1]])
+        # self.btmImg.setRect(QRectF(self.timeExtent[0], -self.fs/2, self.timeExtent[1], self.fs))
+        self.btmImg.setImage(self.dataSpec)
+        # self.btmImg.setRect(QRectF(0, -self.fs/2, self.slicedData.size/self.fs, self.fs))
+        self.btmImg.setRect(QRectF(0, 0, self.slicedData.size/self.fs, self.fs)) # Use this if one-sided specgram
         cm2use = pg.colormap.getFromMatplotlib('viridis')
         self.btmImg.setLookupTable(cm2use.getLookupTable())
 
@@ -183,7 +190,8 @@ class AudioWindow(QMainWindow):
         # print("Audio progress is %f" % t)
         self.topline.setValue(t)
         self.btmline.setValue(t)
-        self.audioTimeLabel.setText("%.2f" % t)
+        self.audioTimeLabel.setText("%.2f / %.2f" % (t, self.slicedData.size / self.fs))
+        self.audioSlider.setValue(int(t * self.fs))
 
     def pause(self):
         self.audioPause.emit()
