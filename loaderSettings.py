@@ -128,6 +128,7 @@ class LoaderSettingsDialog(QDialog):
         if specialType != "":
             self.layout.addWidget(QLabel("Some settings have been automatically filled and/or disabled due to the file type."))
         if specialType == "wav":
+            self.layout.addWidget(QLabel("Note that .wav files with more than one channel are averaged into one channel."))
             self.fsEdit.setEnabled(False)
             self.formatGroupBox.setEnabled(False)
 

@@ -21,6 +21,7 @@ class AudioWindow(QMainWindow):
         self.setAttribute(Qt.WA_DeleteOnClose) # Ensure deletion so threads are cleanedup
 
         # Attaching data
+        # TODO: fix padding so that specgram can be performed
         self.slicedData = slicedData
         self.fs = fs
         print(self.fs)
@@ -134,9 +135,16 @@ class AudioWindow(QMainWindow):
     def plot(self):
         # Plot just like in signalView, but no need to downsample
         # self.topPlot.plot(np.arange(self.slicedData.size)/self.fs, self.slicedData) # and no need to abs
-        self.topPlot.plot(
+        self.topPlotItem = self.topPlot.plot(
             self.timevec[self.extent[0]:self.extent[1]],
             self.slicedData[self.extent[0]:self.extent[1]]) # Plot 20 seconds only
+        self.topPlotItem.setClipToView(True)
+        
+        # Set initial zoom (10 seconds only)
+        self.topPlot.vb.setXRange(self.timeExtent[0], self.timeExtent[1])
+        # self.topPlot.vb.setXRange(0, self.slicedData.size/self.fs) # Full extent for debugging
+        self.topPlot.vb.disableAutoRange(axis=pg.ViewBox.XAxis) # This prevents every frame from updating the axis limits
+        self.btmPlot.vb.disableAutoRange(axis=pg.ViewBox.XAxis) # Need to do this for both, then the graph will not consume excessive resources
 
         self.btmImg.setImage(self.dataSpec[:,self.extent[0]:self.extent[1]])
         self.btmImg.setRect(QRectF(self.timeExtent[0], -self.fs/2, self.timeExtent[1], self.fs))
@@ -152,10 +160,7 @@ class AudioWindow(QMainWindow):
             yMin = self.fSpec[0] - viewBufferY, yMax = self.fSpec[-1] + viewBufferY
         )
 
-        # Set initial zoom (10 seconds only)
-        # self.topPlot.vb.setXRange(self.timeExtent[0], self.timeExtent[1])
-        self.topPlot.vb.setXRange(0, self.slicedData.size/self.fs) # Full extent for debugging
-
+        
     def setupPlayLines(self):
         topline = pg.InfiniteLine(0)
         btmline = pg.InfiniteLine(0)
