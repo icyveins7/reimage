@@ -14,6 +14,7 @@ class AudioWindow(QMainWindow):
     audioPause = Signal()
     audioReset = Signal()
     audioStart = Signal()
+    tuneSignal = Signal(int)
 
     def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
         super().__init__()
@@ -78,15 +79,27 @@ class AudioWindow(QMainWindow):
         self.topPlot = self.plotWidget.addPlot(row=0,col=0)
         self.btmPlot = self.plotWidget.addPlot(row=1,col=0)
         self.plotLayout.addWidget(self.plotWidget)
+
         self.freqSlider = QSlider(Qt.Vertical)
         self.freqSlider.setTickPosition(QSlider.TicksRight)
-        # self.freqSlider.valueChanged.connect(self.rollFreq) # TODO: need to use on release instead
+        self.freqSlider.valueChanged.connect(self.rollFreq) # TODO: need to use on release instead
+        self.freqSlider.setRange(0, 255)
+
         self.plotLayout.addWidget(self.freqSlider)
         self.layout.addLayout(self.plotLayout)
         self.topPlot.setXLink(self.btmPlot)
         self.topPlot.setMouseEnabled(x=True,y=False)
         self.topPlot.getAxis('left').setWidth(60) # Hardcoded for now
         self.btmPlot.getAxis('left').setWidth(60) # TODO: evaluate maximum y values in both graphs, then set an appropriate value
+
+        # Placeholders
+        self.topPlotItem = None
+
+        # Some connections
+        self.topPlot.sigRangeChanged.connect(self.onZoom)
+
+        # Dynamic plotting variables
+        self.pltDsr = 1
 
         # Add the image item
         self.btmImg = pg.ImageItem()
@@ -120,6 +133,7 @@ class AudioWindow(QMainWindow):
         self.audioPause.connect(self.worker.stop)
         self.audioReset.connect(self.worker.reset)
         self.audioStart.connect(self.worker.run)
+        self.tuneSignal.connect(self.worker.tune)
 
         self.thread.start()
 
@@ -138,10 +152,10 @@ class AudioWindow(QMainWindow):
         
     def plot(self):
         # Plot just like in signalView, but no need to downsample
-        # self.topPlot.plot(np.arange(self.slicedData.size)/self.fs, self.slicedData) # and no need to abs
-        self.topPlotItem = self.topPlot.plot(
-            self.timevec[self.extent[0]:self.extent[1]],
-            self.slicedData[self.extent[0]:self.extent[1]]) # Plot 20 seconds only
+        self.topPlotItem = self.topPlot.plot(np.arange(self.slicedData.size)/self.fs, self.slicedData) # and no need to abs
+        # self.topPlotItem = self.topPlot.plot(
+        #     self.timevec[self.extent[0]:self.extent[1]],
+        #     self.slicedData[self.extent[0]:self.extent[1]]) # Plot 20 seconds only
         self.topPlotItem.setClipToView(True)
         
         # Set initial zoom (10 seconds only)
@@ -177,8 +191,7 @@ class AudioWindow(QMainWindow):
 
     #%% Frequency manipulation
     def rollFreq(self):
-        print("TODO: roll frequency")
-        pass
+        self.tuneSignal.emit(self.freqSlider.value())
 
     def play(self):
         # Simply emit the signal
@@ -199,6 +212,36 @@ class AudioWindow(QMainWindow):
     def reset(self):
         self.audioReset.emit()
 
+    #%% Handlers for dynamic zoom loading
+    @Slot()
+    def onZoom(self):
+        xrange = self.topPlot.viewRange()[0]
+        xstart = xrange[0]
+        xend = xrange[1]
+        # print("xrange = %f to %f" % (xstart,xend))
+
+        # Define limits
+        targetSamples = 10000
+        # maxSamples = 20000
+
+        # Count the number of samples inside the range now
+        numRawInRange = int((xend-xstart)*self.fs) + 1
+        # print("numRawInRange = %d" % numRawInRange)
+        targetDsr = numRawInRange // targetSamples
+        # print("targetDsr = %d" % targetDsr)
+
+        if targetDsr > self.pltDsr * 10:
+            self.pltDsr = self.pltDsr * 10
+        elif self.pltDsr > targetDsr * 10 and self.pltDsr > 1:
+            self.pltDsr = self.pltDsr // 10
+
+        # Replot (this is surprisingly good enough, without caching)
+        if self.topPlotItem is not None:
+            self.topPlotItem.setData(
+                np.arange(0,self.slicedData.size,self.pltDsr) / self.fs,
+                self.slicedData[::self.pltDsr]
+            )
+
 
 #%% 
 class AudioWorker(QObject):
@@ -216,9 +259,15 @@ class AudioWorker(QObject):
             samplerate = fs,
             channels = 1,
             callback = self._callback,
-            dtype = np.float32
+            dtype = np.float32,
+            blocksize = 256
         )
 
+        self.tone = np.cos(2*np.pi*0*np.arange(256)/256)
+
+    @Slot(int)
+    def tune(self, f_int: int):
+        self.tone = np.cos(2*np.pi*f_int*np.arange(256)/256)
 
     #%% For sounddevice stream
     def _callback(self, outdata, frames, time, status):
@@ -226,9 +275,13 @@ class AudioWorker(QObject):
             print(status)
 
         chunksize = min(len(self.slicedData) - self.current_frame, frames)
+        # print(chunksize, frames)
+
         # outdata[:chunksize] = self.slicedData[self.current_frame:self.current_frame + chunksize]
          # for now, hotfix the single channel
-        outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize]
+        # outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize]
+        # Can we do a multiply in the stream?
+        outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize] * self.tone[:chunksize]
         if chunksize < frames:
             outdata[chunksize:] = 0
             self.finished.emit()
