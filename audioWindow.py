@@ -15,6 +15,7 @@ class AudioWindow(QMainWindow):
     audioReset = Signal()
     audioStart = Signal()
     tuneSignal = Signal(int)
+    audioFrame = Signal(int)
 
     def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
         super().__init__()
@@ -67,6 +68,7 @@ class AudioWindow(QMainWindow):
         self.audioStatsLayout.addWidget(self.audioTimeLabel)
         self.audioSlider = QSlider(Qt.Horizontal)
         self.audioSlider.setRange(0, self.slicedData.size)
+        self.audioSlider.valueChanged.connect(self.adjustAudioFrame)
         self.audioStatsLayout.addWidget(self.audioSlider)
 
         # Add the top and bottom plots
@@ -130,6 +132,7 @@ class AudioWindow(QMainWindow):
         self.audioReset.connect(self.worker.reset)
         self.audioStart.connect(self.worker.run)
         self.tuneSignal.connect(self.worker.tune)
+        self.audioFrame.connect(self.worker.updateFrame)
 
         self.thread.start()
 
@@ -192,7 +195,19 @@ class AudioWindow(QMainWindow):
     def play(self):
         # Simply emit the signal
         self.audioStart.emit()
-
+    
+    @Slot()
+    def adjustAudioFrame(self):
+        frame = self.audioSlider.value()
+        # Emit signal to audio stream
+        self.audioFrame.emit(frame)
+        # Adjust text
+        self.audioTimeLabel.setText("%.2f / %.2f" % (frame/self.fs, self.slicedData.size / self.fs))
+        # Adjust playlines
+        self.topline.setValue(frame/self.fs)
+        self.btmline.setValue(frame/self.fs)
+        # TODO: refactor out common parts with updateAudioProgress
+        
 
     @Slot(float)
     def updateAudioProgress(self, t: float):
@@ -204,7 +219,7 @@ class AudioWindow(QMainWindow):
 
     def pause(self):
         self.audioPause.emit()
-
+        
     def reset(self):
         self.audioReset.emit()
 
@@ -281,7 +296,9 @@ class AudioWorker(QObject):
         if chunksize < frames:
             outdata[chunksize:] = 0
             self.finished.emit()
-            raise sd.CallbackStop()
+            # Stop the stream if it ends
+            self.stream.stop()
+            # raise sd.CallbackStop() # Do not raise this, or the stream object crashes
         self.current_frame += chunksize
 
         # Update the label?
@@ -291,6 +308,10 @@ class AudioWorker(QObject):
         self.progress.emit(self.current_frame / self.fs)
         # print("Output", time.outputBufferDacTime) # These 2 are a bit useless
         # print(time.currentTime)
+
+    @Slot(int)
+    def updateFrame(self, frame):
+        self.current_frame = frame
 
     @Slot()
     def run(self):

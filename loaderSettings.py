@@ -74,7 +74,7 @@ class LoaderSettingsDialog(QDialog):
         ## Options
         # Specgram nperseg
         self.specNpersegDropdown = QComboBox()
-        self.specNpersegDropdown.addItems([str(2**i) for i in range(8,17)])
+        self.specNpersegDropdown.addItems([str(2**i) for i in range(3,17)])
         self.specNpersegDropdown.setCurrentText(str(signalsettings['nperseg']))
         self.sformlayout.addRow("Spectrogram Window Size (samples)", self.specNpersegDropdown)
 
