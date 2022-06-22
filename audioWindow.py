@@ -27,10 +27,6 @@ class AudioWindow(QMainWindow):
         print(self.fs)
         self.timevec = np.arange(self.slicedData.size) / self.fs # pre-generate time
 
-
-        # Pre-generate the FFT of the signal
-        print("Pre-calcing FFT")
-        self.dataFFT = np.fft.fft(self.slicedData.reshape((-1,256)), axis=1) # Pre-compute as 256 windows TODO: make variable
         # And also the spectrogram form
         print("Pre-calcing specgram")
         # self.fSpec, self.tSpec, self.dataSpec = sps.spectrogram(self.slicedData, self.fs, return_onesided=False)
