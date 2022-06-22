@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog, QMessageBox
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog, QMessageBox, QSlider
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
@@ -45,6 +46,7 @@ class SignalView(QFrame):
         self.freqs = None
         self.ts = None
         self.sxx = None
+        self.sxxMax = None # For image control
 
         # Create a graphics view
         self.glw = pg.GraphicsLayoutWidget() # Window for the amplitude time plot
@@ -65,7 +67,7 @@ class SignalView(QFrame):
         self.linearRegionLabelsLayout.addWidget(self.linearRegionBoundsLabel)
 
         # Placeholders for linear regions 
-        self.linearRegion = None # TODO: make ctrl-click add it instead of via button?
+        self.linearRegion = None
         self.specLinearRegion = None # Replicate the region in both
 
         # ViewBox statistics
@@ -90,6 +92,15 @@ class SignalView(QFrame):
 
         self.setLayout(self.layout)
 
+        # Add a colour slider control
+        self.contrastLayout = QHBoxLayout()
+        self.contrastSlider = QSlider(Qt.Horizontal)
+        self.contrastSlider.setRange(1, 100)
+        self.contrastSlider.valueChanged.connect(self.changeSpecgramContrast)
+        self.contrastLayout.addWidget(QLabel("Contrast"))
+        self.contrastLayout.addWidget(self.contrastSlider)
+        self.layout.addLayout(self.contrastLayout)
+
         # DSP Settings
         self.nperseg = 256
         self.noverlap = 256/8
@@ -99,6 +110,11 @@ class SignalView(QFrame):
         self.filtercutoff = None
         self.dsr = None
 
+    @Slot()
+    def changeSpecgramContrast(self):
+        if self.sxxMax is not None:
+            self.sp.setLevels([0, self.sxxMax*self.contrastSlider.value()/100.0])
+        
 
     def setDownsampleCache(self):
         # Clear existing cache
@@ -145,6 +161,9 @@ class SignalView(QFrame):
         self.p1.clear()
         self.spw.clear()
         self.ydata = ydata
+
+        # Reset the contrast slider
+        self.contrastSlider.setValue(100)
 
         # Apply initial processing
         if self.freqshift is not None:
@@ -206,6 +225,7 @@ class SignalView(QFrame):
 
         self.freqs = np.fft.fftshift(self.freqs)
         self.sxx = np.fft.fftshift(self.sxx, axes=0)
+        self.sxxMax = np.max(self.sxx.flatten())
         # Obtain the spans and gaps for proper plotting
         tgap = self.ts[1] - self.ts[0]
         fgap = self.freqs[1] - self.freqs[0]
