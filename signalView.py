@@ -113,7 +113,9 @@ class SignalView(QFrame):
     @Slot()
     def changeSpecgramContrast(self):
         if self.sxxMax is not None:
-            self.sp.setLevels([0, self.sxxMax*self.contrastSlider.value()/100.0])
+            percentile = self.contrastSlider.value()/100.0
+            contrast = np.exp((percentile-1)/0.25) * self.sxxMax # like a log2 squared contrast, this is more natural
+            self.sp.setLevels([0, contrast])
         
 
     def setDownsampleCache(self):
