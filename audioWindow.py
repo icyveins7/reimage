@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QComboBox
 from PySide6.QtWidgets import QPushButton, QSlider
 from PySide6.QtCore import Qt, Signal, Slot, QRectF, QThread, QObject
+from PySide6.QtGui import QIcon
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
@@ -51,9 +52,12 @@ class AudioWindow(QMainWindow):
         self.layout.addLayout(self.playbackLayout)
 
         # Add some playback controls
-        self.playBtn = QPushButton("Play")
-        self.pauseBtn = QPushButton("Pause")
-        self.resetBtn = QPushButton("Reset")
+        self.playBtn = QPushButton("")
+        self.playBtn.setIcon(QIcon.fromTheme("media-playback-start"))
+        self.pauseBtn = QPushButton("")
+        self.pauseBtn.setIcon(QIcon.fromTheme("media-playback-pause"))
+        self.resetBtn = QPushButton("")
+        self.resetBtn.setIcon(QIcon.fromTheme("media-playback-stop"))
         self.playbackLayout.addWidget(self.playBtn)
         self.playbackLayout.addWidget(self.pauseBtn)
         self.playbackLayout.addWidget(self.resetBtn)
@@ -62,14 +66,12 @@ class AudioWindow(QMainWindow):
         self.resetBtn.clicked.connect(self.reset)
 
         # And then some audio feedback stats
-        self.audioStatsLayout = QHBoxLayout()
-        self.layout.addLayout(self.audioStatsLayout)
-        self.audioTimeLabel = QLabel("%.2f" % 0)
-        self.audioStatsLayout.addWidget(self.audioTimeLabel)
         self.audioSlider = QSlider(Qt.Horizontal)
         self.audioSlider.setRange(0, self.slicedData.size)
         self.audioSlider.valueChanged.connect(self.adjustAudioFrame)
-        self.audioStatsLayout.addWidget(self.audioSlider)
+        self.playbackLayout.addWidget(self.audioSlider)
+        self.audioTimeLabel = QLabel("%.2f" % 0)
+        self.playbackLayout.addWidget(self.audioTimeLabel)
 
         # Add the top and bottom plots
         self.plotLayout = QHBoxLayout()
@@ -80,7 +82,7 @@ class AudioWindow(QMainWindow):
 
         self.freqSlider = QSlider(Qt.Vertical)
         self.freqSlider.setTickPosition(QSlider.TicksRight)
-        self.freqSlider.valueChanged.connect(self.rollFreq) # TODO: need to use on release instead
+        self.freqSlider.valueChanged.connect(self.rollFreq) 
         self.freqSlider.setRange(0, 255)
 
         self.plotLayout.addWidget(self.freqSlider)
@@ -202,20 +204,23 @@ class AudioWindow(QMainWindow):
         # Emit signal to audio stream
         self.audioFrame.emit(frame)
         # Adjust text
-        self.audioTimeLabel.setText("%.2f / %.2f" % (frame/self.fs, self.slicedData.size / self.fs))
+        self.updateAudioTimeLabel(frame/self.fs)
         # Adjust playlines
-        self.topline.setValue(frame/self.fs)
-        self.btmline.setValue(frame/self.fs)
-        # TODO: refactor out common parts with updateAudioProgress
-        
+        self.updatePlaylines(frame/self.fs)
 
     @Slot(float)
     def updateAudioProgress(self, t: float):
         # print("Audio progress is %f" % t)
+        self.updatePlaylines(t)
+        self.updateAudioTimeLabel(t)
+        self.audioSlider.setValue(int(t * self.fs))
+
+    def updatePlaylines(self, t: float):
         self.topline.setValue(t)
         self.btmline.setValue(t)
+
+    def updateAudioTimeLabel(self, t: float):
         self.audioTimeLabel.setText("%.2f / %.2f" % (t, self.slicedData.size / self.fs))
-        self.audioSlider.setValue(int(t * self.fs))
 
     def pause(self):
         self.audioPause.emit()
@@ -325,5 +330,7 @@ class AudioWorker(QObject):
 
     @Slot()
     def reset(self):
+        self.stream.stop()
         self.current_frame = 0
         self.progress.emit(0)
+        
