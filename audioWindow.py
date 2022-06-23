@@ -82,8 +82,9 @@ class AudioWindow(QMainWindow):
 
         self.freqSlider = QSlider(Qt.Vertical)
         self.freqSlider.setTickPosition(QSlider.TicksRight)
-        self.freqSlider.valueChanged.connect(self.rollFreq) 
-        self.freqSlider.setRange(0, 255)
+        self.freqSlider.valueChanged.connect(self.rollFreq)
+        self.blocksize = 512 # TODO: make this adjustable
+        self.freqSlider.setRange(0, self.blocksize-1)
 
         self.plotLayout.addWidget(self.freqSlider)
         self.layout.addLayout(self.plotLayout)
@@ -122,7 +123,7 @@ class AudioWindow(QMainWindow):
         # Definitions for audio streams
         # Using a QThread
         self.thread = QThread(parent=self)
-        self.worker = AudioWorker(self.fs, self.slicedData)
+        self.worker = AudioWorker(self.fs, self.slicedData, blksize=self.blocksize)
         self.worker.moveToThread(self.thread)
         # self.thread.started.connect(self.worker.run) # Do not run on start
         # self.worker.finished.connect(self.thread.quit) # Do not quit either when finished
@@ -265,7 +266,7 @@ class AudioWorker(QObject):
     progress = Signal(float)
     current_frame = 0
 
-    def __init__(self, fs, slicedData, parent=None):
+    def __init__(self, fs, slicedData, blksize=256, parent=None):
         super().__init__(parent=parent)
 
         self.fs = fs
@@ -276,14 +277,16 @@ class AudioWorker(QObject):
             channels = 1,
             callback = self._callback,
             dtype = np.float32,
-            blocksize = 256
+            blocksize = blksize
         )
 
-        self.tone = np.cos(2*np.pi*0*np.arange(256)/256)
+        self.blksize = blksize
+
+        self.tone = np.cos(2*np.pi*0*np.arange(self.blksize)/self.blksize)
 
     @Slot(int)
     def tune(self, f_int: int):
-        self.tone = np.cos(2*np.pi*f_int*np.arange(256)/256)
+        self.tone = np.cos(2*np.pi*f_int*np.arange(self.blksize)/self.blksize)
 
     #%% For sounddevice stream
     def _callback(self, outdata, frames, time, status):
