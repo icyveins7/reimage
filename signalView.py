@@ -47,6 +47,8 @@ class SignalView(QFrame):
         self.ts = None
         self.sxx = None
         self.sxxMax = None # For image control
+        self.specFreqRes = None
+        self.specTimeRes = None # For spectrogram point-finding
 
         # Create a graphics view
         self.glw = pg.GraphicsLayoutWidget() # Window for the amplitude time plot
@@ -225,6 +227,11 @@ class SignalView(QFrame):
         self.freqs, self.ts, self.sxx = sps.spectrogram(
             self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False)
 
+        # Calculate resolutions for later
+        self.specFreqRes = self.fs / self.nperseg
+        # print(self.specFreqRes, self.freqs[1]-self.freqs[0]) # confirmed the same
+        self.specTimeRes = self.ts[1] - self.ts[0]
+
         self.freqs = np.fft.fftshift(self.freqs)
         self.sxx = np.fft.fftshift(self.sxx, axes=0)
         self.sxxMax = np.max(self.sxx.flatten())
@@ -332,6 +339,8 @@ class SignalView(QFrame):
     def specMouseMoved(self, evt):
         mousePoint = self.spw.vb.mapSceneToView(evt[0])
         self.specCoordLabel.setText("Y (Bottom): %f" % (mousePoint.y()))
+        # Attempt to find the nearest point
+        # TODO: use resolutions to quickly find nearest point, then display spectrogram value
 
     def onAmpMouseClicked(self, evt):
         # print(evt[0].button())
