@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QComboBox
-from PySide6.QtWidgets import QPushButton, QSlider
+from PySide6.QtWidgets import QPushButton, QSlider, QStyle
 from PySide6.QtCore import Qt, Signal, Slot, QRectF, QThread, QObject
 from PySide6.QtGui import QIcon
 import pyqtgraph as pg
@@ -53,11 +53,11 @@ class AudioWindow(QMainWindow):
 
         # Add some playback controls
         self.playBtn = QPushButton("")
-        self.playBtn.setIcon(QIcon.fromTheme("media-playback-start"))
+        self.playBtn.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
         self.pauseBtn = QPushButton("")
-        self.pauseBtn.setIcon(QIcon.fromTheme("media-playback-pause"))
+        self.pauseBtn.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
         self.resetBtn = QPushButton("")
-        self.resetBtn.setIcon(QIcon.fromTheme("media-playback-stop"))
+        self.resetBtn.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
         self.playbackLayout.addWidget(self.playBtn)
         self.playbackLayout.addWidget(self.pauseBtn)
         self.playbackLayout.addWidget(self.resetBtn)
