@@ -84,6 +84,8 @@ class SignalView(QFrame):
         self.viewboxLabelsLayout.addWidget(self.ampCoordLabel)
         self.specCoordLabel = QLabel()
         self.viewboxLabelsLayout.addWidget(self.specCoordLabel)
+        self.specPowerLabel = QLabel()
+        self.viewboxLabelsLayout.addWidget(self.specPowerLabel)
         self.p1.sigRangeChanged.connect(self.onZoom)
 
         # Create the main layout
@@ -340,7 +342,13 @@ class SignalView(QFrame):
         mousePoint = self.spw.vb.mapSceneToView(evt[0])
         self.specCoordLabel.setText("Y (Bottom): %f" % (mousePoint.y()))
         # Attempt to find the nearest point
-        # TODO: use resolutions to quickly find nearest point, then display spectrogram value
+        if self.specFreqRes is not None:
+            timeIdx = int(np.round((mousePoint.x() - self.ts[0]) / self.specTimeRes))
+            freqIdx = int(np.round((mousePoint.y() - self.freqs[0]) / self.specFreqRes))
+            if timeIdx < self.ts.size and freqIdx < self.freqs.size: # only the upwards movement has errors
+                self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[timeIdx, freqIdx])
+            
+        # TODO: create a circle marker to indicate the current point
 
     def onAmpMouseClicked(self, evt):
         # print(evt[0].button())
