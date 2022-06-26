@@ -72,6 +72,7 @@ class SignalView(QFrame):
         # Placeholders for linear regions 
         self.linearRegion = None
         self.specLinearRegion = None # Replicate the region in both
+        self.freqRegion = None # only need one for the specgram
 
         # ViewBox statistics
         self.viewboxLabelsLayout = QHBoxLayout()
@@ -272,6 +273,7 @@ class SignalView(QFrame):
                 symbolBrush='k',
                 symbolSize=5
             )
+            self.spd.setCurveClickable(False) # prevent clicks? TODO: this still doesn't fix time linear region not showing when hovered over specgram
 
     @Slot()
     def createLinearRegions(self, start, end):
@@ -406,6 +408,12 @@ class SignalView(QFrame):
                     self.addMarkerLines([mousePoint.x()], [label])
                     print("Saving with %s, %f" % (dbfilepath, dbsamplestart))
                     self.markerdb.addMarkers([dbfilepath], [dbsamplestart], [label])
+
+        elif modifiers == Qt.ControlModifier | Qt.ShiftModifier:
+            if self.freqRegion is None:
+                # Don't bother getting the cursor, just add to the middle of the screen
+                pass    
+            print("TODO: implement horizontal linear region for post-filtering")
                     
 
     def getFileSamplePair(self, x):
