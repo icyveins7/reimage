@@ -57,6 +57,7 @@ class SignalView(QFrame):
         self.sp = pg.ImageItem()
         self.spw = self.glw.addPlot(row=1,col=0)
         self.spw.addItem(self.sp)
+        self.spd = None # Placeholder for the dot used in tracking
 
         # Connections for the plots
         self.p1proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.ampMouseMoved)
@@ -264,6 +265,14 @@ class SignalView(QFrame):
             self.spw.setYRange(self.freqs[0] - viewBufferY, self.freqs[-1] + viewBufferY) # Set to zoomed out by default
             self.spw.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start, you must repeat this here, not just in the abs time widget, otherwise on increasing x plot lengths it will fail to zoom out
 
+            # Create the tracking dot
+            self.spd = self.spw.plot([0], [0],
+                pen=None,
+                symbol='o',
+                symbolBrush='k',
+                symbolSize=5
+            )
+
     @Slot()
     def createLinearRegions(self, start, end):
         if end > start:
@@ -345,10 +354,10 @@ class SignalView(QFrame):
         if self.specFreqRes is not None:
             timeIdx = int(np.round((mousePoint.x() - self.ts[0]) / self.specTimeRes))
             freqIdx = int(np.round((mousePoint.y() - self.freqs[0]) / self.specFreqRes))
-            if timeIdx < self.ts.size and freqIdx < self.freqs.size: # only the upwards movement has errors
+            if timeIdx > 0 and timeIdx < self.ts.size and freqIdx > 0 and freqIdx < self.freqs.size: # only the upwards movement has errors
                 self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[timeIdx, freqIdx])
-            
-        # TODO: create a circle marker to indicate the current point
+                # Set the marker
+                self.spd.setData([self.ts[timeIdx]], [self.freqs[freqIdx]])
 
     def onAmpMouseClicked(self, evt):
         # print(evt[0].button())
