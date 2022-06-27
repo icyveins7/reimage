@@ -534,7 +534,7 @@ class SignalView(QFrame):
                     region = self.linearRegion.getRegion()
                     startIdx, endIdx = self.convertRegionToIndices(region)
                     self.audiowin = AudioWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
-                    slef.audiowin.show()
+                    self.audiowin.show()
 
             elif action == pskdemodAction:
                 print("TODO: PSK DEMODULATION") # TODO
