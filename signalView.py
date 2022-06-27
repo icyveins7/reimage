@@ -411,10 +411,51 @@ class SignalView(QFrame):
 
         elif modifiers == Qt.ControlModifier | Qt.ShiftModifier:
             if self.freqRegion is None:
-                # Don't bother getting the cursor, just add to the middle of the screen
-                pass    
-            print("TODO: implement horizontal linear region for post-filtering")
+                self.addFreqRegion()
+                
+            else:
+                # Retrieve limits
+                region = self.freqRegion.getRegion()
+                print("freqregion = ", region)
+
+                # Confirm filter mechanics
+                item, ok = QInputDialog.getItem(self,
+                    "Confirm Filter",
+                    "No. of Filter Taps:",
+                    [str(2**i) for i in range(3,15)], # for now, manually copied from loaderSettings
+                    0, # index of default
+                    False # no edits allowed
+                )
+                # TODO: custom dialog to also have downsampling option
+
+                if ok and item:
+                    numTaps = int(item)
+                    cutoff = region[1] - region[0]
+                    freqshift = -np.mean(region)
+                    print("Taps: %d, cutoff: %g, freqshift: %g" % (numTaps,cutoff,freqshift))
                     
+                    # TODO: Perform the re-filter, save as a separate array and display, with option to revert
+
+
+                # Remove the linear region regardless
+                self.delFreqRegion()
+                
+
+    def addFreqRegion(self):
+        # Don't bother getting the cursor, just add to the middle of the screen
+        viewrange = self.spw.viewRange()[1] # get y-limits
+        middle = np.mean(viewrange)
+        span = viewrange[1] - viewrange[0]
+        # Create the linear region
+        self.freqRegion = pg.LinearRegionItem(
+            values=(middle-0.1*span, middle+0.1*span),
+            orientation='horizontal'
+        )
+        self.spw.addItem(self.freqRegion)
+
+    def delFreqRegion(self):
+        self.spw.removeItem(self.freqRegion)
+        self.freqRegion = None
 
     def getFileSamplePair(self, x):
         for i in range(len(self.sampleStarts)):
