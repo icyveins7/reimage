@@ -17,6 +17,7 @@ class AudioWindow(QMainWindow):
     audioStart = Signal()
     tuneSignal = Signal(int)
     audioFrame = Signal(int)
+    adjFreqPointsSignal = Signal(int)
 
     def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
         super().__init__()
@@ -80,13 +81,26 @@ class AudioWindow(QMainWindow):
         self.btmPlot = self.plotWidget.addPlot(row=1,col=0)
         self.plotLayout.addWidget(self.plotWidget)
 
+        self.freqAdjLayout = QVBoxLayout()
+        self.freqAdjDropdown = QComboBox()
+        self.freqAdjDropdown.addItems([str(2**i) for i in range(8,12)])
+        self.freqAdjDropdown.currentTextChanged.connect(self.adjustFreqPoints)
+        self.freqAdjDropdown.setEnabled(False) # TODO: connect such that editable only when not playing
+        self.freqAdjLayout.addWidget(self.freqAdjDropdown)
+        self.freqAdjDropdown.setFixedWidth(100) # Use this to fix the layout width
+
+        self.freqAdjLabel = QLabel("0 Hz")
+        self.freqAdjLayout.addWidget(self.freqAdjLabel)
+
         self.freqSlider = QSlider(Qt.Vertical)
         self.freqSlider.setTickPosition(QSlider.TicksRight)
         self.freqSlider.valueChanged.connect(self.rollFreq)
         self.blocksize = 512 # TODO: make this adjustable
-        self.freqSlider.setRange(0, self.blocksize-1)
+        self.freqSlider.setRange(-self.blocksize//2, self.blocksize//2 - 1)
+        self.freqSlider.setValue(0)
+        self.freqAdjLayout.addWidget(self.freqSlider)
 
-        self.plotLayout.addWidget(self.freqSlider)
+        self.plotLayout.addLayout(self.freqAdjLayout)
         self.layout.addLayout(self.plotLayout)
         self.topPlot.setXLink(self.btmPlot)
         self.topPlot.setMouseEnabled(x=True,y=False)
@@ -152,6 +166,11 @@ class AudioWindow(QMainWindow):
         self.thread.wait()
         super().closeEvent(evnt)
         
+    @Slot(str)
+    def adjustFreqPoints(self, numPts: str):
+        pts = int(numPts)
+        self.adjFreqPointsSignal.emit(pts)
+
     def plot(self):
         # Plot just like in signalView, but no need to downsample
         self.topPlotItem = self.topPlot.plot(np.arange(self.slicedData.size)/self.fs, self.slicedData) # and no need to abs
@@ -194,6 +213,7 @@ class AudioWindow(QMainWindow):
     #%% Frequency manipulation
     def rollFreq(self):
         self.tuneSignal.emit(self.freqSlider.value())
+        self.freqAdjLabel.setText("%.1f Hz" % (self.freqSlider.value()/self.blocksize * self.fs))
 
     def play(self):
         # Simply emit the signal
@@ -282,11 +302,13 @@ class AudioWorker(QObject):
 
         self.blksize = blksize
 
-        self.tone = np.cos(2*np.pi*0*np.arange(self.blksize)/self.blksize)
+        self.tone = None
+        self.tune(0)
 
     @Slot(int)
     def tune(self, f_int: int):
-        self.tone = np.cos(2*np.pi*f_int*np.arange(self.blksize)/self.blksize)
+        # self.tone = np.cos(2*np.pi*f_int*np.arange(self.blksize)/self.blksize)
+        self.tone = np.exp(1j*2*np.pi*f_int*np.arange(self.blksize)/self.blksize)
 
     #%% For sounddevice stream
     def _callback(self, outdata, frames, time, status):
@@ -296,11 +318,20 @@ class AudioWorker(QObject):
         chunksize = min(len(self.slicedData) - self.current_frame, frames)
         # print(chunksize, frames)
 
-        # outdata[:chunksize] = self.slicedData[self.current_frame:self.current_frame + chunksize]
          # for now, hotfix the single channel
         # outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize]
-        # Can we do a multiply in the stream?
-        outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize] * self.tone[:chunksize]
+        # # Can we do a multiply in the stream?
+        # outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize] * self.tone[:chunksize]
+
+        # The real audio processing is to hilbert
+        haudio = sps.hilbert(self.slicedData[self.current_frame:self.current_frame + chunksize])
+        # Then multiply a complex tone
+        hsaudio = haudio * self.tone[:chunksize]
+        # Then take the real again
+        audio = np.real(hsaudio)
+        # Write to output
+        outdata[:chunksize,0] = audio
+
         if chunksize < frames:
             outdata[chunksize:] = 0
             self.finished.emit()
