@@ -6,10 +6,9 @@ import sqlite3 as sq
 
 from signalView import SignalView
 from fileList import FileListFrame
-# from fileSettings import FileSettingsDialog
-# from signalSettings import SignalSettingsDialog
 from predetections import PredetectAmpDialog
 from loaderSettings import LoaderSettingsDialog
+from sidebarSettings import SidebarSettings
 
 class ReimageMain(QtWidgets.QMainWindow):
     triggerLoadFilesSignal = QtCore.Signal()
@@ -33,6 +32,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.workspaceLayout = QtWidgets.QHBoxLayout() # Sublayout 
         self.fileListFrame = FileListFrame(db=self.cachedb)
         self.workspaceLayout.addWidget(self.fileListFrame)
+        self.sidebar = SidebarSettings()
         
         # Add sublayouts to main layout
         self.layout.addLayout(self.workspaceLayout)
@@ -120,7 +120,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         print("Set sample rate to %d" % self.signalsettings['fs'])
 
     @QtCore.Slot(str)
-    def newFilesHandler(self, specialType: str=None):
+    def newFilesHandler(self, specialType: str=""):
         # We spawn the new amalgamated loader settings
         dialog = LoaderSettingsDialog(self.filesettings, self.signalsettings, specialType)
         dialog.signalsettingsSignal.connect(self.saveSignalSettings)
