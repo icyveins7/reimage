@@ -98,15 +98,6 @@ class SignalView(QFrame):
 
         self.setLayout(self.layout)
 
-        # Add a colour slider control
-        self.contrastLayout = QHBoxLayout()
-        self.contrastSlider = QSlider(Qt.Horizontal)
-        self.contrastSlider.setRange(1, 100)
-        self.contrastSlider.valueChanged.connect(self.changeSpecgramContrast)
-        self.contrastLayout.addWidget(QLabel("Contrast"))
-        self.contrastLayout.addWidget(self.contrastSlider)
-        self.layout.addLayout(self.contrastLayout)
-
         # DSP Settings
         self.nperseg = 256
         self.noverlap = 256/8
@@ -116,13 +107,20 @@ class SignalView(QFrame):
         self.filtercutoff = None
         self.dsr = None
 
-    @Slot()
-    def changeSpecgramContrast(self):
+    @Slot(float, bool)
+    def adjustSpecgramContrast(self, percentile: float, isLog: bool):
+        maxval = np.log10(self.sxxMax) if isLog else self.sxxMax
+
         if self.sxxMax is not None:
-            percentile = self.contrastSlider.value()/100.0
-            contrast = np.exp((percentile-1)/0.25) * self.sxxMax # like a log2 squared contrast, this is more natural
+            contrast = percentile * maxval # simply take the float and adjust accordingly
             self.sp.setLevels([0, contrast])
-        
+
+    @Slot(float)
+    def adjustSpecgramLog(self, isLog: bool):
+        if isLog and self.sxx is not None:
+            self.sp.setImage(np.log10(self.sxx))
+        elif self.sxx is not None:
+            self.sp.setImage(self.sxx)
 
     def setDownsampleCache(self):
         # Clear existing cache
@@ -169,9 +167,6 @@ class SignalView(QFrame):
         self.p1.clear()
         self.spw.clear()
         self.ydata = ydata
-
-        # Reset the contrast slider
-        self.contrastSlider.setValue(100)
 
         # Apply initial processing
         if self.freqshift is not None:

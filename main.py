@@ -32,21 +32,28 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.workspaceLayout = QtWidgets.QHBoxLayout() # Sublayout 
         self.fileListFrame = FileListFrame(db=self.cachedb)
         self.workspaceLayout.addWidget(self.fileListFrame)
-        self.sidebar = SidebarSettings()
         
         # Add sublayouts to main layout
         self.layout.addLayout(self.workspaceLayout)
 
-        # Testing
+        # Add signal viewer
         self.sv = SignalView(np.zeros(100) + 100000) # sample data
         self.sv.plotAmpTime()
         self.workspaceLayout.addWidget(self.sv)
+
+        # Add the side toolbar
+        self.sidebar = SidebarSettings()
+        self.workspaceLayout.addWidget(self.sidebar)
 
         # Connections
         self.fileListFrame.dataSignal.connect(self.onNewData)
         self.fileListFrame.newFilesSignal.connect(self.newFilesHandler)
         self.fileListFrame.sampleRateSignal.connect(self.setSampleRate)
+
         self.triggerLoadFilesSignal.connect(self.fileListFrame.loadFiles)
+
+        self.sidebar.changeSpecgramContrastSignal.connect(self.sv.adjustSpecgramContrast)
+        self.sidebar.changeSpecgramLogScaleSignal.connect(self.sv.adjustSpecgramLog)
 
 
         # Application global settings

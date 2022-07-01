@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QComboBox
 from PySide6.QtWidgets import QPushButton, QSlider, QStyle
 from PySide6.QtCore import Qt, Signal, Slot, QRectF, QThread, QObject
-from PySide6.QtGui import QIcon
+# from PySide6.QtGui import QIcon
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
