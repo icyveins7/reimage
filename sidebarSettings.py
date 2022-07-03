@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QCheckBox, QStyle, QWidget
-from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QInputDialog, QMessageBox, QSlider, QSizePolicy
+from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QInputDialog, QMessageBox, QSlider, QSizePolicy, QRadioButton
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import numpy as np
 import scipy.signal as sps
@@ -7,6 +7,8 @@ import scipy.signal as sps
 class SidebarSettings(QFrame):
     changeSpecgramContrastSignal = Signal(float, bool)
     changeSpecgramLogScaleSignal = Signal(bool)
+    addSmaSignal = Signal(int)
+    changeAmpPlotSignal = Signal(str)
 
     def __init__(self,
         parent=None, f=Qt.WindowFlags()
@@ -31,14 +33,67 @@ class SidebarSettings(QFrame):
         # Start out hidden
         self.settingsWidget.hide()
 
+        # Initialise amp-plot groupbox
+        self.initAmpPlotGroupbox()
+
         # Initialise spectrogram groupbox
         self.initSpecgramGroupbox()
 
+        # At the end, add a stretch
+        self.settingsLayout.addStretch()
 
+    ############### Amplitude-plot settings
+    def initAmpPlotGroupbox(self):
+        self.ampplotgroupbox = QGroupBox("Amplitude-Time Plot")
+        self.ampplotlayout = QFormLayout()
+        self.ampplotgroupbox.setLayout(self.ampplotlayout)
+        self.settingsLayout.addWidget(self.ampplotgroupbox)
 
+        # Add real/imag view
+        self.reimgroupbox = QGroupBox()
+        self.reimgrouplayout = QHBoxLayout()
+        self.reimgroupbox.setLayout(self.reimgrouplayout)
+        self.ampviewBtn = QRadioButton("Amplitude")
+        self.ampviewBtn.setChecked(True)
+        self.reimgrouplayout.addWidget(self.ampviewBtn)
+        self.reimviewBtn = QRadioButton("Real/Imag")
+        self.reimgrouplayout.addWidget(self.reimviewBtn)
+        self.ampplotlayout.addRow("Plot Type", self.reimgroupbox)
+        # Connection
+        self.reimgroupbox.clicked.connect(self.changeAmpPlotType) # not working?
+        
+
+        # Add average filter options
+        self.smalens = []
+        self.addsmaBtn = QPushButton("Add")
+        self.ampplotlayout.addRow("Moving Average", self.addsmaBtn)
+        # Connection
+        self.addsmaBtn.clicked.connect(self.addsma)
+        
+    @Slot()
+    def changeAmpPlotType(self):
+        s = "amp" if self.ampviewBtn.isChecked() else "reim"
+        self.changeAmpPlotSignal.emit(s)
+        print(s) # debug
+
+    @Slot()
+    def addsma(self):
+        val, ok = QInputDialog.getInt(self,
+            "Add New Moving Average",
+            "Moving Average Length: ",
+            value=25
+        )
+
+        if ok:
+            self.addSmaSignal.emit(val)
+            # Add a row internally as well
+            self.smalens.append(val)
+            print(self.smalens)
+
+    ############### Specgram settings
     def initSpecgramGroupbox(self):
         self.specgroupbox = QGroupBox("Spectrogram")
-        self.specgroupbox.setMinimumWidth(300) # Use this to size the entire layout
+        self.specgroupbox.setMinimumWidth(250) # Use this to size the entire layout
         self.speclayout = QFormLayout()
         self.specgroupbox.setLayout(self.speclayout)
         self.settingsLayout.addWidget(self.specgroupbox)
@@ -78,6 +133,8 @@ class SidebarSettings(QFrame):
     @Slot()
     def changeSpecgramLogScale(self):
         self.changeSpecgramLogScaleSignal.emit(self.logCheckbox.isChecked())
+        # Must reset contrast bar
+        self.contrastSlider.setValue(0)
 
 
 

@@ -109,18 +109,21 @@ class SignalView(QFrame):
 
     @Slot(float, bool)
     def adjustSpecgramContrast(self, percentile: float, isLog: bool):
-        maxval = np.log10(self.sxxMax) if isLog else self.sxxMax
-
         if self.sxxMax is not None:
-            contrast = percentile * maxval # simply take the float and adjust accordingly
-            self.sp.setLevels([0, contrast])
+            maxval = np.log10(self.sxxMax * percentile) if isLog else self.sxxMax * percentile
+            minval = np.log10(self.sxxMin) if isLog else 0
+            self.sp.setLevels([minval, maxval])
 
     @Slot(float)
     def adjustSpecgramLog(self, isLog: bool):
         if isLog and self.sxx is not None:
             self.sp.setImage(np.log10(self.sxx))
+            self.sp.setLevels([
+                np.log10(self.sxxMin),
+                np.log10(self.sxxMax)])
         elif self.sxx is not None:
             self.sp.setImage(self.sxx)
+            self.sp.setLevels([0, self.sxxMax])
 
     def setDownsampleCache(self):
         # Clear existing cache
@@ -234,6 +237,7 @@ class SignalView(QFrame):
         self.freqs = np.fft.fftshift(self.freqs)
         self.sxx = np.fft.fftshift(self.sxx, axes=0)
         self.sxxMax = np.max(self.sxx.flatten())
+        self.sxxMin = np.min(self.sxx.flatten()) # use this in log-view
         # Obtain the spans and gaps for proper plotting
         tgap = self.ts[1] - self.ts[0]
         fgap = self.freqs[1] - self.freqs[0]
@@ -248,6 +252,7 @@ class SignalView(QFrame):
             self.sp.setRect(QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)) # Proper setting of the box boundaries
             cm2use = pg.colormap.getFromMatplotlib('viridis')
             self.sp.setLookupTable(cm2use.getLookupTable())
+            self.sp.setLevels([0, self.sxxMax])
             
             self.spw.addItem(self.sp) # Must add it back because clears are done in setYData
             # self.spw.setMouseEnabled(x=True,y=False)
