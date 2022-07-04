@@ -107,6 +107,22 @@ class SignalView(QFrame):
         self.filtercutoff = None
         self.dsr = None
 
+    @Slot(int)
+    def addSma(self, length: int):
+        print("TODO: addSma %d" % length)
+
+    @Slot(int)
+    def delSma(self, length: int):
+        print("TODO: delSma %d" % length)
+
+    @Slot(int, int, int, int)
+    def colourSma(self, length: int, r: int, g: int, b: int):
+        print("TODO: colourSma %d to %d,%d,%d" % (length, r,g,b))
+
+    @Slot(str)
+    def changeAmpPlot(self, ampPlotType: str):
+        print("TODO: changeAmpPlot %s" % ampPlotType)
+
     @Slot(float, bool)
     def adjustSpecgramContrast(self, percentile: float, isLog: bool):
         if self.sxxMax is not None:

@@ -52,6 +52,11 @@ class ReimageMain(QtWidgets.QMainWindow):
 
         self.triggerLoadFilesSignal.connect(self.fileListFrame.loadFiles)
 
+        self.sidebar.addSmaSignal.connect(self.sv.addSma)
+        self.sidebar.deleteSmaSignal.connect(self.sv.delSma)
+        self.sidebar.changeSmaColourSignal.connect(self.sv.colourSma)
+        self.sidebar.changeAmpPlotSignal.connect(self.sv.changeAmpPlot)
+
         self.sidebar.changeSpecgramContrastSignal.connect(self.sv.adjustSpecgramContrast)
         self.sidebar.changeSpecgramLogScaleSignal.connect(self.sv.adjustSpecgramLog)
 

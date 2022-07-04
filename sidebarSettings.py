@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QCheckBox, QStyle, QWidget
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QInputDialog, QMessageBox, QSlider, QSizePolicy, QRadioButton
-from PySide6.QtWidgets import QColorDialog, QMessageBox
+from PySide6.QtWidgets import QColorDialog, QMessageBox, QButtonGroup
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import numpy as np
 import scipy.signal as sps
@@ -9,7 +9,10 @@ from functools import partial
 class SidebarSettings(QFrame):
     changeSpecgramContrastSignal = Signal(float, bool)
     changeSpecgramLogScaleSignal = Signal(bool)
+
     addSmaSignal = Signal(int)
+    deleteSmaSignal = Signal(int)
+    changeSmaColourSignal = Signal(int, int, int, int)
     changeAmpPlotSignal = Signal(str)
 
     def __init__(self,
@@ -52,17 +55,20 @@ class SidebarSettings(QFrame):
         self.settingsLayout.addWidget(self.ampplotgroupbox)
 
         # Add real/imag view
-        self.reimgroupbox = QGroupBox()
+        self.reimgroupbox = QGroupBox() # QButtonGroup() # QGroupBox()
         self.reimgrouplayout = QHBoxLayout()
         self.reimgroupbox.setLayout(self.reimgrouplayout)
         self.ampviewBtn = QRadioButton("Amplitude")
         self.ampviewBtn.setChecked(True)
+        # self.reimgroupbox.addButton(self.ampviewBtn)
         self.reimgrouplayout.addWidget(self.ampviewBtn)
         self.reimviewBtn = QRadioButton("Real/Imag")
         self.reimgrouplayout.addWidget(self.reimviewBtn)
+        # self.reimgroupbox.addButton(self.reimviewBtn)
         self.ampplotlayout.addRow("Plot Type", self.reimgroupbox)
         # Connection
         self.reimgroupbox.clicked.connect(self.changeAmpPlotType) # not working?
+        # self.reimgroupbox.buttonClicked.connect(self.changeAmpPlotType) # cannot add buttongroup directly
         
 
         # Add average filter options
@@ -87,8 +93,6 @@ class SidebarSettings(QFrame):
         )
 
         if ok:
-            self.addSmaSignal.emit(val)
-            # Add a row internally as well
             if val not in self.smalens:
                 # Create the widget that contains the others
                 hwidget = QWidget()
@@ -102,20 +106,24 @@ class SidebarSettings(QFrame):
                 smadelBtn.clicked.connect(partial(self.deleteSma, val))
                 
                 # Color Button
-                smaColorBtn = QPushButton("Color", parent=hwidget)
+                smaColorBtn = QPushButton(parent=hwidget)
+                smaColorBtn.setStyleSheet("background-color: rgb(255,0,0);")
                 # Connection
-                smaColorBtn.clicked.connect(self.colourSma)
+                smaColorBtn.clicked.connect(partial(self.colourSma, val))
 
                 # Add to the UI
                 hlayout.addWidget(smadelBtn)
                 hlayout.addWidget(smaColorBtn)
                 self.ampplotlayout.addRow("MA: %d" % (val), hwidget)
                 # Add to internals
-                self.smalens[val] = hwidget
+                self.smalens[val] = [hwidget, smaColorBtn]
+
+                # Emit signal
+                self.addSmaSignal.emit(val)
 
             else:
                 # Display error dialog
-                _ = QMessageBox.critical(self, "Moving Average Error",
+                QMessageBox.critical(self, "Moving Average Error",
                     "Repeat moving average lengths are not allowed."
                 )
 
@@ -124,26 +132,35 @@ class SidebarSettings(QFrame):
     @Slot()
     def deleteSma(self, val: int):
         # Remove from the UI
-        self.ampplotlayout.removeRow(self.smalens[val])
+        self.ampplotlayout.removeRow(self.smalens[val][0])
         # Remove from internals
         self.smalens.pop(val)
-        # TODO: emit appropriate signal
-        pass
+        # Emit signal
+        self.deleteSmaSignal.emit(val)
+        
 
     @Slot()
-    def colourSma(self):
+    def colourSma(self, val: int):
         colour = QColorDialog.getColor(Qt.red, self)
 
         if colour.isValid():
+            # Recolour the button
+            self.smalens[val][1].setStyleSheet(
+                "background-color: rgb(%d,%d,%d)" % (
+                    colour.red(),
+                    colour.green(),
+                    colour.blue())     
+            )
+            
             print(colour)
-            # Working correctly up to here
-            # TODO: emit appropriate signal
+            # Emit signal
+            self.changeSmaColourSignal.emit(val, colour.red(), colour.green(), colour.blue())
 
 
     ############### Specgram settings
     def initSpecgramGroupbox(self):
         self.specgroupbox = QGroupBox("Spectrogram")
-        self.specgroupbox.setMinimumWidth(250) # Use this to size the entire layout
+        self.specgroupbox.setFixedWidth(250) # Use this to size the entire layout
         self.speclayout = QFormLayout()
         self.specgroupbox.setLayout(self.speclayout)
         self.settingsLayout.addWidget(self.specgroupbox)
