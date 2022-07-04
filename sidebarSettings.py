@@ -1,8 +1,10 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout, QCheckBox, QStyle, QWidget
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QInputDialog, QMessageBox, QSlider, QSizePolicy, QRadioButton
+from PySide6.QtWidgets import QColorDialog, QMessageBox
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import numpy as np
 import scipy.signal as sps
+from functools import partial
 
 class SidebarSettings(QFrame):
     changeSpecgramContrastSignal = Signal(float, bool)
@@ -64,7 +66,7 @@ class SidebarSettings(QFrame):
         
 
         # Add average filter options
-        self.smalens = []
+        self.smalens = {}
         self.addsmaBtn = QPushButton("Add")
         self.ampplotlayout.addRow("Moving Average", self.addsmaBtn)
         # Connection
@@ -87,8 +89,56 @@ class SidebarSettings(QFrame):
         if ok:
             self.addSmaSignal.emit(val)
             # Add a row internally as well
-            self.smalens.append(val)
+            if val not in self.smalens:
+                # Create the widget that contains the others
+                hwidget = QWidget()
+                hlayout = QHBoxLayout()
+                hwidget.setLayout(hlayout)
+
+                # Deletion button
+                smadelBtn = QPushButton(parent=hwidget) # Ensure child deletion
+                smadelBtn.setIcon(self.style().standardIcon(QStyle.SP_DialogCancelButton))
+                # Connection
+                smadelBtn.clicked.connect(partial(self.deleteSma, val))
+                
+                # Color Button
+                smaColorBtn = QPushButton("Color", parent=hwidget)
+                # Connection
+                smaColorBtn.clicked.connect(self.colourSma)
+
+                # Add to the UI
+                hlayout.addWidget(smadelBtn)
+                hlayout.addWidget(smaColorBtn)
+                self.ampplotlayout.addRow("MA: %d" % (val), hwidget)
+                # Add to internals
+                self.smalens[val] = hwidget
+
+            else:
+                # Display error dialog
+                _ = QMessageBox.critical(self, "Moving Average Error",
+                    "Repeat moving average lengths are not allowed."
+                )
+
             print(self.smalens)
+
+    @Slot()
+    def deleteSma(self, val: int):
+        # Remove from the UI
+        self.ampplotlayout.removeRow(self.smalens[val])
+        # Remove from internals
+        self.smalens.pop(val)
+        # TODO: emit appropriate signal
+        pass
+
+    @Slot()
+    def colourSma(self):
+        colour = QColorDialog.getColor(Qt.red, self)
+
+        if colour.isValid():
+            print(colour)
+            # Working correctly up to here
+            # TODO: emit appropriate signal
+
 
     ############### Specgram settings
     def initSpecgramGroupbox(self):
