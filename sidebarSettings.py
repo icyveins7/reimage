@@ -47,6 +47,13 @@ class SidebarSettings(QFrame):
         # At the end, add a stretch
         self.settingsLayout.addStretch()
 
+    ############### Global settings
+    @Slot()
+    def reset(self):
+        # Call the individual resets
+        self.clearSma()
+        self.resetSpecgramGroupbox()
+
     ############### Amplitude-plot settings
     def initAmpPlotGroupbox(self):
         self.ampplotgroupbox = QGroupBox("Amplitude-Time Plot")
@@ -155,6 +162,14 @@ class SidebarSettings(QFrame):
             print(colour)
             # Emit signal
             self.changeSmaColourSignal.emit(val, colour.red(), colour.green(), colour.blue())
+
+    @Slot()
+    def clearSma(self):
+        # Remove the UI rows
+        for val in self.smalens:
+            self.ampplotlayout.removeRow(self.smalens[val][0])
+        # Then clear the dict
+        self.smalens.clear()
 
 
     ############### Specgram settings

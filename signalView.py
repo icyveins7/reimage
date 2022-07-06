@@ -107,17 +107,37 @@ class SignalView(QFrame):
         self.filtercutoff = None
         self.dsr = None
 
+        # Placeholders for SMAs
+        self.smas = {} # Save complex SMA
+        self.smaplots = {}
+
     @Slot(int)
     def addSma(self, length: int):
-        print("TODO: addSma %d" % length)
+        taps = np.ones(length)/length
+        sma = np.convolve(taps, np.abs(self.ydata), 'same')
+        self.smas[length] = sma
+        # Add to plot
+        self.smaplots[length] = pg.PlotDataItem(
+            np.arange(self.ydata.size) / self.fs,
+            np.abs(sma),
+            pen='r' # Default colour
+        )
+        self.p1.addItem(self.smaplots[length])
+        
 
     @Slot(int)
     def delSma(self, length: int):
-        print("TODO: delSma %d" % length)
+        # Delete from plot
+        self.p1.removeItem(self.smaplots[length])
+        # And from internal memory
+        self.smaplots.pop(length)
+        self.smas.pop(length)
+        
 
     @Slot(int, int, int, int)
     def colourSma(self, length: int, r: int, g: int, b: int):
-        print("TODO: colourSma %d to %d,%d,%d" % (length, r,g,b))
+        self.smaplots[length].setPen(pg.mkPen(r,g,b))
+        
 
     @Slot(str)
     def changeAmpPlot(self, ampPlotType: str):
@@ -183,6 +203,10 @@ class SignalView(QFrame):
         return np.arange(0, self.ydata.size, curDSR) / dfs
 
     def setYData(self, ydata, filelist, sampleStarts):
+        # Reset SMA plots
+        self.smaplots.clear()
+        self.smas.clear()
+
         self.p1.clear()
         self.spw.clear()
         self.ydata = ydata
