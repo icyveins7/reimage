@@ -20,6 +20,8 @@ class SidebarSettings(QFrame):
     ):
         super().__init__(parent, f)
 
+        self.setMaximumWidth(400) # Set a maximum extent
+
         # Outer layout
         self.layout = QHBoxLayout()
         self.settingsWidget = QWidget() # Used to hide/show
@@ -175,7 +177,6 @@ class SidebarSettings(QFrame):
     ############### Specgram settings
     def initSpecgramGroupbox(self):
         self.specgroupbox = QGroupBox("Spectrogram")
-        self.specgroupbox.setFixedWidth(250) # Use this to size the entire layout
         self.speclayout = QFormLayout()
         self.specgroupbox.setLayout(self.speclayout)
         self.settingsLayout.addWidget(self.specgroupbox)
