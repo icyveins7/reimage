@@ -10,6 +10,7 @@ from estBaudWindow import EstimateBaudWindow
 from cmWindow import EstimateFreqWindow
 from thresholdWindow import ThresholdWindow
 from audioWindow import AudioWindow
+from demodWindow import DemodWindow
 
 from markerdb import MarkerDB
 
@@ -558,9 +559,8 @@ class SignalView(QFrame):
             # ===
             audioAction = menu.addAction("Audio Manipulation")
             # ===
-            demodSubmenu = menu.addMenu("Demodulate")
-            pskdemodAction = demodSubmenu.addAction("PSK (TODO)")
-            cpmdemodAction = demodSubmenu.addAction("CPM (TODO)")
+            demodAction = menu.addAction("Demodulate")
+
 
             # Start the menu
             action = menu.exec_(self.mapToGlobal(event.pos()))
@@ -620,11 +620,14 @@ class SignalView(QFrame):
                     self.audiowin = AudioWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
                     self.audiowin.show()
 
-            elif action == pskdemodAction:
-                print("TODO: PSK DEMODULATION") # TODO
-
-            elif action == cpmdemodAction:
-                print("TODO: CPM DEMODULATION") # TODO
+            elif action == demodAction:
+                if self.linearRegion is None:
+                    self.demodwin = DemodWindow(self.ydata, fs=dfs)
+                else:
+                    region = self.linearRegion.getRegion()
+                    startIdx, endIdx = self.convertRegionToIndices(region)
+                    self.demodwin = DemodWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
+                self.demodwin.show()
 
     def convertRegionToIndices(self, region):
         dfs = self.getDisplayedFs()
