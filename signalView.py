@@ -325,7 +325,7 @@ class SignalView(QFrame):
             # Connect to slot for updates
             self.linearRegion.sigRegionChanged.connect(self.onAmpRegionChanged)
             # Set the initial labels
-            self.linearRegionBoundsLabel.setText("%f : %f" % (start,end))
+            self.formatlinearRegionBoundsLabel((start,end))
 
             # Create a similar region object for the specgram
             self.specLinearRegion = pg.LinearRegionItem(values=(start,end))
@@ -342,10 +342,13 @@ class SignalView(QFrame):
         # Reset the text
         self.linearRegionBoundsLabel.clear()
 
+    def formatlinearRegionBoundsLabel(self, region):
+        self.linearRegionBoundsLabel.setText("%f : %f (%f)" % (region[0], region[1], region[1]-region[0]))
+
     @Slot()
     def onAmpRegionChanged(self):
         region = self.linearRegion.getRegion()
-        self.linearRegionBoundsLabel.setText("%f : %f" % (region[0], region[1]))
+        self.formatlinearRegionBoundsLabel(region)
         # Change the other region to match
         self.specLinearRegion.setRegion(region)
 
@@ -353,7 +356,7 @@ class SignalView(QFrame):
     @Slot()
     def onSpecRegionChanged(self):
         region = self.specLinearRegion.getRegion()
-        self.linearRegionBoundsLabel.setText("%f : %f" % (region[0], region[1]))
+        self.formatlinearRegionBoundsLabel(region)
         # Change the other region to match
         self.linearRegion.setRegion(region)
 
