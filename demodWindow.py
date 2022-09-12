@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLabel, QComboBox, QPushButton
-from PySide6.QtWidgets import QSpinBox
+from PySide6.QtWidgets import QSpinBox, QMessageBox, QLineEdit, QTextBrowser, QSlider
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
@@ -26,6 +26,8 @@ class DemodWindow(QMainWindow):
 
         self.topLayout = QHBoxLayout()
         self.layout.addLayout(self.topLayout)
+        self.midLayout = QHBoxLayout()
+        self.layout.addLayout(self.midLayout)
         self.btmLayout = QHBoxLayout()
         self.layout.addLayout(self.btmLayout)
 
@@ -35,8 +37,18 @@ class DemodWindow(QMainWindow):
         # Options menus
         self.setupOptions()
 
+        # Bits results
+        self.setupBitsViews()
+
         # Object holder for the demodulator
         self.demodulator = None
+
+    def setupBitsViews(self):
+        self.hexBrowser = QTextBrowser()
+        self.btmLayout.addWidget(self.hexBrowser)
+
+        self.asciiBrowser = QTextBrowser()
+        self.btmLayout.addWidget(self.asciiBrowser)
 
     def setupPlots(self):
         self.abswin = pg.GraphicsLayoutWidget()
@@ -45,10 +57,13 @@ class DemodWindow(QMainWindow):
         self.abspltitem = self.absplt.plot(np.arange(self.slicedData.size)/self.fs, np.abs(self.slicedData))
 
         self.rwin = pg.GraphicsLayoutWidget()
-        self.btmLayout.addWidget(self.rwin)
+        self.midLayout.addWidget(self.rwin)
         self.eoplt = self.rwin.addPlot(0,0)
         self.conplt = self.rwin.addPlot(0,1)
 
+        self.symSizeSlider = QSlider(Qt.Vertical)
+        self.midLayout.addWidget(self.symSizeSlider)
+        self.symSizeSlider.valueChanged.connect(self.adjustSymSize)
 
 
     def setupOptions(self):
@@ -69,7 +84,7 @@ class DemodWindow(QMainWindow):
 
         self.baud = 1
         self.baudSpinbox = QSpinBox()
-        self.baudSpinbox.setMinimum(1)
+        self.baudSpinbox.setRange(1, 2147483647) # Arbitrarily set maximum to int32 max
         self.baudSpinbox.valueChanged.connect(self.setBaud)
         self.optLayout.addRow("Baud Rate", self.baudSpinbox)
 
@@ -91,6 +106,11 @@ class DemodWindow(QMainWindow):
         self.demodBtn = QPushButton("Demodulate")
         self.demodBtn.clicked.connect(self.runDemod)
         self.optOuterLayout.addWidget(self.demodBtn)
+
+    @Slot(int)
+    def adjustSymSize(self, size):
+        pass # TODO
+        # self.conpltitem.setSymbol()
 
     @Slot(int)
     def setBaud(self, baud):
@@ -132,8 +152,41 @@ class DemodWindow(QMainWindow):
 
     @Slot()
     def runDemod(self):
+        # Ensure a scheme is selected
+        if self.modDropdown.currentText() == self.modtypestrings[0]:
+            # Raise dialog to say already exists
+            QMessageBox.critical(
+                self,
+                "Invalid Options",
+                "Please select a modulation scheme.",
+                QMessageBox.Ok)
+            return
 
-        print("TODO: runDemod")
+        # First check if need to resample
+        if self.up > 1 or self.down > 1:
+            # Run the resampling
+            resampled = sps.resample_poly(self.slicedData, self.up, self.down)
+        else:
+            resampled = self.slicedData
+        
+        # Run demodulator
+        self.demodulator.demod(resampled.astype(np.complex64), self.osr, verb=False)
+
+        # Plot the eye-opening
+        self.eopltitem = self.eoplt.plot(
+            self.demodulator.eo_metric
+        )
+        # Plot the constellation
+        maxbound = np.max(self.demodulator.reimc.view(np.float32)) * 1.1
+        self.conpltitem = self.conplt.plot(
+            np.real(self.demodulator.reimc),
+            np.imag(self.demodulator.reimc),
+            symbol='o',
+            symbolPen=None,
+            symbolBrush='w',
+            pen=None
+        )
+        self.conplt.setLimits(xMin=-maxbound, xMax=maxbound, yMin=-maxbound, yMax=maxbound)
 
 
         
