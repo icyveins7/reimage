@@ -62,6 +62,7 @@ class DemodWindow(QMainWindow):
         self.conplt = self.rwin.addPlot(0,1)
 
         self.symSizeSlider = QSlider(Qt.Vertical)
+        self.symSizeSlider.setRange(1, 100)
         self.midLayout.addWidget(self.symSizeSlider)
         self.symSizeSlider.valueChanged.connect(self.adjustSymSize)
 
@@ -109,8 +110,8 @@ class DemodWindow(QMainWindow):
 
     @Slot(int)
     def adjustSymSize(self, size):
-        pass # TODO
-        # self.conpltitem.setSymbol()
+        symSize = size / 100 * self.maxSymbolSize
+        self.conpltitem.setSymbolSize(symSize)
 
     @Slot(int)
     def setBaud(self, baud):
@@ -170,6 +171,8 @@ class DemodWindow(QMainWindow):
             resampled = self.slicedData
         
         # Run demodulator
+        if resampled.size % self.osr != 0:
+            resampled = resampled[:-(resampled.size % self.osr)]
         self.demodulator.demod(resampled.astype(np.complex64), self.osr, verb=False)
 
         # Plot the eye-opening
@@ -186,7 +189,19 @@ class DemodWindow(QMainWindow):
             symbolBrush='w',
             pen=None
         )
+        self.maxSymbolSize = self.conpltitem.opts['symbolSize']
+        self.symSizeSlider.setValue(100) # Maximum at the start
         self.conplt.setLimits(xMin=-maxbound, xMax=maxbound, yMin=-maxbound, yMax=maxbound)
+
+        # Update the text browsers
+        hexvals = self.demodulator.packBinaryBytesToBits(
+            self.demodulator.unpackToBinaryBytes(
+                self.demodulator.symsToBits()
+            )
+        )
+        self.hexBrowser.setText(
+            ' '.join([np.base_repr(i, base=16) for i in hexvals])
+        )
 
 
         
