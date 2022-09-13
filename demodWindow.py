@@ -45,6 +45,7 @@ class DemodWindow(QMainWindow):
 
     def setupBitsViews(self):
         self.hexBrowser = QTextBrowser()
+        self.hexBrowser.setMinimumHeight(300)
         self.btmLayout.addWidget(self.hexBrowser)
 
         self.asciiBrowser = QTextBrowser()
@@ -57,6 +58,7 @@ class DemodWindow(QMainWindow):
         self.abspltitem = self.absplt.plot(np.arange(self.slicedData.size)/self.fs, np.abs(self.slicedData))
 
         self.rwin = pg.GraphicsLayoutWidget()
+        self.rwin.setMinimumHeight(300)
         self.midLayout.addWidget(self.rwin)
         self.eoplt = self.rwin.addPlot(0,0)
         self.conplt = self.rwin.addPlot(0,1)
@@ -180,7 +182,7 @@ class DemodWindow(QMainWindow):
             self.demodulator.eo_metric
         )
         # Plot the constellation
-        maxbound = np.max(self.demodulator.reimc.view(np.float32)) * 1.1
+        maxbound = np.max(self.demodulator.reimc.view(np.float32)) * 1.5
         self.conpltitem = self.conplt.plot(
             np.real(self.demodulator.reimc),
             np.imag(self.demodulator.reimc),
@@ -192,6 +194,7 @@ class DemodWindow(QMainWindow):
         self.maxSymbolSize = self.conpltitem.opts['symbolSize']
         self.symSizeSlider.setValue(100) # Maximum at the start
         self.conplt.setLimits(xMin=-maxbound, xMax=maxbound, yMin=-maxbound, yMax=maxbound)
+        self.conplt.setAspectLocked()
 
         # Update the text browsers
         hexvals = self.demodulator.packBinaryBytesToBits(
@@ -199,9 +202,16 @@ class DemodWindow(QMainWindow):
                 self.demodulator.symsToBits()
             )
         )
-        self.hexBrowser.setText(
+        self.hexBrowser.setPlainText(
             ' '.join([np.base_repr(i, base=16) for i in hexvals])
         )
-
+        # There may be issues converting to a readable string..
+        readable = hexvals.tobytes().decode("utf-8", "backslashreplace")
+        # May contain null chars?
+        readable = readable.replace("\0", " ") # Replace with spaces?
+        
+        self.asciiBrowser.setPlainText(
+            str(readable)
+        )
 
         
