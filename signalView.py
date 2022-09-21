@@ -271,7 +271,7 @@ class SignalView(QFrame):
             self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False)
 
         # Calculate resolutions for later
-        self.specFreqRes = self.fs / self.nperseg
+        self.specFreqRes = dfs / self.nperseg
         # print(self.specFreqRes, self.freqs[1]-self.freqs[0]) # confirmed the same
         self.specTimeRes = self.ts[1] - self.ts[0]
 
