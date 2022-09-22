@@ -203,7 +203,8 @@ class DemodWindow(QMainWindow):
             )
         )
         self.hexBrowser.setPlainText(
-            ' '.join([np.base_repr(i, base=16) for i in hexvals])
+            ' '.join(["%02X" % i for i in hexvals])
+            # ' '.join([np.base_repr(i, base=16) for i in hexvals])
         )
         # There may be issues converting to a readable string..
         readable = hexvals.tobytes().decode("utf-8", "backslashreplace")
