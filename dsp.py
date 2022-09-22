@@ -266,8 +266,8 @@ class SimpleDemodulatorPSK:
     #             matches[i, -1-diff[k]] += 1
         
     #     return matches
-    
-    def symsToBits(self, syms: np.ndarray=None):
+        
+    def symsToBits(self, syms: np.ndarray=None, phaseSymShift: int=0):
         '''
         Maps each symbol (integer array denoting the angle) to its own bit sequence,
         as specified by the bitmap.
@@ -277,6 +277,13 @@ class SimpleDemodulatorPSK:
         syms : np.ndarray, uint8, optional
             Input symbol sequence. The default is None, which will use the last internally saved
             syms array output.
+            
+        phaseSymShift : int
+            Number of symbols to rotate the bit mapping by.
+            Example: m = 4.
+                Current bitmap is [3,1,0,2].
+                Rotating by 2 symbols equates to a phase shift of pi 
+                (or equivalently, phase shift of syms by -pi).
 
         Returns
         -------
@@ -287,8 +294,9 @@ class SimpleDemodulatorPSK:
         if syms is None:
             syms = self.syms
         
-        return self.bitmap[syms]
-        
+        return np.roll(self.bitmap, phaseSymShift)[syms]
+
+
     
     def unpackToBinaryBytes(self, packed: np.ndarray):
         '''
