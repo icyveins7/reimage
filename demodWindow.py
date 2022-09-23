@@ -5,6 +5,7 @@ from PySide6.QtCore import Qt, Signal, Slot, QRectF
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
+from functools import partial
 
 from dsp import makeFreq, SimpleDemodulatorBPSK, SimpleDemodulatorQPSK, SimpleDemodulator8PSK, SimpleDemodulatorPSK
 
@@ -59,7 +60,7 @@ class DemodWindow(QMainWindow):
             btn.hide()
             # Connect it
             print("Connected %d" % i) # TODO: fix connection only to 7??
-            btn.clicked.connect(lambda: self.rotChanged(i))
+            btn.clicked.connect(partial(self.rotChanged, i))
 
         self.hexBrowser = QTextBrowser()
         self.hexBrowser.setMinimumHeight(300)
