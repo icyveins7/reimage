@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QFormLayout, QWidget, QLabel, QComboBox, QPushButton
-from PySide6.QtWidgets import QSpinBox, QMessageBox, QLineEdit, QTextBrowser, QSlider
+from PySide6.QtWidgets import QSpinBox, QMessageBox, QLineEdit, QTextBrowser, QSlider, QGroupBox, QRadioButton
 from PySide6.QtCore import Qt, Signal, Slot, QRectF
+# from PySide6.QtGui import QFontDatabase
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
@@ -44,11 +45,29 @@ class DemodWindow(QMainWindow):
         self.demodulator = None
 
     def setupBitsViews(self):
+        self.rotGrpBox = QGroupBox()
+        self.btmLayout.addWidget(self.rotGrpBox)
+        self.rotGrpLayout = QVBoxLayout()
+        self.rotGrpBox.setLayout(self.rotGrpLayout)
+        # Preload many radio buttons
+        self.rotRadioBtns = [
+            QRadioButton() for i in range(8) # For now, 8 maximum
+        ]
+        for i, btn in enumerate(self.rotRadioBtns):
+            self.rotGrpLayout.addWidget(btn)
+            # Start out as hidden
+            btn.hide()
+            # Connect it
+            print("Connected %d" % i) # TODO: fix connection only to 7??
+            btn.clicked.connect(lambda: self.rotChanged(i))
+
         self.hexBrowser = QTextBrowser()
         self.hexBrowser.setMinimumHeight(300)
+        self.hexBrowser.setFontFamily("Monospace")
         self.btmLayout.addWidget(self.hexBrowser)
 
         self.asciiBrowser = QTextBrowser()
+        self.asciiBrowser.setFontFamily("Monospace")
         self.btmLayout.addWidget(self.asciiBrowser)
 
     def setupPlots(self):
@@ -196,10 +215,18 @@ class DemodWindow(QMainWindow):
         self.conplt.setLimits(xMin=-maxbound, xMax=maxbound, yMin=-maxbound, yMax=maxbound)
         self.conplt.setAspectLocked()
 
+        # Update the options for rotation
+        self.updateRotations()
+
+        # Interpret and post to text browsers
+        self.interpret()
+        
+
+    def interpret(self, phaseSymShift: int=0):
         # Update the text browsers
         hexvals = self.demodulator.packBinaryBytesToBits(
             self.demodulator.unpackToBinaryBytes(
-                self.demodulator.symsToBits()
+                self.demodulator.symsToBits(phaseSymShift=phaseSymShift)
             )
         )
         self.hexBrowser.setPlainText(
@@ -215,4 +242,19 @@ class DemodWindow(QMainWindow):
             str(readable)
         )
 
+
+    def updateRotations(self):
+        # Only show buttons up to the current mod type
+        [self.rotRadioBtns[i].show() for i in range(self.demodulator.m)]
+        # Hide everything after
+        [self.rotRadioBtns[i].hide() for i in range(self.demodulator.m, len(self.rotRadioBtns))]
+
+        # Check the first one
+        self.rotRadioBtns[0].setChecked(True)
+
+    @Slot(int)
+    def rotChanged(self, i: int):
+        print("Rotation %d selected" % i)
+        # Reinterpret
+        self.interpret(i)
         
