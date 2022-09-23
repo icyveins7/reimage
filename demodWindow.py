@@ -59,7 +59,6 @@ class DemodWindow(QMainWindow):
             # Start out as hidden
             btn.hide()
             # Connect it
-            print("Connected %d" % i) # TODO: fix connection only to 7??
             btn.clicked.connect(partial(self.rotChanged, i))
 
         self.hexBrowser = QTextBrowser()
