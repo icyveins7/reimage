@@ -132,6 +132,9 @@ class LoaderSettingsDialog(QDialog):
             self.fsEdit.setEnabled(False)
             self.formatGroupBox.setEnabled(False)
 
+        # Set focus to the most common setting
+        self.fsEdit.setFocus()
+
 
     def accept(self):
         newFmtSettings = {
