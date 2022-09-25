@@ -13,7 +13,8 @@ class SidebarSettings(QFrame):
     addSmaSignal = Signal(int)
     deleteSmaSignal = Signal(int)
     changeSmaColourSignal = Signal(int, int, int, int)
-    changeAmpPlotSignal = Signal(str)
+    changeToAmpPlotSignal = Signal()
+    changeToReimPlotSignal = Signal()
 
     def __init__(self,
         parent=None, f=Qt.WindowFlags()

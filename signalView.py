@@ -264,6 +264,24 @@ class SignalView(QFrame):
         self.curDsrIdx = -1 # On init, the maximum dsr is used
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
             
+    def plotReim(self):
+        # Recreate the plots like ampTime
+        timevec = self.getTimevec(self.dsrs[-1])
+        self.pre = self.p1.plot(timevec, np.real(self.dscache[-1]), pen='r')
+        self.pim = self.p1.plot(timevec, np.imag(self.dscache[-1]), pen='c')
+        self.pre.setClipToView(True)
+        self.pim.setClipToView(True)
+
+        self.p1.setMouseEnabled(x=True,y=False)
+        self.p1.setMenuEnabled(False)
+
+        dfs = self.getDisplayedFs()
+        viewBufferX = 0.1 * self.ydata.size / dfs
+        self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
+        self.curDsrIdx = -1 # On init, the maximum dsr is used
+        self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
+           
+
     def plotSpecgram(self, window=('tukey',0.25), auto_transpose=True):
         dfs = self.getDisplayedFs()
         # self.freqs, self.ts, self.sxx = sps.spectrogram(self.ydata, fs, window, nperseg, noverlap, nfft, return_onesided=False)
