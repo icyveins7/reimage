@@ -164,11 +164,16 @@ class FileListFrame(QFrame):
         r = cur.fetchall()
         r = sorted(r, key=operator.itemgetter(0)) # sort by the index, which is the first value in the tuples
         rpaths = [i[1] for i in r]
+
+        noLongerExist = 0
         for i in range(len(rpaths)):
             item = QListWidgetItem(rpaths[i])
             if os.path.exists(rpaths[i]): # If file still exists
                 item.setToolTip("Size: %d bytes" % (os.path.getsize(rpaths[i])))
                 self.flw.addItem(item)
+            else: # If it doesn't, remove it from the database
+                noLongerExist += 1
+                cur.execute("delete * from filelistcache where path=?", (rpaths[i],)) # TODO: test if this works
 
         # Update the cache again (in case some files were deleted)
         self.updateFileListDBCache()
@@ -176,6 +181,7 @@ class FileListFrame(QFrame):
         self.initOrderWidget()
         # Update internal memory
         self.filepaths.extend(rpaths)
+
         
 
     ####################
