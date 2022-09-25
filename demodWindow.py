@@ -212,7 +212,12 @@ class DemodWindow(QMainWindow):
         )
         self.maxSymbolSize = self.conpltitem.opts['symbolSize']
         self.symSizeSlider.setValue(100) # Maximum at the start
-        self.conplt.setLimits(xMin=-maxbound, xMax=maxbound, yMin=-maxbound, yMax=maxbound)
+        self.conplt.setLimits(
+            xMin=-maxbound*2,
+            xMax=maxbound*2, # Need longer range for x when window is viewed in standard 16:9
+            yMin=-maxbound,
+            yMax=maxbound
+        ) 
         self.conplt.setAspectLocked()
 
         # Update the options for rotation
