@@ -81,6 +81,10 @@ class FileListFrame(QFrame):
         self.delShortcut = QShortcut(QKeySequence("Delete"), self)
         self.delShortcut.activated.connect(self.removeFilesFromList)
 
+        # Create keyboard shortcut for adding files to viewer
+        self.addShortcut = QShortcut(QKeySequence("Return"), self)
+        self.addShortcut.activated.connect(self.onAddBtnClicked)
+
         # Initialize database for the filelist cache
         self.db = db # Sqlite3 connection object
         self.initFileListDBCache()
@@ -362,3 +366,5 @@ class FileListFrame(QFrame):
 
 
     
+
+# %%
