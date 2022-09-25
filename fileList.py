@@ -173,7 +173,7 @@ class FileListFrame(QFrame):
                 self.flw.addItem(item)
             else: # If it doesn't, remove it from the database
                 noLongerExist += 1
-                cur.execute("delete * from filelistcache where path=?", (rpaths[i],)) # TODO: test if this works
+                cur.execute("delete from filelistcache where path=?", (rpaths[i],)) # TODO: test if this works
 
         # Update the cache again (in case some files were deleted)
         self.updateFileListDBCache()
