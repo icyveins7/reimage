@@ -68,17 +68,13 @@ class SidebarSettings(QFrame):
         self.reimgrouplayout = QHBoxLayout()
         self.reimgroupbox.setLayout(self.reimgrouplayout)
         self.ampviewBtn = QRadioButton("Amplitude")
+        self.ampviewBtn.clicked.connect(self.plotAmp)
         self.ampviewBtn.setChecked(True)
-        # self.reimgroupbox.addButton(self.ampviewBtn)
         self.reimgrouplayout.addWidget(self.ampviewBtn)
         self.reimviewBtn = QRadioButton("Real/Imag")
+        self.reimviewBtn.clicked.connect(self.plotReim)
         self.reimgrouplayout.addWidget(self.reimviewBtn)
-        # self.reimgroupbox.addButton(self.reimviewBtn)
         self.ampplotlayout.addRow("Plot Type", self.reimgroupbox)
-        # Connection
-        self.reimgroupbox.clicked.connect(self.changeAmpPlotType) # not working?
-        # self.reimgroupbox.buttonClicked.connect(self.changeAmpPlotType) # cannot add buttongroup directly
-        
 
         # Add average filter options
         self.smalens = {}
@@ -88,10 +84,12 @@ class SidebarSettings(QFrame):
         self.addsmaBtn.clicked.connect(self.addsma)
         
     @Slot()
-    def changeAmpPlotType(self):
-        s = "amp" if self.ampviewBtn.isChecked() else "reim"
-        self.changeAmpPlotSignal.emit(s)
-        print(s) # debug
+    def plotAmp(self):
+        print("TODO: plotAmp")
+
+    @Slot()
+    def plotReim(self):
+        print("TODO: plotReim")
 
     @Slot()
     def addsma(self):
