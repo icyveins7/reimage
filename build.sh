@@ -1,0 +1,2 @@
+pyinstaller main.py
+
