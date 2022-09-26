@@ -15,7 +15,7 @@ class DemodWindow(QMainWindow):
 
         # Attaching data
         self.slicedData = slicedData
-        self.fs = fs
+        self.fs = int(fs)
 
         # Aesthetics..
         self.setWindowTitle("Demodulator")
