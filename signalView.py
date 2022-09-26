@@ -17,6 +17,9 @@ from markerdb import MarkerDB
 import time
 
 class SignalView(QFrame):
+    AMPL_PLOT = 0
+    REIM_PLOT = 1
+
     def __init__(self, ydata, filelist=None, sampleStarts=None, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
 
@@ -55,6 +58,8 @@ class SignalView(QFrame):
         self.glw = pg.GraphicsLayoutWidget() # Window for the amplitude time plot
         self.p1 = self.glw.addPlot(row=0,col=0) # The amp-time plotItem
         self.p = None # Placeholder for the absolute time PlotDataItem
+        self.pre = None # Placeholder for real plot
+        self.pim = None # Placeholder for imag plot
         self.sp = pg.ImageItem()
         self.spw = self.glw.addPlot(row=1,col=0)
         self.spw.addItem(self.sp)
@@ -112,6 +117,9 @@ class SignalView(QFrame):
         self.smas = {} # Save complex SMA
         self.smaplots = {}
 
+        # Placeholders for plot types
+        self.plotType = self.AMPL_PLOT # 0: amp, 1: reim
+
     @Slot(int)
     def addSma(self, length: int):
         taps = np.ones(length)/length
@@ -139,11 +147,6 @@ class SignalView(QFrame):
     def colourSma(self, length: int, r: int, g: int, b: int):
         self.smaplots[length].setPen(pg.mkPen(r,g,b))
         
-
-    @Slot(str)
-    def changeAmpPlot(self, ampPlotType: str):
-        print("TODO: changeAmpPlot %s" % ampPlotType)
-
     @Slot(float, bool)
     def adjustSpecgramContrast(self, percentile: float, isLog: bool):
         if self.sxxMax is not None:
@@ -167,7 +170,8 @@ class SignalView(QFrame):
         self.dscache = []
         self.dsrs = [] # Note that this is the cached downsample values, unlike self.dsr (the pre-processing value)
         # We cache the original sample rate to use as the bootstrap
-        self.dscache.append(np.abs(self.ydata))
+        # self.dscache.append(np.abs(self.ydata)) # Cache amplitude directly?
+        self.dscache.append(self.ydata) # Cache the original complex data
         self.dsrs.append(1)
 
         cursize = self.ydata.size
@@ -176,7 +180,7 @@ class SignalView(QFrame):
             self.dsrs.append(self.dsrs[-1]*10)
             cursize = self.dscache[-1].size
         
-        print(self.dscache)
+        # print(self.dscache)
         print(self.dsrs)
 
     def loadMarkers(self):
@@ -249,10 +253,39 @@ class SignalView(QFrame):
         # Link axes
         self.p1.setXLink(self.spw)
 
+    @Slot()
+    def changeToAmpPlot(self):
+        # Set the plot type
+        self.plotType = self.AMPL_PLOT
+        
+        # First thing is to clear the reim plot
+        self.p1.clear()
+
+        # Then create the ampl one
+        self.plotAmpTime()
+
+        # Finally re-zoom to current axes
+        # self.onZoom() # TODO: the previous call resets to the zoomed out version, can we keep the current limits?
+
+    @Slot()
+    def changeToReimPlot(self):
+        # Set the plot type
+        self.plotType = self.REIM_PLOT
+
+        # First thing is to clear the amplitude plot
+        self.p1.clear()
+
+        # Then create the reim one
+        self.plotReim()
+
+        # Finally re-zoom to current axes
+        # self.onZoom() # TODO: the previous call resets to the zoomed out version, can we keep the current limits?
+
     def plotAmpTime(self):
         # Create and save the PlotDataItems as self.p
         timevec = self.getTimevec(self.dsrs[-1])
-        self.p = self.p1.plot(timevec, self.dscache[-1])
+        # self.p = self.p1.plot(timevec, self.dscache[-1]) # If cache is amp already
+        self.p = self.p1.plot(timevec, np.abs(self.dscache[-1])) # If cache is complex
         self.p.setClipToView(True)
 
         self.p1.setMouseEnabled(x=True,y=False)
@@ -263,14 +296,17 @@ class SignalView(QFrame):
         self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
-            
+
     def plotReim(self):
+        # Legend for reim
+        self.p1.addLegend()
         # Recreate the plots like ampTime
         timevec = self.getTimevec(self.dsrs[-1])
-        self.pre = self.p1.plot(timevec, np.real(self.dscache[-1]), pen='r')
-        self.pim = self.p1.plot(timevec, np.imag(self.dscache[-1]), pen='c')
+        self.pre = self.p1.plot(timevec, np.real(self.dscache[-1]), pen='r', name='Re')
+        self.pim = self.p1.plot(timevec, np.imag(self.dscache[-1]), pen='c', name='Im')
         self.pre.setClipToView(True)
         self.pim.setClipToView(True)
+        
 
         self.p1.setMouseEnabled(x=True,y=False)
         self.p1.setMenuEnabled(False)
@@ -280,6 +316,7 @@ class SignalView(QFrame):
         self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
+
            
 
     def plotSpecgram(self, window=('tukey',0.25), auto_transpose=True):
@@ -395,14 +432,25 @@ class SignalView(QFrame):
                 self.curDsrIdx = self.curDsrIdx - 1
                 # Set the zoomed data on the PlotDataItem
                 dsr = self.dsrs[self.curDsrIdx]
-                self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
+                if self.plotType == self.AMPL_PLOT:
+                    # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
+                    self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+                elif self.plotType == self.REIM_PLOT:
+                    self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
+                    self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
+                    
         
         if targetDSR > self.dsrs[self.curDsrIdx]: # If too many points, zoom out i.e. increase the DSR
             if self.curDsrIdx < -1:
                 self.curDsrIdx = self.curDsrIdx + 1
                 # Set the zoomed data on the PlotDataItem
                 dsr = self.dsrs[self.curDsrIdx]
-                self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True)
+                if self.plotType == self.AMPL_PLOT:
+                    # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
+                    self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+                elif self.plotType == self.REIM_PLOT:
+                    self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
+                    self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
 
         # TODO: rightclick 'view all' bug: does not zoom out completely?
 

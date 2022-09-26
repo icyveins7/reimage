@@ -54,6 +54,7 @@ class SidebarSettings(QFrame):
     @Slot()
     def reset(self):
         # Call the individual resets
+        self.resetPlotType()
         self.clearSma()
         self.resetSpecgramGroupbox()
 
@@ -69,11 +70,11 @@ class SidebarSettings(QFrame):
         self.reimgrouplayout = QHBoxLayout()
         self.reimgroupbox.setLayout(self.reimgrouplayout)
         self.ampviewBtn = QRadioButton("Amplitude")
-        self.ampviewBtn.clicked.connect(self.plotAmp)
+        self.ampviewBtn.toggled.connect(self.plotAmp) # Use toggled to ensure only fires when state changes
         self.ampviewBtn.setChecked(True)
         self.reimgrouplayout.addWidget(self.ampviewBtn)
         self.reimviewBtn = QRadioButton("Real/Imag")
-        self.reimviewBtn.clicked.connect(self.plotReim)
+        self.reimviewBtn.toggled.connect(self.plotReim) # Use toggled to ensure only fires when state changes
         self.reimgrouplayout.addWidget(self.reimviewBtn)
         self.ampplotlayout.addRow("Plot Type", self.reimgroupbox)
 
@@ -84,13 +85,15 @@ class SidebarSettings(QFrame):
         # Connection
         self.addsmaBtn.clicked.connect(self.addsma)
         
-    @Slot()
-    def plotAmp(self):
-        print("TODO: plotAmp")
+    @Slot(bool)
+    def plotAmp(self, checked: bool):
+        if checked: # Only if state is checked
+            self.changeToAmpPlotSignal.emit()
 
-    @Slot()
-    def plotReim(self):
-        print("TODO: plotReim")
+    @Slot(bool)
+    def plotReim(self, checked: bool):
+        if checked: # Only if state is checked
+            self.changeToReimPlotSignal.emit()
 
     @Slot()
     def addsma(self):
@@ -172,6 +175,9 @@ class SidebarSettings(QFrame):
         # Then clear the dict
         self.smalens.clear()
 
+    @Slot()
+    def resetPlotType(self):
+        self.ampviewBtn.setChecked(True)
 
     ############### Specgram settings
     def initSpecgramGroupbox(self):
