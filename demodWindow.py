@@ -174,6 +174,10 @@ class DemodWindow(QMainWindow):
 
     @Slot()
     def runDemod(self):
+        # Clear the plots (important otherwise gets messy on reruns)
+        self.conplt.clear()
+        self.eoplt.clear()
+
         # Ensure a scheme is selected
         if self.modDropdown.currentText() == self.modtypestrings[0]:
             # Raise dialog to say already exists
