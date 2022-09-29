@@ -232,10 +232,16 @@ class DemodWindow(QMainWindow):
         
 
     def interpret(self, phaseSymShift: int=0):
+        # Search for the one with the best readable text
+        iSkip, utf8chars = self.demodulator.findPlainText(phaseSymShift=phaseSymShift)
+        # TODO: add widget to turn this off i.e. manually select the skips
+        
         # Update the text browsers
         hexvals = self.demodulator.packBinaryBytesToBits(
             self.demodulator.unpackToBinaryBytes(
-                self.demodulator.symsToBits(phaseSymShift=phaseSymShift)
+                self.demodulator.symsToBits(
+                    self.demodulator.syms[iSkip:],
+                    phaseSymShift=phaseSymShift)
             )
         )
         self.hexBrowser.setPlainText(
