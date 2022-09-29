@@ -77,8 +77,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         } # TODO: add cached settings instead of defaults, and load from a global place
         # Signal settings
         self.signalsettings = {
-            'nperseg': 256,
-            'noverlap': 256/8,
+            'nperseg': 128,
+            'noverlap': 128/8,
             'fs': 1,
             'freqshift': None, 
             'numTaps': None, 
