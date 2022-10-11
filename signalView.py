@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog, QMessageBox, QSlider
-from PySide6.QtCore import Qt, Signal, Slot, QRectF
+from PySide6.QtCore import Qt, Signal, Slot, QRectF, QEvent
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
@@ -19,12 +19,16 @@ import time
 class SignalView(QFrame):
     AMPL_PLOT = 0
     REIM_PLOT = 1
+    SignalViewStatusTip = Signal(str)
 
     def __init__(self, ydata, filelist=None, sampleStarts=None, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
 
         # Formatting
         self.setMinimumWidth(800)
+
+        # Enable hover events, for status tips
+        self.setAttribute(Qt.WA_Hover)
 
         # Markers Database
         self.markerdb = MarkerDB()
@@ -707,3 +711,10 @@ class SignalView(QFrame):
 
         return startIdx, endIdx
 
+    def event(self, event):
+        '''Override events for status tips.'''
+        if event.type() == QEvent.HoverEnter:
+            self.SignalViewStatusTip.emit("Ctrl-Alt-Click to select a region for processing; by default, processes all data.")
+        elif event.type() == QEvent.HoverLeave:
+            print("leave") # TODO: do we need this?
+        return super().event(event)

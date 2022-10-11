@@ -89,6 +89,9 @@ class ReimageMain(QtWidgets.QMainWindow):
         # Menu
         self.setupMenu()
 
+        # Add a status-bar for help
+        self.setupStatusBar()        
+
         
 
     @QtCore.Slot(np.ndarray, list, list)
@@ -113,6 +116,18 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.predetectAmp.triggered.connect(self.openPredetectAmp)
 
         self.menubar.addMenu(self.predetectMenu)
+
+    def setupStatusBar(self):
+        # Permanent help message
+        self.statusbar = QtWidgets.QStatusBar()
+        self.helperStatus = QtWidgets.QLabel(
+            "Ctrl-Rightclick on the plots to see signal processing options.")
+        self.statusbar.addPermanentWidget(self.helperStatus)
+
+        # Widget specific help messages
+        self.sv.SignalViewStatusTip.connect(self.statusbar.showMessage)
+
+        self.setStatusBar(self.statusbar)
 
     @QtCore.Slot()
     def openPredetectAmp(self):
