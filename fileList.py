@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QPushButton, QFileDialog
 from PySide6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView, QLineEdit, QMessageBox
-from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtCore import Qt, Signal, Slot, QEvent
 from PySide6.QtGui import QColor, QBrush, QShortcut, QKeySequence
 import os
 import numpy as np
@@ -19,10 +19,14 @@ class FileListFrame(QFrame):
     dataSignal = Signal(np.ndarray, list, list)
     sampleRateSignal = Signal(int)
     newFilesSignal = Signal(str)
+    fileListStatusTip = Signal(str)
 
     def __init__(self, db, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
         self.setMaximumWidth(380)
+
+        # Enable hover events, for status tips
+        self.setAttribute(Qt.WA_Hover)
 
         # Create the file list widget
         self.flw = QListWidget()
@@ -363,7 +367,20 @@ class FileListFrame(QFrame):
             if self.flw.item(i).text() in self.order:
                 self.ow.item(i).setText(str(self.order[self.flw.item(i).text()]))
         
-
+    ###################
+    def event(self, event):
+        '''Override events for status tips.'''
+        if event.type() == QEvent.HoverEnter:
+            if self.flw.count() == 0:
+                self.fileListStatusTip.emit(
+                    "Populate list with files using 'Open Files'/'Open Folder'.")
+            else:
+                self.fileListStatusTip.emit(
+                    "Select files: (Shift/Ctrl)+LeftClick. Render plots: 'Add To Viewer'. Depopulate list: 'Del' key or 'Clear'."
+                )
+        # elif event.type() == QEvent.HoverLeave:
+        #     print("leave") # TODO: do we need this?
+        return super().event(event)
 
     
 

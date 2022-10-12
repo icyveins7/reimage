@@ -715,6 +715,6 @@ class SignalView(QFrame):
         '''Override events for status tips.'''
         if event.type() == QEvent.HoverEnter:
             self.SignalViewStatusTip.emit("Ctrl-Alt-Click to select a region for processing; by default, processes all data.")
-        elif event.type() == QEvent.HoverLeave:
-            print("leave") # TODO: do we need this?
+        # elif event.type() == QEvent.HoverLeave:
+        #     print("leave") # TODO: do we need this?
         return super().event(event)

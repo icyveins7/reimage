@@ -126,6 +126,7 @@ class ReimageMain(QtWidgets.QMainWindow):
 
         # Widget specific help messages
         self.sv.SignalViewStatusTip.connect(self.statusbar.showMessage)
+        self.fileListFrame.fileListStatusTip.connect(self.statusbar.showMessage)
 
         self.setStatusBar(self.statusbar)
 
