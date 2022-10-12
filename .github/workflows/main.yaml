@@ -30,3 +30,19 @@ jobs:
       with:
         name: reimage-linux-autopackage
         path: ./dist/main
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+    - run: pip install -r requirements.txt
+    - run: build.bat
+
+    - uses: actions/upload-artifact@v3
+      with:
+        name: reimage-win-autopackage
+        path: ./dist/main
