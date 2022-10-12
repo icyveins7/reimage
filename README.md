@@ -1,4 +1,6 @@
-# ReImage
+# ReImage 
+
+![PyInstaller CI/CD](https://github.com/icyveins7/reimage/actions/workflows/main.yaml/badge.svg)
 
 ReImage is a Python 3 + PySide6 + PyQtGraph app for quickly visualizing recorded RF data in the form of real and imaginary samples. Think of it as Adobe Audition or Audacity, but for raw complex samples.
 
@@ -29,6 +31,8 @@ python main.py
 ## Usage (From Binaries)
 
 The pre-built binaries in the Releases section are created using [PyInstaller](https://github.com/pyinstaller/pyinstaller). Simply download the tar.gz relevant to your OS and unzip where desired. Then run the 'main' executable.
+
+Alternatively, you may want to look for the latest CI/CD automatic builds in [Actions](https://github.com/icyveins7/reimage/actions) by downloading the artifacts in one of the latest passing workflows.
 
 ## Quick-start
 
