@@ -7,19 +7,25 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  build-ubuntu:
 
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Package Application
-      uses: JackMcKew/pyinstaller-action-linux@main
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
       with:
-        path: ./
+        python-version: '3.8'
+    - run: . build.sh
 
-    - uses: actions/upload-artifact@v2
+    # - uses: actions/checkout@v2
+
+    # - name: Package Application
+    #   uses: JackMcKew/pyinstaller-action-linux@main
+    #   with:
+    #     path: ./
+
+    - uses: actions/upload-artifact@v3
       with:
         name: reimage-linux-autopackage
-        path: ./dist/linux
+        path: ./dist/main
