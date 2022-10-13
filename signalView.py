@@ -350,7 +350,7 @@ class SignalView(QFrame):
         if self.xdata is None:
             self.sp.setImage(self.sxx) # set image on existing item instead?
             self.sp.setRect(QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)) # Proper setting of the box boundaries
-            cm2use = pg.colormap.getFromMatplotlib('viridis')
+            cm2use = pg.colormap.get('viridis') # you don't need matplotlib to use viridis!
             self.sp.setLookupTable(cm2use.getLookupTable())
             self.sp.setLevels([0, self.sxxMax])
             

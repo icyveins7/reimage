@@ -89,6 +89,9 @@ class FileListFrame(QFrame):
         self.addShortcut = QShortcut(QKeySequence("Return"), self)
         self.addShortcut.activated.connect(self.onAddBtnClicked)
 
+        # Allow double-click for opening of single files
+        self.flw.itemDoubleClicked.connect(self.doubleClickOpen)
+
         # Initialize database for the filelist cache
         self.db = db # Sqlite3 connection object
         self.initFileListDBCache()
@@ -100,6 +103,12 @@ class FileListFrame(QFrame):
         self.usefixedlen = False
         self.fixedlen = -1
         self.invSpec = False
+
+    ####################
+    @Slot(QListWidgetItem)
+    def doubleClickOpen(self, item: QListWidgetItem):
+        # Simply pass it over to the standard handler
+        self.onAddBtnClicked()
 
     ####################
     @Slot()
