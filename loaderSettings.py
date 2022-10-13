@@ -91,6 +91,10 @@ class LoaderSettingsDialog(QDialog):
         self.fsEdit = QLineEdit(str(signalsettings['fs']))
         self.sformlayout.addRow("Sample Rate (samples per second)", self.fsEdit)
 
+        # Centre Frequency (this is really just for display purposes)
+        self.fcEdit = QLineEdit(str(signalsettings['fc']))
+        self.sformlayout.addRow("Centre Frequency (Hz)", self.fcEdit)
+
         # Frequency shift
         self.freqshiftCheckbox = QCheckBox()
         self.sformlayout.addRow("Apply initial frequency shift?", self.freqshiftCheckbox)
@@ -150,6 +154,7 @@ class LoaderSettingsDialog(QDialog):
             'nperseg': int(self.specNpersegDropdown.currentText()),
             'noverlap': self.specNoverlapSpinbox.value(),
             'fs': int(self.fsEdit.text()),
+            'fc': float(self.fcEdit.text()),
             'freqshift': float(self.freqshiftEdit.text()) if self.freqshiftCheckbox.isChecked() else None,
             'numTaps': int(self.numTapsDropdown.currentText()) if self.filterCheckbox.isChecked() else None,
             'filtercutoff': float(self.cutoffEdit.text()) if self.filterCheckbox.isChecked() else None,

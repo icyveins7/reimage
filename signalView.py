@@ -112,6 +112,7 @@ class SignalView(QFrame):
         self.nperseg = 256
         self.noverlap = 256/8
         self.fs = 1
+        self.fc = 0
         self.freqshift = None
         self.numTaps = None
         self.filtercutoff = None
@@ -334,7 +335,7 @@ class SignalView(QFrame):
         # print(self.specFreqRes, self.freqs[1]-self.freqs[0]) # confirmed the same
         self.specTimeRes = self.ts[1] - self.ts[0]
 
-        self.freqs = np.fft.fftshift(self.freqs)
+        self.freqs = np.fft.fftshift(self.freqs) + self.fc # Offset by the centre freq
         self.sxx = np.fft.fftshift(self.sxx, axes=0)
         self.sxxMax = np.max(self.sxx.flatten())
         self.sxxMin = np.min(self.sxx.flatten()) # use this in log-view

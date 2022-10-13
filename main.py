@@ -80,6 +80,7 @@ class ReimageMain(QtWidgets.QMainWindow):
             'nperseg': 128,
             'noverlap': 128/8,
             'fs': 1,
+            'fc': 0.0,
             'freqshift': None, 
             'numTaps': None, 
             'filtercutoff': None,
@@ -183,6 +184,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.sv.nperseg = self.signalsettings['nperseg']
         self.sv.noverlap = self.signalsettings['noverlap']
         self.sv.fs = self.signalsettings['fs']
+        self.sv.fc = self.signalsettings['fc']
         self.sv.freqshift = self.signalsettings['freqshift']
         self.sv.numTaps = self.signalsettings['numTaps']
         self.sv.filtercutoff = self.signalsettings['filtercutoff']
