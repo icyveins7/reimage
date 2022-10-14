@@ -11,6 +11,7 @@ from cmWindow import EstimateFreqWindow
 from thresholdWindow import ThresholdWindow
 from audioWindow import AudioWindow
 from demodWindow import DemodWindow
+from phasorWindow import PhasorWindow
 
 from markerdb import MarkerDB
 
@@ -631,6 +632,8 @@ class SignalView(QFrame):
             audioAction = menu.addAction("Audio Manipulation")
             # ===
             demodAction = menu.addAction("Demodulate")
+            # ===
+            phasorAction = menu.addAction("View Phasor")
 
 
             # Start the menu
@@ -699,6 +702,10 @@ class SignalView(QFrame):
                     startIdx, endIdx = self.convertRegionToIndices(region)
                     self.demodwin = DemodWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
                 self.demodwin.show()
+
+            elif action == phasorAction:
+                self.phasorWindow = PhasorWindow(self)
+                self.phasorWindow.show()
 
     def convertRegionToIndices(self, region):
         dfs = self.getDisplayedFs()
