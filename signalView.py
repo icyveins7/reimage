@@ -65,6 +65,7 @@ class SignalView(QFrame):
         self.p = None # Placeholder for the absolute time PlotDataItem
         self.pre = None # Placeholder for real plot
         self.pim = None # Placeholder for imag plot
+        self.pmarker = None # Placeholder for amp plot marker
         self.sp = pg.ImageItem()
         self.spw = self.glw.addPlot(row=1,col=0)
         self.spw.addItem(self.sp)
@@ -303,6 +304,10 @@ class SignalView(QFrame):
         self.curDsrIdx = -1 # On init, the maximum dsr is used
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
 
+        # Create the tracking marker
+        self.pmarker = self.p1.plot([0],[0],pen=None,symbol='x',symbolBrush='y')
+           
+
     def plotReim(self):
         # Legend for reim
         self.p1.addLegend()
@@ -323,7 +328,7 @@ class SignalView(QFrame):
         self.curDsrIdx = -1 # On init, the maximum dsr is used
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
 
-           
+        
 
     def plotSpecgram(self, window=('tukey',0.25), auto_transpose=True):
         dfs = self.getDisplayedFs()
@@ -464,6 +469,14 @@ class SignalView(QFrame):
         mousePoint = self.p1.vb.mapSceneToView(evt[0])
         self.xCoordLabel.setText("X: %f" % (mousePoint.x()))
         self.ampCoordLabel.setText("Y (Top): %f" % (mousePoint.y()))
+
+        # Find nearest point based on x value
+        # For now, we ignore the viewing downsample rate (only read the pure data)
+        timevec = self.getTimevec(1)
+        timeIdx = int(np.round(mousePoint.x() - timevec[0]))
+        # Set the marker
+        if timeIdx > 0 and timeIdx < self.ydata.size:
+            self.pmarker.setData([timevec[timeIdx]],[np.abs(self.ydata[timeIdx])])
 
     def specMouseMoved(self, evt):
         mousePoint = self.spw.vb.mapSceneToView(evt[0])
