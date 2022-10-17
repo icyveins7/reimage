@@ -127,6 +127,9 @@ class SignalView(QFrame):
         # Placeholders for plot types
         self.plotType = self.AMPL_PLOT # 0: amp, 1: reim
 
+        # Placeholders for phasors
+        self.phasorSampBuffer = 1
+
     @Slot(int)
     def addSma(self, length: int):
         taps = np.ones(length)/length
@@ -478,6 +481,18 @@ class SignalView(QFrame):
         if timeIdx > 0 and timeIdx < self.ydata.size:
             self.pmarker.setData([timevec[timeIdx]],[np.abs(self.ydata[timeIdx])])
 
+            # If the phasor window is open, set the data there
+            try:
+                start = np.max([0, timeIdx-self.phasorSampBuffer])
+                end = np.min([self.ydata.size, timeIdx+self.phasorSampBuffer+1]) # Need +1 to include
+                self.phasorWindow.updateData(
+                    self.ydata[start:end],
+                    timeIdx - start # This is the actual offset, to mark the 'middle', accounting for when too near to 0
+                )
+            except Exception as e:
+                print("Exception for phasor: %s" % str(e))
+
+
     def specMouseMoved(self, evt):
         mousePoint = self.spw.vb.mapSceneToView(evt[0])
         self.specCoordLabel.setText("Y (Bottom): %f" % (mousePoint.y()))
@@ -717,7 +732,9 @@ class SignalView(QFrame):
                 self.demodwin.show()
 
             elif action == phasorAction:
-                self.phasorWindow = PhasorWindow(self)
+                self.phasorWindow = PhasorWindow(self.phasorSampBuffer, self)
+                # Connect the settings
+                self.phasorWindow.changeSampBufferSignal.connect(self.changePhasorSampBuffer)
                 self.phasorWindow.show()
 
     def convertRegionToIndices(self, region):
@@ -739,3 +756,13 @@ class SignalView(QFrame):
         # elif event.type() == QEvent.HoverLeave:
         #     print("leave") # TODO: do we need this?
         return super().event(event)
+
+    # Connections for live phasor window
+    @Slot(int)
+    def changePhasorSampBuffer(self, sampbuffer: int):
+        self.phasorSampBuffer = sampbuffer
+        try:
+            self.phasorWindow.setSampBufferLabel(self.phasorSampBuffer)
+        except Exception as e:
+            print("Exception when changing phasor samp buffer %s" % str(e))
+
