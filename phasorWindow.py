@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QFormLayout
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog, QMessageBox, QSlider
 from PySide6.QtCore import Qt, Signal, Slot, QRectF, QEvent
+from PySide6.QtGui import QBrush, QPen, QLinearGradient, QColor
 import pyqtgraph as pg
 import numpy as np
 import scipy.signal as sps
@@ -34,7 +35,7 @@ class PhasorWindow(QMainWindow):
         self.glw = pg.GraphicsLayoutWidget()
         self.layout.addWidget(self.glw)
         self.p = self.glw.addPlot()
-        self.pitem = self.p.plot([0],[0])
+        self.pitems = [self.p.plot([0],[0])]
         self.parrow = self.p.plot([0], [0], pen='y')
         
     def prepareControls(self, sampbuffer: int):
@@ -61,11 +62,29 @@ class PhasorWindow(QMainWindow):
         self.plot(centreIdx)
 
     def plot(self, centreIdx: int):
+        # Generate pens for each segment
+        pens = self.makeAllSegmentPens()
+        
+        # If not enough segments in the container, append
+        while(len(self.pitems) < self.data.shape[0]-1):
+            self.pitems.append(self.p.plot([0],[0]))
+        # Or if too many then cut it
+        if (len(self.pitems) > self.data.shape[0] - 1):
+            self.pitems = self.pitems[:self.data.shape[0]-1]
+
         # Expected that the array that arrives already has appropriate length
-        self.pitem.setData(
-            self.data[:,0],
-            self.data[:,1]
-        )
+        # Plot each segment separately
+        for i in range(self.data.shape[0]-1):
+            self.pitems[i].setData(
+                self.data[i:i+2, 0],
+                self.data[i:i+2, 1]
+            )
+            self.pitems[i].setPen(pens[i])
+        # self.pitem.setData(
+        #     self.data[:,0],
+        #     self.data[:,1]
+        # )
+        # self.pitem.setPen(pen)
         self.parrow.setData(
             [0, self.data[centreIdx, 0]],
             [0, self.data[centreIdx, 1]]
@@ -76,6 +95,39 @@ class PhasorWindow(QMainWindow):
         self.p.setXRange(-axisLim, axisLim)
         self.p.setYRange(-axisLim, axisLim)
 
+    def makeSegmentPen(self, a: np.ndarray, b: np.ndarray, colorA: QColor, colorB: QColor):
+        lg = QLinearGradient(a[0], a[1], b[0], b[1])
+        lg.setColorAt(0.0, colorA)
+        lg.setColorAt(1.0, colorB)
+        brush = QBrush(lg)
+        pen = QPen(brush, 1.0)
+        pen.setCosmetic(True)
+
+        # print(colorA)
+        # print(colorB)
+        # print('--')
+
+        return pen
+
+    def makeAllSegmentPens(self, startcolor: QColor=QColor(255,0,0), endcolor: QColor=QColor(0,0,255)):
+        r0 = startcolor.red()
+        g0 = startcolor.green()
+        b0 = startcolor.blue()
+        # print(r0,g0,b0)
+
+        numSegments = self.data.shape[0] - 1
+        rs = (endcolor.red() - r0) / numSegments
+        gs = (endcolor.green() - g0) / numSegments
+        bs = (endcolor.blue() - b0) / numSegments
+        # print(rs, gs, bs)
+
+        pens = [self.makeSegmentPen(
+            self.data[i,:], self.data[i+1,:],
+            QColor(r0+rs*i, g0+gs*i, b0+bs*i),
+            QColor(r0+rs*(i+1), g0+gs*(i+1), b0+bs*(i+1)),
+        ) for i in range(numSegments)]
+
+        return pens
 
 
     #################### For controlling sample buffers
