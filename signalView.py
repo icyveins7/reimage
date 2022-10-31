@@ -508,8 +508,9 @@ class SignalView(QFrame):
         if modifiers == Qt.ControlModifier | Qt.AltModifier:
             # Add Window ie LinearRegion
             if self.linearRegion is None:
-                mousePoint = self.p1.vb.mapToView(evt[0].pos())
-                start = mousePoint.x()
+                mousePoint = self.p1.vb.mapSceneToView(evt[0].scenePos())
+                start = mousePoint.x() # remember to use scenepos and mapscenetoview to get the specgram plot correct, even over the tracking dot!
+
                 # Get a rough estimate of the current zoom
                 viewrange = self.p1.viewRange()[0]
                 end = start + (viewrange[1] - viewrange[0]) / 10 # Just initialize with roughly 10%
