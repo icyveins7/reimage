@@ -274,9 +274,6 @@ class SignalView(QFrame):
         # Then create the ampl one
         self.plotAmpTime()
 
-        # Finally re-zoom to current axes
-        # self.onZoom() # TODO: the previous call resets to the zoomed out version, can we keep the current limits?
-
     @Slot()
     def changeToReimPlot(self):
         # Set the plot type
@@ -287,9 +284,6 @@ class SignalView(QFrame):
 
         # Then create the reim one
         self.plotReim()
-
-        # Finally re-zoom to current axes
-        # self.onZoom() # TODO: the previous call resets to the zoomed out version, can we keep the current limits?
 
     def plotAmpTime(self):
         # Create and save the PlotDataItems as self.p
@@ -383,7 +377,7 @@ class SignalView(QFrame):
                 symbolBrush='k',
                 symbolSize=5
             )
-            self.spd.setCurveClickable(False) # prevent clicks? TODO: this still doesn't fix time linear region not showing when hovered over specgram
+            self.spd.setCurveClickable(False)
 
     @Slot()
     def createLinearRegions(self, start, end):
@@ -491,7 +485,9 @@ class SignalView(QFrame):
                     timeIdx - start # This is the actual offset, to mark the 'middle', accounting for when too near to 0
                 )
             except Exception as e:
-                print("Exception for phasor: %s" % str(e))
+                pass
+                # Left here for debugging purposes
+                # print("Exception for phasor: %s" % str(e))
 
 
     def specMouseMoved(self, evt):
@@ -765,5 +761,7 @@ class SignalView(QFrame):
         try:
             self.phasorWindow.setSampBufferLabel(self.phasorSampBuffer)
         except Exception as e:
-            print("Exception when changing phasor samp buffer %s" % str(e))
+            pass
+            # For debugging purposes..
+            # print("Exception when changing phasor samp buffer %s" % str(e))
 

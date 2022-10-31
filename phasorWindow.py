@@ -47,6 +47,7 @@ class PhasorWindow(QMainWindow):
         self.setSampBufferLabel(sampbuffer)
         self.bufferSlider = QSlider(Qt.Horizontal)
         self.bufferSlider.setMinimum(1)
+        self.bufferSlider.setMaximum(20) # Anything more than this and probably can't see anything anyway
         self.bufferSlider.setValue(sampbuffer)
         self.bufferSlider.valueChanged.connect(self.changeSampBuffer)
         self.controlLayout.addRow(self.bufferLabel, self.bufferSlider)
