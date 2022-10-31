@@ -476,7 +476,8 @@ class SignalView(QFrame):
         # Find nearest point based on x value
         # For now, we ignore the viewing downsample rate (only read the pure data)
         timevec = self.getTimevec(1)
-        timeIdx = int(np.round(mousePoint.x() - timevec[0]))
+        timeIdx = int(np.round((mousePoint.x() - timevec[0]) * self.getDisplayedFs()))
+        
         # Set the marker
         if timeIdx > 0 and timeIdx < self.ydata.size:
             self.pmarker.setData([timevec[timeIdx]],[np.abs(self.ydata[timeIdx])])
