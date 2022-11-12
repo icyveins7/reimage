@@ -38,6 +38,8 @@ Alternatively, you may want to look for the latest CI/CD automatic builds in [Ac
 
 ![](screenshot.jpg)
 
+Most users should find that the tooltips at the bottom-left and bottom-right of the windows suffice as guidance.
+
 1. Populate the file list via 'Open File(s)' or 'Open Folder'.
 2. Select some files in the file list (via Ctrl-Click or Shift-Click). Clear the entire list with the 'Clear' button or specific files via the Delete key.
 4. Click 'Add to Viewer' to open the files and view the Amplitude-Time (top) and Spectrogram (bottom) plots.
