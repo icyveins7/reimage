@@ -86,6 +86,8 @@ class ReimageMain(QtWidgets.QMainWindow):
             'filtercutoff': None,
             'dsr': None
         }
+        # Configuration handling
+        self.currentConfig = 'DEFAULT' # This is the default one
 
         # Menu
         self.setupMenu()
@@ -146,15 +148,21 @@ class ReimageMain(QtWidgets.QMainWindow):
     @QtCore.Slot(str)
     def newFilesHandler(self, specialType: str=""):
         # We spawn the new amalgamated loader settings
-        dialog = LoaderSettingsDialog(self.filesettings, self.signalsettings, specialType)
+        dialog = LoaderSettingsDialog(specialType, configName=self.currentConfig)
         dialog.signalsettingsSignal.connect(self.saveSignalSettings)
         dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
+        dialog.configSignal.connect(self.saveConfigName)
         dialog.accepted.connect(self.triggerLoadFiles) # If accepted then we load files
         dialog.exec()
 
     @QtCore.Slot()
     def triggerLoadFiles(self):
         self.triggerLoadFilesSignal.emit()
+
+    @QtCore.Slot(str)
+    def saveConfigName(self, newconfigname):
+        # Updates the last used config name so that subsequent opens use it
+        self.currentConfig = newconfigname
 
     @QtCore.Slot(dict)
     def saveSignalSettings(self, newsettings):
