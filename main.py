@@ -149,8 +149,7 @@ class ReimageMain(QtWidgets.QMainWindow):
     def newFilesHandler(self, specialType: str="", wavSamplerate: int=None):
         # We spawn the new amalgamated loader settings
         dialog = LoaderSettingsDialog(specialType, configName=self.currentConfig, wavSamplerate=wavSamplerate)
-        dialog.signalsettingsSignal.connect(self.saveSignalSettings)
-        dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
+        dialog.settingsSignal.connect(self.saveSettings)
         dialog.configSignal.connect(self.saveConfigName)
         dialog.accepted.connect(self.triggerLoadFiles) # If accepted then we load files
         dialog.exec()
@@ -165,9 +164,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.currentConfig = newconfigname
 
     @QtCore.Slot(dict)
-    def saveSignalSettings(self, newsettings):
-        # self.signalsettings = newsettings
-        # Apply to signal view 
+    def saveSettings(self, newsettings):
+        # Combine both setters here
         self.sv.nperseg = newsettings['nperseg']
         self.sv.noverlap = newsettings['noverlap']
         self.sv.fs = newsettings['fs']
@@ -176,16 +174,12 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.sv.numTaps = newsettings['numTaps']
         self.sv.filtercutoff = newsettings['filtercutoff']
         self.sv.dsr = newsettings['dsr']
-
-    @QtCore.Slot(dict)
-    def saveFileFormatSettings(self, newsettings):
-        # self.filesettings = newsettings
-        # Set the file list widget attributes
+        ####################
         formatsToDtype = {
             'complex int16': np.int16,
             'complex float32': np.float32,
             'complex float64': np.float64
-        } # TODO: keep this somewhere common
+        }
         self.fileListFrame.fmt = formatsToDtype[newsettings['fmt']]
         self.fileListFrame.headersize = newsettings['headersize']
         self.fileListFrame.usefixedlen = newsettings['usefixedlen']

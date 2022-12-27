@@ -74,8 +74,7 @@ class LoaderSettingsConfig:
 
 #%%
 class LoaderSettingsDialog(QDialog):
-    filesettingsSignal = Signal(dict)
-    signalsettingsSignal = Signal(dict)
+    settingsSignal = Signal(dict)
     configSignal = Signal(str)
 
     def __init__(self, specialType: str="", configName: str="DEFAULT", wavSamplerate: int=None):
@@ -121,31 +120,21 @@ class LoaderSettingsDialog(QDialog):
         self.datafmtDropdown = QComboBox()
         dataformats = ["complex int16", "complex float32", "complex float64"]
         self.datafmtDropdown.addItems(dataformats)
-        # if filesettings['fmt'] in dataformats:
-        #     self.datafmtDropdown.setCurrentIndex(dataformats.index(filesettings['fmt']))
         self.formlayout.addRow("File Data Type", self.datafmtDropdown)
 
         # Header size
         self.headersizeEdit = QLineEdit()
-        # self.headersizeEdit = QLineEdit(str(filesettings['headersize']))
         self.formlayout.addRow("Header Length (bytes)", self.headersizeEdit)
 
         # Fixed Length
         self.fixedlenCheckbox = QCheckBox()
         self.fixedlenEdit = QLineEdit()
-        # self.fixedlenEdit = QLineEdit(str(filesettings['fixedlen']))
-        # if filesettings['usefixedlen']:
-        #     self.fixedlenCheckbox.setChecked(True)
-        #     self.fixedlenEdit.setEnabled(True)
-        # else:
-        #     self.fixedlenEdit.setEnabled(False)
         self.fixedlenCheckbox.toggled.connect(self.fixedlenEdit.setEnabled)
         self.formlayout.addRow("Use Fixed Length Per File", self.fixedlenCheckbox)
         self.formlayout.addRow("Data Length Per File (samples)", self.fixedlenEdit)
 
         # Inverted Spectrum
         self.invertspecCheckbox = QCheckBox()
-        # self.invertspecCheckbox.setChecked(filesettings['invSpec'])
         self.formlayout.addRow("Inverted Spectrum?", self.invertspecCheckbox)
 
         ################################# Signal Viewer Layout
@@ -156,63 +145,48 @@ class LoaderSettingsDialog(QDialog):
         # Specgram nperseg
         self.specNpersegDropdown = QComboBox()
         self.specNpersegDropdown.addItems([str(2**i) for i in range(3,17)])
-        # self.specNpersegDropdown.setCurrentText(str(signalsettings['nperseg']))
         self.sformlayout.addRow("Spectrogram Window Size (samples)", self.specNpersegDropdown)
 
         # Specgram Noverlap
         nperseg = int(self.specNpersegDropdown.currentText())
         self.specNoverlapSpinbox = QSpinBox()
         self.specNoverlapSpinbox.setRange(0, nperseg-1)
-        # self.specNoverlapSpinbox.setValue(signalsettings['noverlap'])
         self.specNpersegDropdown.currentTextChanged.connect(self.onNpersegChanged)
         self.specNoverlapLabel = QLabel("Spectrogram Overlap (samples) [default: %d]" % (nperseg/8) )
         self.sformlayout.addRow(self.specNoverlapLabel, self.specNoverlapSpinbox)
 
         # Sample Rate
         self.fsEdit = QLineEdit()
-        # self.fsEdit = QLineEdit(str(signalsettings['fs']))
         self.sformlayout.addRow("Sample Rate (samples per second)", self.fsEdit)
 
         # Centre Frequency (this is really just for display purposes)
         self.fcEdit = QLineEdit()
-        # self.fcEdit = QLineEdit(str(signalsettings['fc']))
         self.sformlayout.addRow("Centre Frequency (Hz)", self.fcEdit)
 
         # Frequency shift
         self.freqshiftCheckbox = QCheckBox()
         self.sformlayout.addRow("Apply initial frequency shift?", self.freqshiftCheckbox)
         self.freqshiftEdit = QLineEdit()
-        # self.freqshiftEdit = QLineEdit(str(signalsettings['freqshift']) if signalsettings['freqshift'] is not None else None)
-        # self.freqshiftEdit.setEnabled(False)
         self.freqshiftCheckbox.toggled.connect(self.freqshiftEdit.setEnabled)
         self.sformlayout.addRow("Initial frequency shift (Hz)", self.freqshiftEdit)
-        # self.freqshiftCheckbox.setChecked(True if signalsettings['freqshift'] is not None else False)
 
         # Filtering
         self.filterCheckbox = QCheckBox()
         self.sformlayout.addRow("Apply filter?", self.filterCheckbox)
         self.numTapsDropdown = QComboBox()
         self.numTapsDropdown.addItems([str(2**i) for i in range(3,15)])
-        # self.numTapsDropdown.setCurrentText(str(signalsettings['numTaps']) if signalsettings['numTaps'] is not None else None)
-        # self.numTapsDropdown.setEnabled(False)
         self.cutoffEdit = QLineEdit()
-        # self.cutoffEdit = QLineEdit(str(signalsettings['filtercutoff']) if signalsettings['filtercutoff'] is not None else None)
-        # self.cutoffEdit.setEnabled(False)
         self.filterCheckbox.toggled.connect(self.numTapsDropdown.setEnabled)
         self.filterCheckbox.toggled.connect(self.cutoffEdit.setEnabled)
         self.sformlayout.addRow("No. of Filter Taps", self.numTapsDropdown)
         self.sformlayout.addRow("Cutoff Frequency (Hz)", self.cutoffEdit)
-        # self.filterCheckbox.setChecked(True if signalsettings['numTaps'] is not None else False)
 
         # Downsampling
         self.downsampleCheckbox = QCheckBox()
         self.sformlayout.addRow("Apply downsampling?", self.downsampleCheckbox)
         self.downsampleEdit = QLineEdit()
-        # self.downsampleEdit = QLineEdit(str(signalsettings['dsr']) if signalsettings['dsr'] is not None else None)
-        # self.downsampleEdit.setEnabled(False)
         self.downsampleCheckbox.toggled.connect(self.downsampleEdit.setEnabled)
         self.sformlayout.addRow("Downsample Rate", self.downsampleEdit)
-        # self.downsampleCheckbox.setChecked(True if signalsettings['dsr'] is not None else False)
 
         # Special type-handling
         if specialType != "":
@@ -233,16 +207,13 @@ class LoaderSettingsDialog(QDialog):
 
     def accept(self):
         # Parse types for the settings
-        newFmtSettings = {
+        newsettings = {
             "fmt": self.datafmtDropdown.currentText(),
             "headersize": int(self.headersizeEdit.text()),
             "usefixedlen": self.fixedlenCheckbox.isChecked(),
             "fixedlen": int(self.fixedlenEdit.text()) if self.fixedlenEdit.isEnabled() else -1,
-            "invSpec": self.invertspecCheckbox.isChecked()
-        }
-        self.filesettingsSignal.emit(newFmtSettings)
-
-        newViewerSettings = {
+            "invSpec": self.invertspecCheckbox.isChecked(),
+            ###########################
             'nperseg': int(self.specNpersegDropdown.currentText()),
             'noverlap': self.specNoverlapSpinbox.value(),
             'fs': int(self.fsEdit.text()),
@@ -252,7 +223,7 @@ class LoaderSettingsDialog(QDialog):
             'filtercutoff': float(self.cutoffEdit.text()) if self.filterCheckbox.isChecked() else None,
             'dsr': int(self.downsampleEdit.text()) if self.downsampleCheckbox.isChecked() else None
         }
-        self.signalsettingsSignal.emit(newViewerSettings)
+        self.settingsSignal.emit(newsettings)
 
         # Before accepting, we check if the current settings match the current config
         loadedConfig = self.config.getConfig(self.configDropdown.currentText()) # This is a config object
