@@ -6,11 +6,52 @@ and allows use-cases such as .wav file automatic sample rate filling.
 '''
 
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QFormLayout, QComboBox, QDialogButtonBox, QCheckBox, QGroupBox
-from PySide6.QtWidgets import QSpinBox, QLabel
+from PySide6.QtWidgets import QSpinBox, QLabel, QHBoxLayout
 from PySide6.QtCore import Qt, Signal, Slot
-import numpy as np
-# import sqlite3 as sq
+# import numpy as np
+import configparser
+import os
 
+#%% Define the configs here
+class LoaderSettingsConfig:
+    loaderSettingsFile = "loaderSettings.ini"
+
+    def __init__(self):
+        # Create on init
+        self.createDefaultConfigFile()
+
+    def load(self):
+        return configparser.ConfigParser(allow_no_value=True)
+
+    def getSavedConfigs(self):
+        return configparser.ConfigParser(allow_no_value=True).sections()
+
+    def createDefaultConfigFile(self):
+        cfg = self.load()
+        cfg['DEFAULT'] = {
+            "fmt": "complex int16",
+            "headersize": "0",
+            "usefixedlen": "False",
+            "fixedlen": "-1",
+            "invSpec": "False",
+            ##### 
+            'nperseg': "128",
+            'noverlap': "16", # Note this is 128//8
+            'fs': "1",
+            'fc': "0.0",
+            'freqshift': None, 
+            'numTaps': None, 
+            'filtercutoff': None,
+            'dsr': None
+        }
+        # Write it if it doesn't exist
+        if not os.path.exists(self.loaderSettingsFile):
+            print("Generating default config for the first time.")
+            with open(self.loaderSettingsFile, "w") as configfile:
+                cfg.write(configfile)
+
+
+#%%
 class LoaderSettingsDialog(QDialog):
     filesettingsSignal = Signal(dict)
     signalsettingsSignal = Signal(dict)
@@ -19,8 +60,13 @@ class LoaderSettingsDialog(QDialog):
         super().__init__()
         self.setWindowTitle("Settings")
 
+        ## New config file source
+        self.config = LoaderSettingsConfig()
+
         ## Layout
         self.layout = QVBoxLayout()
+        self.configLayout = QHBoxLayout()
+        self.layout.addLayout(self.configLayout)
         self.formatGroupBox = QGroupBox("File Format")
         self.layout.addWidget(self.formatGroupBox)
         self.viewerGroupBox = QGroupBox("Signal Viewer")
@@ -32,6 +78,14 @@ class LoaderSettingsDialog(QDialog):
         buttonBox.accepted.connect(self.accept)
         buttonBox.rejected.connect(self.reject)
         self.layout.addWidget(buttonBox)
+
+        ################################# Configurations
+        self.configDropdown = QComboBox()
+        savedcfgs = self.config.getSavedConfigs()
+        assert(isinstance(savedcfgs, list))
+        savedcfgs.insert(0, 'DEFAULT')
+        self.configDropdown.addItems(savedcfgs)
+        self.configLayout.addWidget(self.configDropdown)
 
         ################################# File Format Layout
         self.formlayout = QFormLayout()

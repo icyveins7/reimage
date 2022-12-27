@@ -102,15 +102,7 @@ class ReimageMain(QtWidgets.QMainWindow):
     def setupMenu(self):
         self.menubar = QtWidgets.QMenuBar()
         self.setMenuBar(self.menubar)
-
-        # self.settingsMenu = QtWidgets.QMenu("Settings", self)
-        # self.fileFormatSettings = self.settingsMenu.addAction("File Formats")
-        # self.fileFormatSettings.triggered.connect(self.openFileFormatSettings)
-
-        # self.signalViewSettings = self.settingsMenu.addAction("Signal Viewer")
-        # self.signalViewSettings.triggered.connect(self.openSignalViewSettings)
-
-        # self.menubar.addMenu(self.settingsMenu)
+        
         # ===========
         self.predetectMenu = QtWidgets.QMenu("Predetect", self)
         self.predetectAmp = self.predetectMenu.addAction("Via Amplitude")
@@ -163,19 +155,6 @@ class ReimageMain(QtWidgets.QMainWindow):
     @QtCore.Slot()
     def triggerLoadFiles(self):
         self.triggerLoadFilesSignal.emit()
-
-
-    # @QtCore.Slot()
-    # def openSignalViewSettings(self):
-    #     dialog = SignalSettingsDialog(self.signalsettings)
-    #     dialog.signalsettingsSignal.connect(self.saveSignalSettings)
-    #     dialog.exec()
-
-    # @QtCore.Slot()
-    # def openFileFormatSettings(self):
-    #     dialog = FileSettingsDialog(self.filesettings)
-    #     dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
-    #     dialog.exec()
 
     @QtCore.Slot(dict)
     def saveSignalSettings(self, newsettings):
