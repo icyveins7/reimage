@@ -48,7 +48,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         # Connections
         self.fileListFrame.dataSignal.connect(self.onNewData)
         self.fileListFrame.newFilesSignal.connect(self.newFilesHandler)
-        self.fileListFrame.sampleRateSignal.connect(self.setSampleRate)
+        # self.fileListFrame.sampleRateSignal.connect(self.setSampleRate)
 
         self.triggerLoadFilesSignal.connect(self.fileListFrame.loadFiles)
 
@@ -67,25 +67,25 @@ class ReimageMain(QtWidgets.QMainWindow):
         # Application global settings
         QtCore.QCoreApplication.setOrganizationName("Seo")
         QtCore.QCoreApplication.setApplicationName("ReImage")
-        # File Format Settings
-        self.filesettings = {
-            "fmt": "complex int16",
-            "headersize": 0,
-            "usefixedlen": False,
-            "fixedlen": -1,
-            "invSpec": False
-        } # TODO: add cached settings instead of defaults, and load from a global place
-        # Signal settings
-        self.signalsettings = {
-            'nperseg': 128,
-            'noverlap': 128/8,
-            'fs': 1,
-            'fc': 0.0,
-            'freqshift': None, 
-            'numTaps': None, 
-            'filtercutoff': None,
-            'dsr': None
-        }
+        # # File Format Settings
+        # self.filesettings = {
+        #     "fmt": "complex int16",
+        #     "headersize": 0,
+        #     "usefixedlen": False,
+        #     "fixedlen": -1,
+        #     "invSpec": False
+        # } # TODO: add cached settings instead of defaults, and load from a global place
+        # # Signal settings
+        # self.signalsettings = {
+        #     'nperseg': 128,
+        #     'noverlap': 128/8,
+        #     'fs': 1,
+        #     'fc': 0.0,
+        #     'freqshift': None, 
+        #     'numTaps': None, 
+        #     'filtercutoff': None,
+        #     'dsr': None
+        # }
         # Configuration handling
         self.currentConfig = 'DEFAULT' # This is the default one
 
@@ -139,16 +139,16 @@ class ReimageMain(QtWidgets.QMainWindow):
         dialog.predetectAmpSignal.connect(self.fileListFrame.highlightFiles)
         dialog.exec()
 
-    @QtCore.Slot(int)
-    def setSampleRate(self, samplerate: int):
-        # Main use-case is for automatic loading of rate from .wav files
-        self.signalsettings['fs'] = samplerate
-        print("Set sample rate to %d" % self.signalsettings['fs'])
+    # @QtCore.Slot(int)
+    # def setSampleRate(self, samplerate: int):
+    #     # Main use-case is to DISPLAY sample rate for to-be-loaded .wav files
+    #     self.wavSamplerate = samplerate
+    #     print("Set wav sample rate to %d" % self.wavSamplerate)
 
-    @QtCore.Slot(str)
-    def newFilesHandler(self, specialType: str=""):
+    @QtCore.Slot(str, int)
+    def newFilesHandler(self, specialType: str="", wavSamplerate: int=None):
         # We spawn the new amalgamated loader settings
-        dialog = LoaderSettingsDialog(specialType, configName=self.currentConfig)
+        dialog = LoaderSettingsDialog(specialType, configName=self.currentConfig, wavSamplerate=wavSamplerate)
         dialog.signalsettingsSignal.connect(self.saveSignalSettings)
         dialog.filesettingsSignal.connect(self.saveFileFormatSettings)
         dialog.configSignal.connect(self.saveConfigName)
@@ -166,31 +166,31 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     @QtCore.Slot(dict)
     def saveSignalSettings(self, newsettings):
-        self.signalsettings = newsettings
+        # self.signalsettings = newsettings
         # Apply to signal view 
-        self.sv.nperseg = self.signalsettings['nperseg']
-        self.sv.noverlap = self.signalsettings['noverlap']
-        self.sv.fs = self.signalsettings['fs']
-        self.sv.fc = self.signalsettings['fc']
-        self.sv.freqshift = self.signalsettings['freqshift']
-        self.sv.numTaps = self.signalsettings['numTaps']
-        self.sv.filtercutoff = self.signalsettings['filtercutoff']
-        self.sv.dsr = self.signalsettings['dsr']
+        self.sv.nperseg = newsettings['nperseg']
+        self.sv.noverlap = newsettings['noverlap']
+        self.sv.fs = newsettings['fs']
+        self.sv.fc = newsettings['fc']
+        self.sv.freqshift = newsettings['freqshift']
+        self.sv.numTaps = newsettings['numTaps']
+        self.sv.filtercutoff = newsettings['filtercutoff']
+        self.sv.dsr = newsettings['dsr']
 
     @QtCore.Slot(dict)
     def saveFileFormatSettings(self, newsettings):
-        self.filesettings = newsettings
+        # self.filesettings = newsettings
         # Set the file list widget attributes
         formatsToDtype = {
             'complex int16': np.int16,
             'complex float32': np.float32,
             'complex float64': np.float64
         } # TODO: keep this somewhere common
-        self.fileListFrame.fmt = formatsToDtype[self.filesettings['fmt']]
-        self.fileListFrame.headersize = self.filesettings['headersize']
-        self.fileListFrame.usefixedlen = self.filesettings['usefixedlen']
-        self.fileListFrame.fixedlen = self.filesettings['fixedlen']
-        self.fileListFrame.invSpec = self.filesettings['invSpec']
+        self.fileListFrame.fmt = formatsToDtype[newsettings['fmt']]
+        self.fileListFrame.headersize = newsettings['headersize']
+        self.fileListFrame.usefixedlen = newsettings['usefixedlen']
+        self.fileListFrame.fixedlen = newsettings['fixedlen']
+        self.fileListFrame.invSpec = newsettings['invSpec']
         
 
 

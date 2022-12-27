@@ -17,8 +17,8 @@ class FileListItem(QListWidgetItem):
 #%%
 class FileListFrame(QFrame):
     dataSignal = Signal(np.ndarray, list, list)
-    sampleRateSignal = Signal(int)
-    newFilesSignal = Signal(str)
+    # sampleRateSignal = Signal(int)
+    newFilesSignal = Signal(str, int)
     fileListStatusTip = Signal(str)
 
     def __init__(self, db, parent=None, f=Qt.WindowFlags()):
@@ -290,13 +290,13 @@ class FileListFrame(QFrame):
                 )
             else:
                 samplerate, _ = sio.wavfile.read(filepaths[0])
-                self.sampleRateSignal.emit(samplerate)
-                self.newFilesSignal.emit("wav")
+                # self.sampleRateSignal.emit(samplerate)
+                self.newFilesSignal.emit("wav", samplerate)
 
 
         # For everything else, as it used to be
         else:
-            self.newFilesSignal.emit("")
+            self.newFilesSignal.emit("", None)
 
 
     '''This is now the second step of loading, after settings are confirmed.'''

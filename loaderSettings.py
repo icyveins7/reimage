@@ -78,7 +78,7 @@ class LoaderSettingsDialog(QDialog):
     signalsettingsSignal = Signal(dict)
     configSignal = Signal(str)
 
-    def __init__(self, specialType: str="", configName: str="DEFAULT"):
+    def __init__(self, specialType: str="", configName: str="DEFAULT", wavSamplerate: int=None):
         super().__init__()
         self.setWindowTitle("Settings")
 
@@ -219,6 +219,7 @@ class LoaderSettingsDialog(QDialog):
             self.layout.addWidget(QLabel("Some settings have been automatically filled and/or disabled due to the file type."))
         if specialType == "wav":
             self.layout.addWidget(QLabel("Note that .wav files with more than one channel are averaged into one channel."))
+            self.fsEdit.setText(str(wavSamplerate))
             self.fsEdit.setEnabled(False)
             self.formatGroupBox.setEnabled(False)
 
