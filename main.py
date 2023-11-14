@@ -11,7 +11,7 @@ from loaderSettings import LoaderSettingsDialog
 from sidebarSettings import SidebarSettings
 
 class ReimageMain(QtWidgets.QMainWindow):
-    triggerLoadFilesSignal = QtCore.Signal()
+    resizedSignal = QtCore.Signal()
 
     def __init__(self):
         super().__init__()
@@ -60,7 +60,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.sidebar.changeSpecgramLogScaleSignal.connect(self.sv.adjustSpecgramLog)
 
         self.fileListFrame.dataSignal.connect(self.sidebar.reset) # Clear all settings on new data
-
+        
+        self.resizedSignal.connect(self.fileListFrame.onResizedWindow)
 
         # Application global settings
         QtCore.QCoreApplication.setOrganizationName("Seo")
@@ -180,6 +181,10 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.fileListFrame.fixedlen = newsettings['fixedlen']
         self.fileListFrame.invSpec = newsettings['invSpec']
         self.fileListFrame.sampleStart = newsettings['sampleStart']
+
+    def resizeEvent(self, event):
+        self.resizedSignal.emit()
+        super().resizeEvent(event)
         
 
 

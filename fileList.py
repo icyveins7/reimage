@@ -42,7 +42,6 @@ class FileListFrame(QFrame):
         self.ow.horizontalScrollBar().hide()
         self.ow.verticalScrollBar().setStyleSheet("width: 0px")
         self.ow.horizontalScrollBar().setStyleSheet("height: 0px")
-        self.ow.setFixedHeight(self.flw.height() - self.flw.horizontalScrollBar().height()) # This aligns now when the scroll bar is present, but causes extra space when it isn't (i.e. short paths present only)
         
         # Need a vertical layout for the orderwidget to align
         self.ovlayout = QVBoxLayout()
@@ -394,6 +393,13 @@ class FileListFrame(QFrame):
         #     print("leave") # TODO: do we need this?
         return super().event(event)
 
+    ####################
+    @Slot()
+    def onResizedWindow(self):
+        # Adjust the two list widgets nicely
+        self.ow.resize(
+            25, self.flw.height() #  - self.flw.horizontalScrollBar().height()
+        )
     
 
 # %%
