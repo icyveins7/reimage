@@ -18,6 +18,8 @@ from markerdb import MarkerDB
 import time
 
 class SignalView(QFrame):
+    VIEW_BUFFER_FRACTION = 0.05
+
     AMPL_PLOT = 0
     REIM_PLOT = 1
     SignalViewStatusTip = Signal(str)
@@ -296,7 +298,7 @@ class SignalView(QFrame):
         self.p1.setMenuEnabled(False)
 
         dfs = self.getDisplayedFs()
-        viewBufferX = 0.1 * self.ydata.size / dfs
+        viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size / dfs
         self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
@@ -320,7 +322,7 @@ class SignalView(QFrame):
         self.p1.setMenuEnabled(False)
 
         dfs = self.getDisplayedFs()
-        viewBufferX = 0.1 * self.ydata.size / dfs
+        viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size / dfs
         self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
         self.curDsrIdx = -1 # On init, the maximum dsr is used
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
@@ -362,8 +364,8 @@ class SignalView(QFrame):
             # self.spw.setMouseEnabled(x=True,y=False)
             self.spw.setMenuEnabled(False)
 
-            viewBufferX = 0.1 * self.ydata.size/dfs
-            viewBufferY = 0.1 * fspan
+            viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size/dfs
+            viewBufferY = self.VIEW_BUFFER_FRACTION * fspan
             self.spw.setLimits(
                 xMin = -viewBufferX, xMax = self.ydata.size/dfs + viewBufferX, 
                 yMin = self.freqs[0] - viewBufferY, yMax = self.freqs[-1] + viewBufferY)
