@@ -17,6 +17,7 @@ jobs:
       with:
         python-version: '3.11'
     - run: pip install -r requirements.txt
+    - run: pip install pyinstaller
     - run: . build.sh
 
     # - uses: actions/checkout@v2
@@ -40,6 +41,7 @@ jobs:
       with:
         python-version: '3.11'
     - run: pip install -r requirements.txt
+    - run: pip install pyinstaller
     - run: .\build.bat
 
     - uses: actions/upload-artifact@v3
