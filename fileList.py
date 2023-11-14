@@ -46,7 +46,6 @@ class FileListFrame(QFrame):
         # Need a vertical layout for the orderwidget to align
         self.ovlayout = QVBoxLayout()
         self.ovlayout.addWidget(self.ow)
-        self.ovlayout.addStretch()
 
         # Need a horizontal layout for the two lists
         self.hlayout = QHBoxLayout()
@@ -402,4 +401,4 @@ class FileListFrame(QFrame):
         )
     
 
-# %%
+
