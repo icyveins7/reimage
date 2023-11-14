@@ -22,6 +22,14 @@ and then - while in the new virtual environment - install the required libraries
 pip install -r requirements.txt
 ```
 
+Note that the requirements file is based on a Python 3.11 install, and may not work exactly if the Python version is different (and especially if it is too old).
+
+If you are using a different Python version and the above doesn't work, you may try
+
+```bash
+pip install numpy scipy Pillow pyqtgraph PySide6 sounddevice
+```
+
 To run the app,
 
 ```bash
@@ -42,7 +50,7 @@ Most users should find that the tooltips at the bottom-left and bottom-right of 
 
 1. Populate the file list via 'Open File(s)' or 'Open Folder'.
 2. Select some files in the file list (via Ctrl-Click or Shift-Click). Clear the entire list with the 'Clear' button or specific files via the Delete key.
-4. Click 'Add to Viewer' to open the files and view the Amplitude-Time (top) and Spectrogram (bottom) plots.
+4. Click 'Add to Viewer' to open the files and view the Amplitude-Time (top) and Spectrogram (bottom) plots. You can also press Enter after selecting the files, or double-click a single file.
 5. Scroll in/out using mouse wheel and/or use Left-Click to drag the plots.
 6. Use Ctrl-RightClick on the plots to see additional options.
 
