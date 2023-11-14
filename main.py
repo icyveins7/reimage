@@ -50,8 +50,6 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.fileListFrame.newFilesSignal.connect(self.newFilesHandler)
         # self.fileListFrame.sampleRateSignal.connect(self.setSampleRate)
 
-        self.triggerLoadFilesSignal.connect(self.fileListFrame.loadFiles)
-
         self.sidebar.addSmaSignal.connect(self.sv.addSma)
         self.sidebar.deleteSmaSignal.connect(self.sv.delSma)
         self.sidebar.changeSmaColourSignal.connect(self.sv.colourSma)
@@ -146,17 +144,13 @@ class ReimageMain(QtWidgets.QMainWindow):
     #     print("Set wav sample rate to %d" % self.wavSamplerate)
 
     @QtCore.Slot(str, int)
-    def newFilesHandler(self, specialType: str="", wavSamplerate: int=None):
+    def newFilesHandler(self, specialType: str="", wavSamplerate: int=None, filepaths: list=None):
         # We spawn the new amalgamated loader settings
-        dialog = LoaderSettingsDialog(specialType, configName=self.currentConfig, wavSamplerate=wavSamplerate)
+        dialog = LoaderSettingsDialog(specialType, configName=self.currentConfig, wavSamplerate=wavSamplerate, filepaths=filepaths)
         dialog.settingsSignal.connect(self.saveSettings)
         dialog.configSignal.connect(self.saveConfigName)
-        dialog.accepted.connect(self.triggerLoadFiles) # If accepted then we load files
+        dialog.accepted.connect(self.fileListFrame.loadFiles) # If accepted then we load files
         dialog.exec()
-
-    @QtCore.Slot()
-    def triggerLoadFiles(self):
-        self.triggerLoadFilesSignal.emit()
 
     @QtCore.Slot(str)
     def saveConfigName(self, newconfigname):
@@ -185,6 +179,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.fileListFrame.usefixedlen = newsettings['usefixedlen']
         self.fileListFrame.fixedlen = newsettings['fixedlen']
         self.fileListFrame.invSpec = newsettings['invSpec']
+        self.fileListFrame.sampleStart = newsettings['sampleStart']
         
 
 

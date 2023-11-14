@@ -18,7 +18,7 @@ class FileListItem(QListWidgetItem):
 class FileListFrame(QFrame):
     dataSignal = Signal(np.ndarray, list, list)
     # sampleRateSignal = Signal(int)
-    newFilesSignal = Signal(str, int)
+    newFilesSignal = Signal(str, int, list)
     fileListStatusTip = Signal(str)
 
     def __init__(self, db, parent=None, f=Qt.WindowFlags()):
@@ -103,6 +103,7 @@ class FileListFrame(QFrame):
         self.usefixedlen = False
         self.fixedlen = -1
         self.invSpec = False
+        self.sampleStart = 0
 
     ####################
     @Slot(QListWidgetItem)
@@ -291,12 +292,12 @@ class FileListFrame(QFrame):
             else:
                 samplerate, _ = sio.wavfile.read(filepaths[0])
                 # self.sampleRateSignal.emit(samplerate)
-                self.newFilesSignal.emit("wav", samplerate)
+                self.newFilesSignal.emit("wav", samplerate, filepaths)
 
 
         # For everything else, as it used to be
         else:
-            self.newFilesSignal.emit("", None)
+            self.newFilesSignal.emit("", None, filepaths)
 
 
     '''This is now the second step of loading, after settings are confirmed.'''
@@ -346,7 +347,9 @@ class FileListFrame(QFrame):
         self.initOrderWidget()
         for i in range(len(filepaths)):
             filepath = filepaths[i]
-            d = np.fromfile(filepath, dtype=self.fmt, count=cnt*2, offset=self.headersize) # x2 for complex samples
+            d = np.fromfile(
+                filepath, dtype=self.fmt, count=cnt*2, # x2 for complex samples
+                offset=self.headersize + self.sampleStart*self.fmt(1).itemsize*2) # offset from the sample start as well if provided
             data.append(d)
             
             sampleStarts.append(int(d.size/2 + sampleStarts[-1]))

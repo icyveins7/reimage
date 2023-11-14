@@ -6,7 +6,7 @@ and allows use-cases such as .wav file automatic sample rate filling.
 '''
 
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QFormLayout, QComboBox, QDialogButtonBox, QCheckBox, QGroupBox
-from PySide6.QtWidgets import QSpinBox, QLabel, QHBoxLayout, QPushButton, QInputDialog
+from PySide6.QtWidgets import QSpinBox, QLabel, QHBoxLayout, QPushButton, QInputDialog, QSlider
 from PySide6.QtCore import Qt, Signal, Slot
 # import numpy as np
 import configparser
@@ -64,7 +64,8 @@ class LoaderSettingsConfig:
             'freqshift': None, 
             'numTaps': None, 
             'filtercutoff': None,
-            'dsr': None
+            'dsr': None,
+            'sampleStart': "0"
         }
         # Write it if it doesn't exist
         if not os.path.exists(self.loaderSettingsFile):
@@ -77,9 +78,19 @@ class LoaderSettingsDialog(QDialog):
     settingsSignal = Signal(dict)
     configSignal = Signal(str)
 
-    def __init__(self, specialType: str="", configName: str="DEFAULT", wavSamplerate: int=None):
+    bytesPerSample = {
+        "complex int16": 4,
+        "complex float32": 8, 
+        "complex float64": 16
+    }
+    
+
+    def __init__(self, specialType: str="", configName: str="DEFAULT", wavSamplerate: int=None, filepaths: list=None):
         super().__init__()
         self.setWindowTitle("Settings")
+
+        ## Calculate the filesizes for each file, to be used in further calculations later
+        self.filesizes = [os.path.getsize(filepath) for filepath in filepaths]
 
         ## New config file source
         self.config = LoaderSettingsConfig()
@@ -118,20 +129,41 @@ class LoaderSettingsDialog(QDialog):
         ## Options
         # Data type
         self.datafmtDropdown = QComboBox()
-        dataformats = ["complex int16", "complex float32", "complex float64"]
+        dataformats = [key for key in self.bytesPerSample]
         self.datafmtDropdown.addItems(dataformats)
         self.formlayout.addRow("File Data Type", self.datafmtDropdown)
 
         # Header size
         self.headersizeEdit = QLineEdit()
+        self.headersizeEdit.textEdited.connect(self.onHeaderSizeChanged)
         self.formlayout.addRow("Header Length (bytes)", self.headersizeEdit)
 
-        # Fixed Length
-        self.fixedlenCheckbox = QCheckBox()
-        self.fixedlenEdit = QLineEdit()
-        self.fixedlenCheckbox.toggled.connect(self.fixedlenEdit.setEnabled)
-        self.formlayout.addRow("Use Fixed Length Per File", self.fixedlenCheckbox)
-        self.formlayout.addRow("Data Length Per File (samples)", self.fixedlenEdit)
+        # New sliders (only show when there is only 1 file)
+        if len(self.filesizes) == 1:
+            self.sampleStartSlider = QSlider()
+            self.sampleStartSlider.setOrientation(Qt.Horizontal)
+            self.sampleStartSlider.setMinimum(0)
+            self.sampleStartSlider.setMaximum(self.filesizes[0] // self.bytesPerSample[self.datafmtDropdown.currentText()])
+            self.sampleStartSlider.valueChanged.connect(self.onSampleStartChanged)
+            self.formlayout.addRow("Start Sample", self.sampleStartSlider)
+
+            self.sampleEndSlider = QSlider()
+            self.sampleEndSlider.setOrientation(Qt.Horizontal)
+            self.sampleEndSlider.setMinimum(1)
+            self.sampleEndSlider.setMaximum(self.filesizes[0] // self.bytesPerSample[self.datafmtDropdown.currentText()])
+            self.sampleEndSlider.setValue(self.sampleEndSlider.maximum())
+            self.sampleEndSlider.valueChanged.connect(self.onSampleEndChanged)
+            self.formlayout.addRow("End Sample", self.sampleEndSlider)
+
+            self.sampleRangeLabel = QLabel("Sample Range: %d - %d" % (self.sampleStartSlider.value(), self.sampleEndSlider.value()))
+            self.formlayout.addWidget(self.sampleRangeLabel)
+        else:
+            # Fixed Length
+            self.fixedlenCheckbox = QCheckBox()
+            self.fixedlenEdit = QLineEdit()
+            self.fixedlenCheckbox.toggled.connect(self.fixedlenEdit.setEnabled)
+            self.formlayout.addRow("Use Fixed Length Per File", self.fixedlenCheckbox)
+            self.formlayout.addRow("Data Length Per File (samples)", self.fixedlenEdit)
 
         # Inverted Spectrum
         self.invertspecCheckbox = QCheckBox()
@@ -205,13 +237,60 @@ class LoaderSettingsDialog(QDialog):
         self.fsEdit.setFocus()
 
 
+    @Slot(str)
+    def onHeaderSizeChanged(self, text: str):
+        expectedSamples = self.parseExpectedSamplesInFiles(
+            int(text), 
+            self.bytesPerSample[self.datafmtDropdown.currentText()]
+        )
+
+        # Amend the maximum sample ranges
+        self.sampleStartSlider.setMaximum(expectedSamples[0])
+        self.sampleEndSlider.setMaximum(expectedSamples[0])
+
+    def updateSampleRangeLabel(self):
+        self.sampleRangeLabel.setText(
+            "Sample Range: %d - %d" % (
+                self.sampleStartSlider.value(), self.sampleEndSlider.value()
+            )
+        )
+
+    @Slot()
+    def onSampleStartChanged(self):
+        # Not allowed to go past the maximum slider value
+        if self.sampleStartSlider.value() > self.sampleEndSlider.value():
+            self.sampleEndSlider.setValue(self.sampleStartSlider.value()+1)
+
+        # Update the label
+        self.updateSampleRangeLabel()
+
+    @Slot()
+    def onSampleEndChanged(self):
+        # Not allowed to go past the minimum slider value
+        if self.sampleEndSlider.value() < self.sampleStartSlider.value():
+            self.sampleStartSlider.setValue(self.sampleEndSlider.value()-1)
+
+        # Update the label
+        self.updateSampleRangeLabel()
+
+
+
+    def parseExpectedSamplesInFiles(self, headerBytes: int, bytesPerSample: int):
+        """
+        Parse the expected number of samples in each file.
+        """
+        return [(i-headerBytes) // bytesPerSample for i in self.filesizes]
+
+    ########################################################################
     def accept(self):
         # Parse types for the settings
         newsettings = {
             "fmt": self.datafmtDropdown.currentText(),
             "headersize": int(self.headersizeEdit.text()),
-            "usefixedlen": self.fixedlenCheckbox.isChecked(),
-            "fixedlen": int(self.fixedlenEdit.text()) if self.fixedlenEdit.isEnabled() else -1,
+
+            # "usefixedlen": self.fixedlenCheckbox.isChecked(),
+            # "fixedlen": int(self.fixedlenEdit.text()) if self.fixedlenEdit.isEnabled() else -1,
+            
             "invSpec": self.invertspecCheckbox.isChecked(),
             ###########################
             'nperseg': int(self.specNpersegDropdown.currentText()),
@@ -223,6 +302,17 @@ class LoaderSettingsDialog(QDialog):
             'filtercutoff': float(self.cutoffEdit.text()) if self.filterCheckbox.isChecked() else None,
             'dsr': int(self.downsampleEdit.text()) if self.downsampleCheckbox.isChecked() else None
         }
+        # Special cases depending on number of files
+        if len(self.filesizes) == 1: # For a single file, we always use a fixed length
+            newsettings['usefixedlen'] = True
+            newsettings['fixedlen'] = self.sampleEndSlider.value() - self.sampleStartSlider.value()
+            newsettings['sampleStart'] = self.sampleStartSlider.value()
+
+        else: # For multiple files, we assume 0 offset from after the header
+            newsettings['usefixedlen'] = self.fixedlenCheckbox.isChecked()
+            newsettings['fixedlen'] = int(self.fixedlenEdit.text()) if self.fixedlenEdit.isEnabled() else -1
+            newsettings['sampleStart'] = 0
+
         self.settingsSignal.emit(newsettings)
 
         # Before accepting, we check if the current settings match the current config
@@ -259,14 +349,21 @@ class LoaderSettingsDialog(QDialog):
         # Header size
         self.headersizeEdit.setText(cfg.get('headersize'))
 
-        # Fixed Length
-        if cfg.getboolean('usefixedlen'):
-            self.fixedlenCheckbox.setChecked(True)
-            self.fixedlenEdit.setEnabled(True)
-            self.fixedlenEdit.setText(cfg.get('fixedlen'))
+        if len(self.filesizes) == 1:
+            self.sampleStartSlider.setValue(cfg.getint('sampleStart'))
+            # Only set the ending if the fixedlen is specified
+            if cfg.getint('fixedlen') >= 0:
+                self.sampleEndSlider.setValue(cfg.getint('sampleStart') + cfg.getint('fixedlen'))
+
         else:
-            self.fixedlenCheckbox.setChecked(False)
-            self.fixedlenEdit.setEnabled(False)
+            # Fixed Length
+            if cfg.getboolean('usefixedlen'):
+                self.fixedlenCheckbox.setChecked(True)
+                self.fixedlenEdit.setEnabled(True)
+                self.fixedlenEdit.setText(cfg.get('fixedlen'))
+            else:
+                self.fixedlenCheckbox.setChecked(False)
+                self.fixedlenEdit.setEnabled(False)
 
         # Inverted Spectrum
         self.invertspecCheckbox.setChecked(cfg.getboolean('invSpec'))
@@ -315,11 +412,14 @@ class LoaderSettingsDialog(QDialog):
             self.downsampleEdit.setEnabled(False)
 
     def _packSettings(self):
+        ### This is a stringifyed version of the settings dictionary.
+        ### TODO: change it so that the config and the internal dict passes around to the slots are better integrated with each other?
+
         settings = {
             "fmt": self.datafmtDropdown.currentText(),
             "headersize": self.headersizeEdit.text(),
-            "usefixedlen": str(self.fixedlenCheckbox.isChecked()),
-            "fixedlen": self.fixedlenEdit.text() if self.fixedlenCheckbox.isChecked() else "-1",
+            # "usefixedlen": str(self.fixedlenCheckbox.isChecked()),
+            # "fixedlen": self.fixedlenEdit.text() if self.fixedlenCheckbox.isChecked() else "-1",
             "invSpec": str(self.invertspecCheckbox.isChecked()),
             'nperseg': self.specNpersegDropdown.currentText(),
             'noverlap': str(self.specNoverlapSpinbox.value()),
@@ -330,6 +430,17 @@ class LoaderSettingsDialog(QDialog):
             'filtercutoff': self.cutoffEdit.text() if self.filterCheckbox.isChecked() else None,
             'dsr': self.downsampleEdit.text() if self.downsampleCheckbox.isChecked() else None
         }
+        # Special cases depending on number of files
+        if len(self.filesizes) == 1: # For a single file, we always use a fixed length
+            settings['usefixedlen'] = str(True)
+            settings['fixedlen'] = str(self.sampleEndSlider.value() - self.sampleStartSlider.value())
+            settings['sampleStart'] = self.sampleStartSlider.value()
+
+        else: # For multiple files, we assume 0 offset from after the header
+            settings['usefixedlen'] = str(self.fixedlenCheckbox.isChecked())
+            settings['fixedlen'] = self.fixedlenEdit.text() if self.fixedlenEdit.isEnabled() else "-1"
+            settings['sampleStart'] = 0
+
         return settings
 
     def _populateConfigs(self):
@@ -350,4 +461,6 @@ class LoaderSettingsDialog(QDialog):
             self._populateConfigs()
             # Set to the new name
             self.configDropdown.setCurrentText(newcfgname)
+
+
 
