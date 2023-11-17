@@ -357,35 +357,9 @@ class LoaderSettingsDialog(QDialog):
     
     def _packSettings(self, settings: dict) -> dict:
         ### This is a stringifyed version of the settings dictionary.
-        ### TODO: change it so that the config and the internal dict passes around to the slots are better integrated with each other?
         strSettings = {
             key: str(val) if val is not None else "" for key, val in settings.items()
         }
-        # settings = {
-        #     "fmt": self.datafmtDropdown.currentText(),
-        #     "headersize": self.headersizeEdit.text(),
-        #     # "usefixedlen": str(self.fixedlenCheckbox.isChecked()),
-        #     # "fixedlen": self.fixedlenEdit.text() if self.fixedlenCheckbox.isChecked() else "-1",
-        #     "invSpec": str(self.invertspecCheckbox.isChecked()),
-        #     'nperseg': self.specNpersegDropdown.currentText(),
-        #     'noverlap': str(self.specNoverlapSpinbox.value()),
-        #     'fs': self.fsEdit.text(),
-        #     'fc': self.fcEdit.text(),
-        #     'freqshift': self.freqshiftEdit.text() if self.freqshiftCheckbox.isChecked() else None,
-        #     'numTaps': self.numTapsDropdown.currentText() if self.filterCheckbox.isChecked() else None,
-        #     'filtercutoff': self.cutoffEdit.text() if self.filterCheckbox.isChecked() else None,
-        #     'dsr': self.downsampleEdit.text() if self.downsampleCheckbox.isChecked() else None
-        # }
-        # # Special cases depending on number of files
-        # if len(self.filesizes) == 1: # For a single file, we always use a fixed length
-        #     settings['usefixedlen'] = str(True)
-        #     settings['fixedlen'] = str(self.sampleEndSlider.value() - self.sampleStartSlider.value())
-        #     settings['sampleStart'] = self.sampleStartSlider.value()
-
-        # else: # For multiple files, we assume 0 offset from after the header
-        #     settings['usefixedlen'] = str(self.fixedlenCheckbox.isChecked())
-        #     settings['fixedlen'] = self.fixedlenEdit.text() if self.fixedlenEdit.isEnabled() else "-1"
-        #     settings['sampleStart'] = 0
 
         return strSettings
 
@@ -403,7 +377,7 @@ class LoaderSettingsDialog(QDialog):
             print(dict(loadedConfig))
             print(currentConfig)
             # Generate a new 'Custom' config and return that
-            self.config.saveConfig('Custom', currentConfig) # self._packSettings())
+            self.config.saveConfig('Custom', currentConfig)
             self.configSignal.emit('Custom')
             
         super().accept()
@@ -502,7 +476,7 @@ class LoaderSettingsDialog(QDialog):
 
         # If dialog ok, save to file and repopulate the dropdown
         if ok:
-            newcfg = self._packSettings()
+            newcfg = self._packSettings(self.parseSettings())
             self.config.saveConfig(newcfgname, newcfg)
             self._populateConfigs()
             # Set to the new name
