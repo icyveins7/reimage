@@ -145,7 +145,18 @@ class LoaderSettingsDialog(QDialog):
             # The Qt widgets only accept up to signed integers, so we use this as an arbitrary limit
             self.sliderMax = 1000000000 if self.sliderMax > 1000000000 else self.sliderMax
 
-            self.sampleRangeLabel = QLabel()
+            self.sampleRangeLabel = QLabel("-")
+            self.sampleStartEdit = QLineEdit()
+            self.sampleEndEdit = QLineEdit()
+            # Connect backwards to sliders as well
+            self.sampleStartEdit.textEdited.connect(self.onSampleStartTextEdited)
+            self.sampleEndEdit.textEdited.connect(self.onSampleEndTextEdited)
+
+            # Stack these 3 into 1 cell
+            self.sampleDisplayLayout = QHBoxLayout()
+            self.sampleDisplayLayout.addWidget(self.sampleStartEdit)
+            self.sampleDisplayLayout.addWidget(self.sampleRangeLabel)
+            self.sampleDisplayLayout.addWidget(self.sampleEndEdit)
 
             self.sampleStartSlider = QSlider()
             self.sampleStartSlider.setOrientation(Qt.Horizontal)
@@ -165,7 +176,8 @@ class LoaderSettingsDialog(QDialog):
             self.formlayout.addRow("End Sample", self.sampleEndSlider)
 
             self.updateSampleRangeLabel()
-            self.formlayout.addWidget(self.sampleRangeLabel)
+            # self.formlayout.addRow("Sample Range", self.sampleRangeLabel)
+            self.formlayout.addRow("Sample Range", self.sampleDisplayLayout)
         else:
             # Fixed Length
             self.fixedlenCheckbox = QCheckBox()
@@ -287,9 +299,19 @@ class LoaderSettingsDialog(QDialog):
         start = float(self.sampleStartSlider.value()) / span * expectedSamples[0]
         end = float(self.sampleEndSlider.value()) / span * expectedSamples[0]
 
-        self.sampleRangeLabel.setText(
-            "Sample Range: %d - %d" % (int(start),int(end))
-        )
+        # self.sampleRangeLabel.setText(
+        #     "%d - %d" % (int(start),int(end))
+        # )
+        self.sampleStartEdit.setText(str(int(start)))
+        self.sampleEndEdit.setText(str(int(end)))
+
+    @Slot(str)
+    def onSampleStartTextEdited(self, text: str):
+        pass
+
+    @Slot(str)
+    def onSampleEndTextEdited(self, text: str):
+        pass # TODO
 
     @Slot()
     def onSampleStartChanged(self):
