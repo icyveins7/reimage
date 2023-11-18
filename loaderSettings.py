@@ -434,7 +434,7 @@ class LoaderSettingsDialog(QDialog):
         self.fcEdit.setText(cfg.get('fc'))
 
         # Frequency shift
-        if cfg.get('freqshift') is not None:
+        if cfg.get('freqshift') is not None and cfg.get('freqshift') != "":
             self.freqshiftCheckbox.setChecked(True)
             self.freqshiftEdit.setEnabled(True)
             self.freqshiftEdit.setText(cfg.get('freqshift'))
@@ -443,7 +443,7 @@ class LoaderSettingsDialog(QDialog):
             self.freqshiftEdit.setEnabled(False)
 
         # Filtering
-        if cfg.get('numTaps') is not None:
+        if cfg.get('numTaps') is not None and cfg.get('numTaps') != "":
             self.filterCheckbox.setChecked(True)
             self.numTapsDropdown.setEnabled(True)
             self.numTapsDropdown.setCurrentText(cfg.get('numTaps'))
@@ -455,7 +455,7 @@ class LoaderSettingsDialog(QDialog):
             self.cutoffEdit.setEnabled(False)
 
         # Downsampling
-        if cfg.get('dsr') is not None:
+        if cfg.get('dsr') is not None and cfg.get('dsr') != "":
             self.downsampleCheckbox.setChecked(True)
             self.downsampleEdit.setEnabled(True)
             self.downsampleEdit.setText(cfg.get('dsr'))
