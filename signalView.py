@@ -331,9 +331,8 @@ class SignalView(QFrame):
 
     def plotSpecgram(self, window=('tukey',0.25), auto_transpose=True):
         dfs = self.getDisplayedFs()
-        # self.freqs, self.ts, self.sxx = sps.spectrogram(self.ydata, fs, window, nperseg, noverlap, nfft, return_onesided=False)
         self.freqs, self.ts, self.sxx = sps.spectrogram(
-            self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False)
+            self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False, detrend=False)
 
         # Calculate resolutions for later
         self.specFreqRes = dfs / self.nperseg
