@@ -27,6 +27,9 @@ class SignalView(QFrame):
     def __init__(self, ydata, filelist=None, sampleStarts=None, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
 
+        # Set global specgram image configuration
+        pg.setConfigOption('imageAxisOrder', 'row-major')
+
         # Formatting
         self.setMinimumWidth(800)
 
@@ -342,7 +345,7 @@ class SignalView(QFrame):
 
         
 
-    def plotSpecgram(self, window=('tukey',0.25), auto_transpose=True):
+    def plotSpecgram(self, window=('tukey',0.25), auto_transpose=False):
         dfs = self.getDisplayedFs()
         self.freqs, self.ts, self.sxx = sps.spectrogram(
             self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False, detrend=False)
@@ -366,11 +369,17 @@ class SignalView(QFrame):
             self.sxx = self.sxx.T
 
         if self.xdata is None:
-            self.sp.setImage(self.sxx) # set image on existing item instead?
-            self.sp.setRect(QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)) # Proper setting of the box boundaries
+            self.sp.setImage(
+                self.sxx, 
+                autoLevels=False, 
+                levels=[0, self.sxxMax],
+                rect=QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)
+            ) # set image on existing item instead?
+            self.sp.setAutoDownsample(active=False) # Performance on the downsampler is extremely bad! Main cause of lag spikes
+            # self.sp.setRect(QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)) # Proper setting of the box boundaries
             cm2use = pg.colormap.get('viridis') # you don't need matplotlib to use viridis!
             self.sp.setLookupTable(cm2use.getLookupTable())
-            self.sp.setLevels([0, self.sxxMax])
+            # self.sp.setLevels([0, self.sxxMax])
             
             self.spw.addItem(self.sp) # Must add it back because clears are done in setYData
             # self.spw.setMouseEnabled(x=True,y=False)
@@ -583,7 +592,8 @@ class SignalView(QFrame):
             timeIdx = int(np.round((mousePoint.x() - self.ts[0]) / self.specTimeRes))
             freqIdx = int(np.round((mousePoint.y() - self.freqs[0]) / self.specFreqRes))
             if timeIdx > 0 and timeIdx < self.ts.size and freqIdx > 0 and freqIdx < self.freqs.size: # only the upwards movement has errors
-                self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[timeIdx, freqIdx])
+                # self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[timeIdx, freqIdx])
+                self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[freqIdx, timeIdx]) # For non-transposed data now, TODO: handle transposed cases?
                 # Set the marker
                 self.spd.setData([self.ts[timeIdx]], [self.freqs[freqIdx]])
 
