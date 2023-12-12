@@ -135,3 +135,7 @@ exampledata/
 *.zip
 *.ini
 *.bin
+testdata/
+
+# Mac things
+.DS_Store
