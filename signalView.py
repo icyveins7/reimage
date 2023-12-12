@@ -74,7 +74,7 @@ class SignalView(QFrame):
         self.spd = None # Placeholder for the dot used in tracking
 
         # Connections for the plots
-        self.p1proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.ampMouseMoved)
+        # self.p1proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.ampMouseMoved)
         self.spwproxy = pg.SignalProxy(self.spw.scene().sigMouseMoved, rateLimit=60, slot=self.specMouseMoved)
         self.markerproxy = pg.SignalProxy(self.p1.scene().sigMouseClicked, rateLimit=60, slot=self.onAmpMouseClicked)
 
@@ -131,6 +131,14 @@ class SignalView(QFrame):
 
         # Placeholders for phasors
         self.phasorSampBuffer = 1
+
+        # Placeholder for time vector
+        self.timevec = None
+        
+        # Placeholders for viewbox tracking
+        self.idx0 = 0
+        self.idx1 = -1
+        self.skip = 1
 
     @Slot(int)
     def addSma(self, length: int):
@@ -248,6 +256,9 @@ class SignalView(QFrame):
         if self.dsr is not None:
             self.ydata = self.ydata[::self.dsr]
             print("Using displayed fs %d" % (self.getDisplayedFs()))
+
+        # Define the time vector
+        self.timevec = np.arange(0, self.ydata.size) / self.getDisplayedFs()
         
         self.filelist = filelist
         self.sampleStarts = sampleStarts
@@ -288,6 +299,8 @@ class SignalView(QFrame):
         self.plotReim()
 
     def plotAmpTime(self):
+        self.p1.disableAutoRange()
+
         # Create and save the PlotDataItems as self.p
         timevec = self.getTimevec(self.dsrs[-1])
         # self.p = self.p1.plot(timevec, self.dscache[-1]) # If cache is amp already
@@ -304,7 +317,7 @@ class SignalView(QFrame):
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
 
         # Create the tracking marker
-        self.pmarker = self.p1.plot([0],[0],pen=None,symbol='x',symbolBrush='y')
+        # self.pmarker = self.p1.plot([0],[0],pen=None,symbol='o',symbolBrush='y')
            
 
     def plotReim(self):
@@ -427,49 +440,110 @@ class SignalView(QFrame):
 
     @Slot()
     def onZoom(self):
-        xstart = self.p1.viewRange()[0][0]
-        xend = self.p1.viewRange()[0][1]
-        self.viewboxlabel.setText("Zoom Downsample Rate: %5d / %5d (Max)" % (self.dsrs[self.curDsrIdx], self.dsrs[-1]))
+        tt0 = time.time()
+
+        # ==== New implementation
+        # Get the current axes view limits
+        xstart, xend = self.p1.viewRange()[0]
+        # Define the number of points we want to render for any given snapshot
+        lower, target, upper = (5000, 10000, 20000) # This is the lower bound, target, and upper bounds
+
+        # Conditions for re-calculating the plot slice
+        reslice = False
+        ### Check zooms
+        # numPtsInRange = (self.idx1-self.idx0) // self.skip # This may be off by 1, but doesn't matter much so we don't care
         
-        # Count how many points are in range
         dfs = self.getDisplayedFs()
-        numPtsInRange = (xend-xstart) * dfs # Scale by the sample rate
-        targetDSR = 10**(np.floor(np.log10(numPtsInRange)) - 4)
+        numPtsInRange = (xend-xstart) * dfs // self.skip # Scale by the sample rate
+        # print("numPtsInRange = %d" % (numPtsInRange))
+        # Check only if we can zoom further in
+        reslice = True if self.skip > 1 and (numPtsInRange < lower or numPtsInRange > upper) else reslice
+        if reslice:
+            print("Reslice is %s after checking zoom" % (reslice))
+        ### Check panning shifts
+        target_i0 = max(int(xstart / dfs), 0) # This is what is requested
+        target_i1 = min(int(xend / dfs), self.ydata.size)
+        reslice = True if target_i0 < self.idx0 or target_i1 > self.idx1 else reslice
+        if reslice:
+            print("Reslice is %s after checking pan" % (reslice))
 
-        if targetDSR < self.dsrs[self.curDsrIdx]: # If few points, zoom in i.e. lower the DSR
-            if len(self.dsrs) + self.curDsrIdx > 0: # But only lower to the DSR of 1
-                self.curDsrIdx = self.curDsrIdx - 1
-                # Set the zoomed data on the PlotDataItem
-                dsr = self.dsrs[self.curDsrIdx]
-                if self.plotType == self.AMPL_PLOT:
-                    # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
-                    # self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+        # Reslice if needed
+        if reslice:
+            print("Old %d:%d" % (self.idx0, self.idx1))
+            # Add some buffer so we don't trigger too often
+            self.idx0 = max(target_i0 - target, 0)
+            self.idx1 = min(target_i1 + target, self.ydata.size)
+            self.skip = max((target_i1 - target_i0) // target, 1) # We don't include the buffer in the skip calculation
+            print("Plotting %d:%d:%d" % (self.idx0, self.idx1, self.skip))
 
-                    # Test on-the-fly downsampling instead
-                    print("Zoomin: Downsampling to %d dsr" % (dsr))
-                    self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[0][::dsr]), clipToView=True)
+            t1 = time.time()
+            t = self.timevec[self.idx0:self.idx1:self.skip]
+            t2 = time.time()
+            amp = np.abs(self.ydata[self.idx0:self.idx1:self.skip])
+            t3 = time.time()
+            
+            self.p.setData(t, amp,
+                           clipToView=True)
+            t4 = time.time()
+            self.p1.vb.setYRange(0, np.max(amp))
+            t5 = time.time()
+            self.p1.disableAutoRange(axis=pg.ViewBox.YAxis)
+            t6 = time.time()
+            print("Took %f, %f to slice time and data" % (t2-t1, t3-t2))
+            print("Took %f, %f, %f to set data, set y range and disable autorange" % (
+                t4-t3, t5-t4, t6-t5))
 
-                elif self.plotType == self.REIM_PLOT:
-                    self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
-                    self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
+        # Update UI
+        self.viewboxlabel.setText("Plot indices: %5d : %5d : %5d (Max)" % (
+            self.idx0, self.idx1, self.skip))
+        
+        tt1 = time.time()
+        print("%fs for update." % (tt1-tt0))
+        
+        # # ==== Old implementation
+        # xstart = self.p1.viewRange()[0][0]
+        # xend = self.p1.viewRange()[0][1]
+        # self.viewboxlabel.setText("Zoom Downsample Rate: %5d / %5d (Max)" % (self.dsrs[self.curDsrIdx], self.dsrs[-1]))
+        
+        # # Count how many points are in range
+        # dfs = self.getDisplayedFs()
+        # numPtsInRange = (xend-xstart) * dfs # Scale by the sample rate
+        # targetDSR = 10**(np.floor(np.log10(numPtsInRange)) - 4)
+
+        # if targetDSR < self.dsrs[self.curDsrIdx]: # If few points, zoom in i.e. lower the DSR
+        #     if len(self.dsrs) + self.curDsrIdx > 0: # But only lower to the DSR of 1
+        #         self.curDsrIdx = self.curDsrIdx - 1
+        #         # Set the zoomed data on the PlotDataItem
+        #         dsr = self.dsrs[self.curDsrIdx]
+        #         if self.plotType == self.AMPL_PLOT:
+        #             # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
+        #             # self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+
+        #             # Test on-the-fly downsampling instead
+        #             print("Zoomin: Downsampling to %d dsr" % (dsr))
+        #             self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[0][::dsr]), clipToView=True)
+
+        #         elif self.plotType == self.REIM_PLOT:
+        #             self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
+        #             self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
                     
         
-        if targetDSR > self.dsrs[self.curDsrIdx]: # If too many points, zoom out i.e. increase the DSR
-            if self.curDsrIdx < -1:
-                self.curDsrIdx = self.curDsrIdx + 1
-                # Set the zoomed data on the PlotDataItem
-                dsr = self.dsrs[self.curDsrIdx]
-                if self.plotType == self.AMPL_PLOT:
-                    # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
-                    # self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+        # if targetDSR > self.dsrs[self.curDsrIdx]: # If too many points, zoom out i.e. increase the DSR
+        #     if self.curDsrIdx < -1:
+        #         self.curDsrIdx = self.curDsrIdx + 1
+        #         # Set the zoomed data on the PlotDataItem
+        #         dsr = self.dsrs[self.curDsrIdx]
+        #         if self.plotType == self.AMPL_PLOT:
+        #             # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
+        #             # self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
 
-                    # Test on-the-fly downsampling instead
-                    print("Zoomout: Downsampling to %d dsr" % (dsr))
-                    self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[0][::dsr]), clipToView=True)
+        #             # Test on-the-fly downsampling instead
+        #             print("Zoomout: Downsampling to %d dsr" % (dsr))
+        #             self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[0][::dsr]), clipToView=True)
 
-                elif self.plotType == self.REIM_PLOT:
-                    self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
-                    self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
+        #         elif self.plotType == self.REIM_PLOT:
+        #             self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
+        #             self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
 
         # TODO: rightclick 'view all' bug: does not zoom out completely?
 
