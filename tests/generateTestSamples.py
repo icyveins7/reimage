@@ -19,3 +19,4 @@ print(sig)
 
 # Save the signal
 sig.tofile(os.path.join(testdataDir, 'bpsk_100MSps.dat'))
+

@@ -443,7 +443,12 @@ class SignalView(QFrame):
                 dsr = self.dsrs[self.curDsrIdx]
                 if self.plotType == self.AMPL_PLOT:
                     # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
-                    self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+                    # self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+
+                    # Test on-the-fly downsampling instead
+                    print("Zoomin: Downsampling to %d dsr" % (dsr))
+                    self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[0][::dsr]), clipToView=True)
+
                 elif self.plotType == self.REIM_PLOT:
                     self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
                     self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
@@ -456,7 +461,12 @@ class SignalView(QFrame):
                 dsr = self.dsrs[self.curDsrIdx]
                 if self.plotType == self.AMPL_PLOT:
                     # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
-                    self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+                    # self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
+
+                    # Test on-the-fly downsampling instead
+                    print("Zoomout: Downsampling to %d dsr" % (dsr))
+                    self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[0][::dsr]), clipToView=True)
+
                 elif self.plotType == self.REIM_PLOT:
                     self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
                     self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
