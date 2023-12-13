@@ -77,7 +77,7 @@ class SignalView(QFrame):
         self.spd = None # Placeholder for the dot used in tracking
 
         # Connections for the plots
-        # self.p1proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.ampMouseMoved)
+        self.p1proxy = pg.SignalProxy(self.p1.scene().sigMouseMoved, rateLimit=60, slot=self.ampMouseMoved)
         self.spwproxy = pg.SignalProxy(self.spw.scene().sigMouseMoved, rateLimit=60, slot=self.specMouseMoved)
         self.markerproxy = pg.SignalProxy(self.p1.scene().sigMouseClicked, rateLimit=60, slot=self.onAmpMouseClicked)
 
@@ -320,7 +320,7 @@ class SignalView(QFrame):
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
 
         # Create the tracking marker
-        # self.pmarker = self.p1.plot([0],[0],pen=None,symbol='o',symbolBrush='y')
+        self.pmarker = self.p1.plot([0],[0],pen=None,symbol='o',symbolBrush='y')
            
 
     def plotReim(self):
@@ -376,13 +376,10 @@ class SignalView(QFrame):
                 rect=QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)
             ) # set image on existing item instead?
             self.sp.setAutoDownsample(active=False) # Performance on the downsampler is extremely bad! Main cause of lag spikes
-            # self.sp.setRect(QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)) # Proper setting of the box boundaries
             cm2use = pg.colormap.get('viridis') # you don't need matplotlib to use viridis!
             self.sp.setLookupTable(cm2use.getLookupTable())
-            # self.sp.setLevels([0, self.sxxMax])
             
             self.spw.addItem(self.sp) # Must add it back because clears are done in setYData
-            # self.spw.setMouseEnabled(x=True,y=False)
             self.spw.setMenuEnabled(False)
 
             viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size/dfs
@@ -459,11 +456,9 @@ class SignalView(QFrame):
 
         # Conditions for re-calculating the plot slice
         reslice = False
-        ### Check zooms
-        # numPtsInRange = (self.idx1-self.idx0) // self.skip # This may be off by 1, but doesn't matter much so we don't care
-        
+        ### Check zooms        
         dfs = self.getDisplayedFs()
-        numPtsInRange = (xend-xstart) * dfs // self.skip # Scale by the sample rate
+        numPtsInRange = (xend-xstart) * dfs // self.skip # Find number of points currently plotted and in viewbox
         # print("numPtsInRange = %d" % (numPtsInRange))
         # Check only if we can zoom further in
         reslice = True if self.skip > 1 and (numPtsInRange < lower or numPtsInRange > upper) else reslice
@@ -508,53 +503,7 @@ class SignalView(QFrame):
         
         tt1 = time.time()
         print("%fs for update." % (tt1-tt0))
-        
-        # # ==== Old implementation
-        # xstart = self.p1.viewRange()[0][0]
-        # xend = self.p1.viewRange()[0][1]
-        # self.viewboxlabel.setText("Zoom Downsample Rate: %5d / %5d (Max)" % (self.dsrs[self.curDsrIdx], self.dsrs[-1]))
-        
-        # # Count how many points are in range
-        # dfs = self.getDisplayedFs()
-        # numPtsInRange = (xend-xstart) * dfs # Scale by the sample rate
-        # targetDSR = 10**(np.floor(np.log10(numPtsInRange)) - 4)
 
-        # if targetDSR < self.dsrs[self.curDsrIdx]: # If few points, zoom in i.e. lower the DSR
-        #     if len(self.dsrs) + self.curDsrIdx > 0: # But only lower to the DSR of 1
-        #         self.curDsrIdx = self.curDsrIdx - 1
-        #         # Set the zoomed data on the PlotDataItem
-        #         dsr = self.dsrs[self.curDsrIdx]
-        #         if self.plotType == self.AMPL_PLOT:
-        #             # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
-        #             # self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
-
-        #             # Test on-the-fly downsampling instead
-        #             print("Zoomin: Downsampling to %d dsr" % (dsr))
-        #             self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[0][::dsr]), clipToView=True)
-
-        #         elif self.plotType == self.REIM_PLOT:
-        #             self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
-        #             self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
-                    
-        
-        # if targetDSR > self.dsrs[self.curDsrIdx]: # If too many points, zoom out i.e. increase the DSR
-        #     if self.curDsrIdx < -1:
-        #         self.curDsrIdx = self.curDsrIdx + 1
-        #         # Set the zoomed data on the PlotDataItem
-        #         dsr = self.dsrs[self.curDsrIdx]
-        #         if self.plotType == self.AMPL_PLOT:
-        #             # self.p.setData(self.getTimevec(dsr), self.dscache[self.curDsrIdx], clipToView=True) # setting clipToView on the plotdataitem works directly
-        #             # self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[self.curDsrIdx]), clipToView=True) # use this if cache is complex
-
-        #             # Test on-the-fly downsampling instead
-        #             print("Zoomout: Downsampling to %d dsr" % (dsr))
-        #             self.p.setData(self.getTimevec(dsr), np.abs(self.dscache[0][::dsr]), clipToView=True)
-
-        #         elif self.plotType == self.REIM_PLOT:
-        #             self.pre.setData(self.getTimevec(dsr), np.real(self.dscache[self.curDsrIdx]), clipToView=True)
-        #             self.pim.setData(self.getTimevec(dsr), np.imag(self.dscache[self.curDsrIdx]), clipToView=True)
-
-        # TODO: rightclick 'view all' bug: does not zoom out completely?
 
     def ampMouseMoved(self, evt):
         mousePoint = self.p1.vb.mapSceneToView(evt[0])
