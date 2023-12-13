@@ -542,45 +542,53 @@ class SignalView(QFrame):
 
 
     def ampMouseMoved(self, evt):
-        mousePoint = self.p1.vb.mapSceneToView(evt[0])
-        self.xCoordLabel.setText("X: %f" % (mousePoint.x()))
-        self.ampCoordLabel.setText("Y (Top): %f" % (mousePoint.y()))
+        modifiers = QApplication.keyboardModifiers()
+        # Only map markers when shift is held down, otherwise this can slow down zooming for large data sets
+        # TODO: maybe only mark based on plotted values?
+        if modifiers == Qt.ShiftModifier:
+            mousePoint = self.p1.vb.mapSceneToView(evt[0])
+            self.xCoordLabel.setText("X: %f" % (mousePoint.x()))
+            self.ampCoordLabel.setText("Y (Top): %f" % (mousePoint.y()))
 
-        # Find nearest point based on x value
-        # For now, we ignore the viewing downsample rate (only read the pure data)
-        timevec = self.getTimevec(1)
-        timeIdx = int(np.round((mousePoint.x() - timevec[0]) * self.getDisplayedFs()))
-        
-        # Set the marker
-        if timeIdx > 0 and timeIdx < self.ydata.size:
-            self.pmarker.setData([timevec[timeIdx]],[np.abs(self.ydata[timeIdx])])
+            # Find nearest point based on x value
+            # For now, we ignore the viewing downsample rate (only read the pure data)
+            timevec = self.getTimevec(1)
+            timeIdx = int(np.round((mousePoint.x() - timevec[0]) * self.getDisplayedFs()))
+            
+            # Set the marker
+            if timeIdx > 0 and timeIdx < self.ydata.size:
+                self.pmarker.setData([timevec[timeIdx]],[np.abs(self.ydata[timeIdx])])
 
-            # If the phasor window is open, set the data there
-            try:
-                start = np.max([0, timeIdx-self.phasorSampBuffer])
-                end = np.min([self.ydata.size, timeIdx+self.phasorSampBuffer+1]) # Need +1 to include
-                self.phasorWindow.updateData(
-                    self.ydata[start:end],
-                    timeIdx - start # This is the actual offset, to mark the 'middle', accounting for when too near to 0
-                )
-            except Exception as e:
-                pass
-                # Left here for debugging purposes
-                # print("Exception for phasor: %s" % str(e))
+                # If the phasor window is open, set the data there
+                try:
+                    start = np.max([0, timeIdx-self.phasorSampBuffer])
+                    end = np.min([self.ydata.size, timeIdx+self.phasorSampBuffer+1]) # Need +1 to include
+                    self.phasorWindow.updateData(
+                        self.ydata[start:end],
+                        timeIdx - start # This is the actual offset, to mark the 'middle', accounting for when too near to 0
+                    )
+                except Exception as e:
+                    pass
+                    # Left here for debugging purposes
+                    # print("Exception for phasor: %s" % str(e))
 
 
     def specMouseMoved(self, evt):
-        mousePoint = self.spw.vb.mapSceneToView(evt[0])
-        self.specCoordLabel.setText("Y (Bottom): %f" % (mousePoint.y()))
-        # Attempt to find the nearest point
-        if self.specFreqRes is not None:
-            timeIdx = int(np.round((mousePoint.x() - self.ts[0]) / self.specTimeRes))
-            freqIdx = int(np.round((mousePoint.y() - self.freqs[0]) / self.specFreqRes))
-            if timeIdx > 0 and timeIdx < self.ts.size and freqIdx > 0 and freqIdx < self.freqs.size: # only the upwards movement has errors
-                # self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[timeIdx, freqIdx])
-                self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[freqIdx, timeIdx]) # For non-transposed data now, TODO: handle transposed cases?
-                # Set the marker
-                self.spd.setData([self.ts[timeIdx]], [self.freqs[freqIdx]])
+        modifiers = QApplication.keyboardModifiers()
+        # Only map markers when shift is held down, otherwise this can slow down zooming for large data sets
+        # TODO: maybe only mark based on plotted values?
+        if modifiers == Qt.ShiftModifier:
+            mousePoint = self.spw.vb.mapSceneToView(evt[0])
+            self.specCoordLabel.setText("Y (Bottom): %f" % (mousePoint.y()))
+            # Attempt to find the nearest point
+            if self.specFreqRes is not None:
+                timeIdx = int(np.round((mousePoint.x() - self.ts[0]) / self.specTimeRes))
+                freqIdx = int(np.round((mousePoint.y() - self.freqs[0]) / self.specFreqRes))
+                if timeIdx > 0 and timeIdx < self.ts.size and freqIdx > 0 and freqIdx < self.freqs.size: # only the upwards movement has errors
+                    # self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[timeIdx, freqIdx])
+                    self.specPowerLabel.setText("Z (Bottom): %g" % self.sxx[freqIdx, timeIdx]) # For non-transposed data now, TODO: handle transposed cases?
+                    # Set the marker
+                    self.spd.setData([self.ts[timeIdx]], [self.freqs[freqIdx]])
 
     def onAmpMouseClicked(self, evt):
         # print(evt[0].button())
