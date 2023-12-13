@@ -319,8 +319,6 @@ class SignalView(QFrame):
         self.plotReim()
 
     def plotAmpTime(self):
-        self.p1.disableAutoRange()
-
         # Create and save the PlotDataItems as self.p
         if self.timevec is not None:
             length = self.timevec.size
@@ -333,8 +331,11 @@ class SignalView(QFrame):
             t2 = time.time()
             amp = np.abs(self.ydata[self.idx0:self.idx1:self.skip])
             t3 = time.time()
+            print(t)
+            print(amp)
             
-            self.p = self.p1.plot(t, amp, clipToView=True)
+            self.p = self.p1.plot(t, amp)
+            self.p.setClipToView(True)
             t4 = time.time()
             self.p1.vb.setYRange(0, np.max(amp))
             t5 = time.time()
