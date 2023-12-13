@@ -24,6 +24,8 @@ class SignalView(QFrame):
     REIM_PLOT = 1
     SignalViewStatusTip = Signal(str)
 
+    lower, target, upper = (5000, 10000, 20000) # This is the lower bound, target, and upper bounds for sample slicing
+
     def __init__(self, ydata, filelist=None, sampleStarts=None, parent=None, f=Qt.WindowFlags()):
         super().__init__(parent, f)
 
@@ -231,6 +233,21 @@ class SignalView(QFrame):
         return np.arange(0, self.ydata.size, curDSR) / dfs
 
     def setYData(self, ydata, filelist, sampleStarts):
+        """
+        This is the main method from the main script, which is called whenever files are loaded.
+        It performs all necessary pre-processing, clears old plots, and renders the new data.
+
+        Parameters
+        ----------
+        ydata : np.ndarray
+            Complex data to be viewed.
+        filelist : list of str
+            Filelist that was loaded. This is used for marker labels which are
+            tagged to file/sample pairs.
+        sampleStarts : list of int
+            List of sample start values for each file. This is also used for marker
+            label calculations.
+        """
         # Reset SMA plots
         self.smaplots.clear()
         self.smas.clear()
@@ -268,7 +285,7 @@ class SignalView(QFrame):
 
         self.loadMarkers()
 
-        self.setDownsampleCache()
+        # self.setDownsampleCache()
         self.plotAmpTime()
         self.plotSpecgram()
 
@@ -305,23 +322,41 @@ class SignalView(QFrame):
         self.p1.disableAutoRange()
 
         # Create and save the PlotDataItems as self.p
-        timevec = self.getTimevec(self.dsrs[-1])
-        # self.p = self.p1.plot(timevec, self.dscache[-1]) # If cache is amp already
-        self.p = self.p1.plot(timevec, np.abs(self.dscache[-1])) # If cache is complex
-        self.p.setClipToView(True)
+        if self.timevec is not None:
+            length = self.timevec.size
+            self.skip = length // self.target
+            self.idx0 = 0
+            self.idx1 = length
 
-        self.p1.setMouseEnabled(x=True,y=False)
-        self.p1.setMenuEnabled(False)
+            t1 = time.time()
+            t = self.timevec[self.idx0:self.idx1:self.skip]
+            t2 = time.time()
+            amp = np.abs(self.ydata[self.idx0:self.idx1:self.skip])
+            t3 = time.time()
+            
+            self.p = self.p1.plot(t, amp, clipToView=True)
+            t4 = time.time()
+            self.p1.vb.setYRange(0, np.max(amp))
+            t5 = time.time()
+            self.p1.disableAutoRange(axis=pg.ViewBox.YAxis)
+            t6 = time.time()
+            print("Took %f, %f to slice time and data" % (t2-t1, t3-t2))
+            print("Took %f, %f, %f to set data, set y range and disable autorange" % (
+                t4-t3, t5-t4, t6-t5))
 
-        dfs = self.getDisplayedFs()
-        viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size / dfs
-        self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
-        self.curDsrIdx = -1 # On init, the maximum dsr is used
-        self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
 
-        # Create the tracking marker
-        self.pmarker = self.p1.plot([0],[0],pen=None,symbol='o',symbolBrush='y')
-           
+            self.p1.setMouseEnabled(x=True,y=False)
+            self.p1.setMenuEnabled(False)
+
+            dfs = self.getDisplayedFs()
+            viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size / dfs
+            self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
+            self.curDsrIdx = -1 # On init, the maximum dsr is used
+            self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
+
+            # Create the tracking marker
+            self.pmarker = self.p1.plot([0],[0],pen=None,symbol='o',symbolBrush='y')
+            
 
     def plotReim(self):
         # Legend for reim
