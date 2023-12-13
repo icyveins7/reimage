@@ -299,19 +299,36 @@ class LoaderSettingsDialog(QDialog):
         start = float(self.sampleStartSlider.value()) / span * expectedSamples[0]
         end = float(self.sampleEndSlider.value()) / span * expectedSamples[0]
 
-        # self.sampleRangeLabel.setText(
-        #     "%d - %d" % (int(start),int(end))
-        # )
         self.sampleStartEdit.setText(str(int(start)))
         self.sampleEndEdit.setText(str(int(end)))
 
     @Slot(str)
     def onSampleStartTextEdited(self, text: str):
-        pass
+        span = self.sampleStartSlider.maximum() - self.sampleStartSlider.minimum()
+        ## Yes, yes this is repeated.. TODO
+        headerBytes = int(self.headersizeEdit.text()) if self.headersizeEdit.text() != "" else 0
+        expectedSamples = self.parseExpectedSamplesInFiles(
+            headerBytes,  
+            self.bytesPerSample[self.datafmtDropdown.currentText()]
+        )
+
+        if text != '':
+            value = int(text) / expectedSamples[0] * span
+            self.sampleStartSlider.setValue(value)
 
     @Slot(str)
     def onSampleEndTextEdited(self, text: str):
-        pass # TODO
+        span = self.sampleStartSlider.maximum() - self.sampleStartSlider.minimum()
+        ## Yes, yes this is repeated.. TODO
+        headerBytes = int(self.headersizeEdit.text()) if self.headersizeEdit.text() != "" else 0
+        expectedSamples = self.parseExpectedSamplesInFiles(
+            headerBytes,  
+            self.bytesPerSample[self.datafmtDropdown.currentText()]
+        )
+        
+        if text != '':
+            value = int(text) / expectedSamples[0] * span
+            self.sampleEndSlider.setValue(value)
 
     @Slot()
     def onSampleStartChanged(self):
@@ -367,8 +384,9 @@ class LoaderSettingsDialog(QDialog):
             )
 
             newsettings['usefixedlen'] = True
-            newsettings['fixedlen'] = int((self.sampleEndSlider.value() - self.sampleStartSlider.value()) / span * expectedSamples[0])
-            newsettings['sampleStart'] = int(self.sampleStartSlider.value() / span * expectedSamples[0])
+            # Extract values from the text boxes (rather than slider) as this is a number the user sees directly
+            newsettings['fixedlen'] = int(self.sampleEndEdit.text()) - int(self.sampleStartEdit.text())
+            newsettings['sampleStart'] = int(self.sampleStartEdit.text())
 
         else: # For multiple files, we assume 0 offset from after the header
             newsettings['usefixedlen'] = self.fixedlenCheckbox.isChecked()
