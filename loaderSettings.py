@@ -141,9 +141,9 @@ class LoaderSettingsDialog(QDialog):
 
         # New sliders (only show when there is only 1 file)
         if len(self.filesizes) == 1:
-            # self.sliderMax = self.filesizes[0] // self.bytesPerSample[self.datafmtDropdown.currentText()]
-            # # The Qt widgets only accept up to signed integers, so we use this as an arbitrary limit
-            # self.sliderMax = 1000000000 if self.sliderMax > 1000000000 else self.sliderMax
+            self.sliderMax = self.filesizes[0] // self.bytesPerSample[self.datafmtDropdown.currentText()]
+            # The Qt widgets only accept up to signed integers, so we use this as an arbitrary limit
+            self.sliderMax = 1000000000 if self.sliderMax > 1000000000 else self.sliderMax
 
             self.sampleRangeLabel = QLabel("-")
             self.sampleStartEdit = QLineEdit()
@@ -346,8 +346,8 @@ class LoaderSettingsDialog(QDialog):
                 self.sampleEndSlider.setValue(value)
                 self.sampleEndSlider.blockSignals(oldstate)
 
-    @Slot()
-    def onSampleStartChanged(self):
+    @Slot(int)
+    def onSampleStartChanged(self, value: int):
         # Not allowed to go past the maximum slider value
         if self.sampleStartSlider.value() > self.sampleEndSlider.value():
             self.sampleEndSlider.setValue(self.sampleStartSlider.value()+1)
@@ -458,10 +458,27 @@ class LoaderSettingsDialog(QDialog):
         self.headersizeEdit.setText(cfg.get('headersize'))
 
         if len(self.filesizes) == 1:
-            self.sampleStartSlider.setValue(cfg.getint('sampleStart'))
+            sampleStart = cfg.getint('sampleStart')
+            span = self.sampleStartSlider.maximum() - self.sampleStartSlider.minimum()
+            ## Yes, yes this is repeated.. TODO
+            headerBytes = int(self.headersizeEdit.text()) if self.headersizeEdit.text() != "" else 0
+            expectedSamples = self.parseExpectedSamplesInFiles(
+                headerBytes,  
+                self.bytesPerSample[self.datafmtDropdown.currentText()]
+            )
+            # We must scale it to the slider values
+            self.sampleStartEdit.setText(str(int(sampleStart)))
+            oldstate = self.sampleStartSlider.blockSignals(True) # Remember to block slider signals
+            self.sampleStartSlider.setValue(int(sampleStart/expectedSamples[0] * span))
+            self.sampleStartSlider.blockSignals(oldstate)
             # Only set the ending if the fixedlen is specified
             if cfg.getint('fixedlen') >= 0:
-                self.sampleEndSlider.setValue(cfg.getint('sampleStart') + cfg.getint('fixedlen'))
+                sampleEnd = sampleStart + cfg.getint('fixedlen')
+                self.sampleEndEdit.setText(str(int(sampleEnd)))
+                oldstate = self.sampleEndSlider.blockSignals(True) # Remember to block slider signals
+                self.sampleEndSlider.setValue(int(sampleEnd/expectedSamples[0] * span))
+                self.sampleEndSlider.blockSignals(oldstate)
+                
 
         else:
             # Fixed Length
