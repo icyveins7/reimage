@@ -278,6 +278,7 @@ class SignalView(QFrame):
             print("Using displayed fs %d" % (self.getDisplayedFs()))
 
         # Define the time vector
+        print('displayedFs = %d' % (self.getDisplayedFs()))
         self.timevec = np.arange(0, self.ydata.size) / self.getDisplayedFs()
         
         self.filelist = filelist
@@ -501,8 +502,8 @@ class SignalView(QFrame):
         if reslice:
             print("Reslice is %s after checking zoom" % (reslice))
         ### Check panning shifts
-        target_i0 = max(int(xstart / dfs), 0) # This is what is requested
-        target_i1 = min(int(xend / dfs), self.ydata.size)
+        target_i0 = max(int(xstart * dfs), 0) # This is what is requested
+        target_i1 = min(int(xend * dfs), self.ydata.size)
         reslice = True if target_i0 < self.idx0 or target_i1 > self.idx1 else reslice
         if reslice:
             print("Reslice is %s after checking pan" % (reslice))
