@@ -141,9 +141,9 @@ class LoaderSettingsDialog(QDialog):
 
         # New sliders (only show when there is only 1 file)
         if len(self.filesizes) == 1:
-            self.sliderMax = self.filesizes[0] // self.bytesPerSample[self.datafmtDropdown.currentText()]
-            # The Qt widgets only accept up to signed integers, so we use this as an arbitrary limit
-            self.sliderMax = 1000000000 if self.sliderMax > 1000000000 else self.sliderMax
+            # self.sliderMax = self.filesizes[0] // self.bytesPerSample[self.datafmtDropdown.currentText()]
+            # # The Qt widgets only accept up to signed integers, so we use this as an arbitrary limit
+            # self.sliderMax = 1000000000 if self.sliderMax > 1000000000 else self.sliderMax
 
             self.sampleRangeLabel = QLabel("-")
             self.sampleStartEdit = QLineEdit()
@@ -297,7 +297,11 @@ class LoaderSettingsDialog(QDialog):
         )
         # We print the actual samples used, even though the slider is limited to int32 range
         start = float(self.sampleStartSlider.value()) / span * expectedSamples[0]
+        print(start)
+        print("%d/%d" % (self.sampleStartSlider.value(), self.sampleStartSlider.maximum()))
         end = float(self.sampleEndSlider.value()) / span * expectedSamples[0]
+        print(end)
+        print("%d/%d" % (self.sampleEndSlider.value(), self.sampleEndSlider.maximum()))
 
         self.sampleStartEdit.setText(str(int(start)))
         self.sampleEndEdit.setText(str(int(end)))
@@ -313,8 +317,14 @@ class LoaderSettingsDialog(QDialog):
         )
 
         if text != '':
-            value = int(text) / expectedSamples[0] * span
-            self.sampleStartSlider.setValue(value)
+            if int(text) < 0:
+                self.sampleStartEdit.setText('0')
+                self.sampleStartSlider.setValue(self.sampleStartSlider.minimum())
+            else:
+                value = int(text) / expectedSamples[0] * span
+                oldstate = self.sampleStartSlider.blockSignals(True)
+                self.sampleStartSlider.setValue(value)
+                self.sampleStartSlider.blockSignals(oldstate)
 
     @Slot(str)
     def onSampleEndTextEdited(self, text: str):
@@ -327,8 +337,14 @@ class LoaderSettingsDialog(QDialog):
         )
         
         if text != '':
-            value = int(text) / expectedSamples[0] * span
-            self.sampleEndSlider.setValue(value)
+            if int(text) > expectedSamples[0]:
+                self.sampleEndEdit.setText(str(expectedSamples[0]))
+                self.sampleEndSlider.setValue(self.sampleEndSlider.maximum())
+            else:
+                value = int(text) / expectedSamples[0] * span
+                oldstate = self.sampleEndSlider.blockSignals(True)
+                self.sampleEndSlider.setValue(value)
+                self.sampleEndSlider.blockSignals(oldstate)
 
     @Slot()
     def onSampleStartChanged(self):
