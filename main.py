@@ -1,5 +1,8 @@
 from importlib.abc import Loader
 from PySide6 import QtCore, QtWidgets, QtGui
+import os
+os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6' # Set this to force ReImage to use PySide6
+
 import sys
 import numpy as np
 import sqlite3 as sq
