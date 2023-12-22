@@ -809,12 +809,24 @@ class SignalView(QFrame):
                 self.phasorWindow.show()
 
             elif action == selectAction:
-                # Emit the data selection signal
+                # Emit the data selection signal first!
                 self.DataSelectionSignal.emit(
                     self.filelist,
                     [startIdx, endIdx],
                     selection
                 )
+                # Show the dialog; user can copy/paste code and it should be ready by the time
+                # the dialog shows up
+                text, ok = QInputDialog.getMultiLineText(
+                    self, 
+                    "Extract selection", 
+                    "The selected data can be retrieved by running the following code:",
+                    "from ipc import getReimageData\n\n"
+                    "exported = getReimageData()"
+                )
+                # Don't need to process anything
+
+                    
 
 
     def convertRegionToIndices(self, region):
