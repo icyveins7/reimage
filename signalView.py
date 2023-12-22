@@ -23,6 +23,7 @@ class SignalView(QFrame):
     AMPL_PLOT = 0
     REIM_PLOT = 1
     SignalViewStatusTip = Signal(str)
+    DataSelectionSignal = Signal(list, list, np.ndarray)
 
     lower, target, upper = (5000, 10000, 20000) # This is the lower bound, target, and upper bounds for sample slicing
 
@@ -728,10 +729,22 @@ class SignalView(QFrame):
     def contextMenuEvent(self, event):
         dfs = self.getDisplayedFs()
 
+        # Extract the slice if it's present
+        if self.linearRegion is not None:
+            region = self.linearRegion.getRegion()
+            startIdx, endIdx = self.convertRegionToIndices(region)
+            selection = self.ydata[startIdx:endIdx]
+        else:
+            startIdx = 0
+            endIdx = len(self.ydata)
+            selection = self.ydata # Shouldn't invoke a copy so we should be fine
+
         modifiers = QApplication.keyboardModifiers()
         if bool(modifiers == Qt.ControlModifier): # Going to leave it as control-modifier, in case we want the pyqtgraph default menu back later on
             menu = QMenu()
             # Menu Entries
+            # ===
+            selectAction = menu.addAction("Select Data for Export")
             # ===
             fftAction = menu.addAction("FFT Time Slice")
             # ===
@@ -754,14 +767,8 @@ class SignalView(QFrame):
             # Start the menu
             action = menu.exec_(self.mapToGlobal(event.pos()))
             if action == fftAction:
-                if self.linearRegion is None: # Use all the data
-                    self.fftwin = FFTWindow(self.ydata, fs=dfs)
-                    self.fftwin.show()
-                else: # Slice only that region
-                    region = self.linearRegion.getRegion()
-                    startIdx, endIdx = self.convertRegionToIndices(region)
-                    self.fftwin = FFTWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, dfs)
-                    self.fftwin.show()
+                self.fftwin = FFTWindow(selection, startIdx, endIdx, dfs)
+                self.fftwin.show()
 
             elif action == addSliceAction:
                 if self.linearRegion is None:
@@ -776,46 +783,23 @@ class SignalView(QFrame):
                     self.deleteLinearRegions()
 
             elif action == estBaudAction:
-                if self.linearRegion is None: # Use all the data
-                    self.baudwin = EstimateBaudWindow(self.ydata, fs=dfs)
-                    self.baudwin.show()
-                else: # Slice that region
-                    region = self.linearRegion.getRegion()
-                    startIdx, endIdx = self.convertRegionToIndices(region)
-                    self.baudwin = EstimateBaudWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
-                    self.baudwin.show()
+                self.baudwin = EstimateBaudWindow(selection, startIdx, endIdx, dfs)
+                self.baudwin.show()
 
             elif action == estFreqAction:
-                if self.linearRegion is None:
-                    self.freqwin = EstimateFreqWindow(self.ydata, fs=dfs)
-                    self.freqwin.show()
-                else:
-                    region = self.linearRegion.getRegion()
-                    startIdx, endIdx = self.convertRegionToIndices(region)
-                    self.freqwin = EstimateFreqWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
-                    self.freqwin.show()
+                self.freqwin = EstimateFreqWindow(selection, startIdx, endIdx, dfs)
+                self.freqwin.show()
 
             elif action == energyDetectAction:
                 self.threshwin = ThresholdWindow(self.freqs, self.ts, self.sxx, self)
                 self.threshwin.show()
 
             elif action == audioAction:
-                if self.linearRegion is None:
-                    self.audiowin = AudioWindow(self.ydata, fs=dfs)
-                    self.audiowin.show()
-                else:
-                    region = self.linearRegion.getRegion()
-                    startIdx, endIdx = self.convertRegionToIndices(region)
-                    self.audiowin = AudioWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
-                    self.audiowin.show()
+                self.audiowin = AudioWindow(selection, startIdx, endIdx, dfs)
+                self.audiowin.show()
 
             elif action == demodAction:
-                if self.linearRegion is None:
-                    self.demodwin = DemodWindow(self.ydata, fs=dfs)
-                else:
-                    region = self.linearRegion.getRegion()
-                    startIdx, endIdx = self.convertRegionToIndices(region)
-                    self.demodwin = DemodWindow(self.ydata[startIdx:endIdx], startIdx, endIdx, fs=dfs)
+                self.demodwin = DemodWindow(selection, startIdx, endIdx, dfs)
                 self.demodwin.show()
 
             elif action == phasorAction:
@@ -823,6 +807,15 @@ class SignalView(QFrame):
                 # Connect the settings
                 self.phasorWindow.changeSampBufferSignal.connect(self.changePhasorSampBuffer)
                 self.phasorWindow.show()
+
+            elif action == selectAction:
+                # Emit the data selection signal
+                self.DataSelectionSignal.emit(
+                    self.filelist,
+                    [startIdx, endIdx],
+                    selection
+                )
+
 
     def convertRegionToIndices(self, region):
         dfs = self.getDisplayedFs()

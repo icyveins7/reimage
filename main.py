@@ -12,6 +12,7 @@ from fileList import FileListFrame
 from predetections import PredetectAmpDialog
 from loaderSettings import LoaderSettingsDialog
 from sidebarSettings import SidebarSettings
+from ipc import ReimageListenerThread
 
 class ReimageMain(QtWidgets.QMainWindow):
     resizedSignal = QtCore.Signal()
@@ -95,9 +96,19 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.setupMenu()
 
         # Add a status-bar for help
-        self.setupStatusBar()        
+        self.setupStatusBar()
 
-        
+        # Add the side-thread for export/import of data
+        self.listenerThread = ReimageListenerThread()
+        self.sv.DataSelectionSignal.connect(self.listenerThread.setSelectedData)
+        self.listenerThread.start()
+
+    def closeEvent(self, event):
+        """QWidget handler for the destructor. Do not use __del__ for this!"""
+        # Handle listener thread cleanup
+        print("Handling listenerThread cleanup...")
+        self.listenerThread.graceful_kill()
+        self.listenerThread.wait()
 
     @QtCore.Slot(np.ndarray, list, list)
     def onNewData(self, data, filelist, sampleStarts):
