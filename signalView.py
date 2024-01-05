@@ -178,7 +178,10 @@ class SignalView(QFrame):
         if self.sxxMax is not None:
             maxval = np.log10(self.sxxMax * percentile) if isLog else self.sxxMax * percentile
             minval = np.log10(self.sxxMin) if isLog else 0
+            t1 = time.time()
             self.sp.setLevels([minval, maxval])
+            t2 = time.time()
+            print("Took %f seconds to set contrast" % (t2-t1))
 
     @Slot(float)
     def adjustSpecgramLog(self, isLog: bool):
@@ -263,8 +266,10 @@ class SignalView(QFrame):
             t1 = time.time()
             tone = np.exp(1j*2*np.pi*self.freqshift*np.arange(ydata.size)/self.fs)
             t2 = time.time()
-            self.ydata = self.ydata * tone
             print("Tone gen: %fs.\n" % (t2-t1))
+            self.ydata = self.ydata * tone
+            t3 = time.time()
+            print("Tone mul: %fs.\n" % (t3-t2))
         
         if self.numTaps is not None:
             print("Initial filter..")
@@ -386,7 +391,10 @@ class SignalView(QFrame):
     def plotSpecgram(self, window=('tukey',0.25), auto_transpose=False):
         dfs = self.getDisplayedFs()
         self.freqs, self.ts, self.sxx = sps.spectrogram(
-            self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, return_onesided=False, detrend=False)
+            self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, 
+            return_onesided=False, detrend=False
+        )
+        # print(self.sxx.shape) # This is (nfft, self.ts.size)
 
         # Calculate resolutions for later
         self.specFreqRes = dfs / self.nperseg
@@ -398,8 +406,6 @@ class SignalView(QFrame):
         self.sxxMax = np.max(self.sxx.flatten())
         self.sxxMin = np.min(self.sxx.flatten()) # use this in log-view
         # Obtain the spans and gaps for proper plotting
-        tgap = self.ts[1] - self.ts[0]
-        fgap = self.freqs[1] - self.freqs[0]
         tspan = self.ts[-1] - self.ts[0]
         fspan = self.freqs[-1] - self.freqs[0]
 
@@ -411,7 +417,11 @@ class SignalView(QFrame):
                 self.sxx, 
                 autoLevels=False, 
                 levels=[0, self.sxxMax],
-                rect=QRectF(self.ts[0]-tgap/2, self.freqs[0]-fgap/2, tspan+tgap, fspan+fgap)
+                rect=QRectF(
+                    self.ts[0]-self.specTimeRes/2, 
+                    self.freqs[0]-self.specFreqRes/2, 
+                    tspan+self.specTimeRes, 
+                    fspan+self.specFreqRes)
             ) # set image on existing item instead?
             self.sp.setAutoDownsample(active=False) # Performance on the downsampler is extremely bad! Main cause of lag spikes
             cm2use = pg.colormap.get('viridis') # you don't need matplotlib to use viridis!
@@ -509,6 +519,9 @@ class SignalView(QFrame):
         if reslice:
             print("Reslice is %s after checking pan" % (reslice))
 
+        target_i0_spec = max(int((xstart-self.ts[0]) / self.specTimeRes), 0)
+        target_i1_spec = min(int((xend-self.ts[0]) / self.specTimeRes), self.ts.size)
+
         # Reslice if needed
         if reslice:
             print("Old %d:%d" % (self.idx0, self.idx1))
@@ -534,6 +547,32 @@ class SignalView(QFrame):
             print("Took %f, %f to slice time and data" % (t2-t1, t3-t2))
             print("Took %f, %f, %f to set data, set y range and disable autorange" % (
                 t4-t3, t5-t4, t6-t5))
+            
+            # # Similar work for specgram # This is very slow..
+            # self.idx0_spec = max(target_i0_spec - target_i0, 0)
+            # self.idx1_spec = min(target_i1_spec + target_i1, self.ts.size)
+            # self.skip_spec = max((target_i1_spec - target_i0_spec) // target, 1)
+            # print("Plotting %d:%d:%d" % (self.idx0_spec, self.idx1_spec, self.skip_spec))
+
+            # t = self.ts[self.idx0_spec:self.idx1_spec:self.skip_spec]
+            # sxx = self.sxx[:, self.idx0_spec:self.idx1_spec:self.skip_spec]
+
+
+            # tspan = self.ts[-1] - self.ts[0]
+            # fspan = self.freqs[-1] - self.freqs[0]
+            # self.sp.setImage(
+            #     sxx, 
+            #     autoLevels=False, 
+            #     levels=[0, self.sxxMax],
+            #     rect=QRectF(
+            #         self.ts[0]-self.specTimeRes/2,
+            #         self.freqs[0]-self.specFreqRes/2, 
+            #         tspan+self.specTimeRes, 
+            #         fspan+self.specFreqRes)
+            # )
+            
+
+
 
         # Update UI
         self.viewboxlabel.setText("Plot indices: %5d : %5d : %5d (Max)" % (
