@@ -4,7 +4,11 @@
 
 ReImage is a Python 3 + PySide6 + PyQtGraph app for quickly visualizing recorded RF data in the form of real and imaginary samples. Think of it as Adobe Audition or Audacity, but for raw complex samples.
 
-The goals for this project are to provide quick, offline ways of examining recorded data. As such, it is not meant to do everything DSP-related. It is aimed to be used after performing test recordings to verify that the recordings will be useful for further processing later on. In particular, ReImage attempts to maximise smoothness (frames-per-second) of plots via caching of successive downsampled versions of the data, for a better user experience. This alleviates the 'laggy plot' issue often encountered when using Matplotlib to visualise raw signal data with over about 1 million points, and when using PyQtGraph with over about 10-100M points.
+The goals for this project are to provide quick, offline ways of examining recorded data. As such, it is not meant to do everything DSP-related. It is aimed to be used after performing test recordings to verify that the recordings will be useful for further processing later on.
+
+In particular, ReImage attempts to maximise smoothness (frames-per-second) of plots via explicit downsampled versions of the data, for a better user experience. This alleviates the 'laggy plot' issue often encountered when using Matplotlib to visualise raw signal data with over about 1 million points, and when using PyQtGraph with over about 10-100M points. In a world where signal bandwidths are reaching over 100MHz, this is becoming more and more common.
+
+After the initial loading, scrolling in and out of plots of up to 500M samples or more is still buttery-smooth (at least for me!).
 
 ## Installation and Usage (From Source)
 
@@ -44,15 +48,38 @@ Alternatively, you may want to look for the latest CI/CD automatic builds in [Ac
 
 ## Quick-start
 
-![](screenshot.jpg)
+![](screenshots/mainwindow.jpg)
 
 Most users should find that the tooltips at the bottom-left and bottom-right of the windows suffice as guidance.
 
-1. Populate the file list via 'Open File(s)' or 'Open Folder'.
+1. Populate the file list via 'Open File(s)' or 'Open Folder'. You can now also drag and drop files into the list from your file explorer.
 2. Select some files in the file list (via Ctrl-Click or Shift-Click). Clear the entire list with the 'Clear' button or specific files via the Delete key.
-4. Click 'Add to Viewer' to open the files and view the Amplitude-Time (top) and Spectrogram (bottom) plots. You can also press Enter after selecting the files, or double-click a single file.
-5. Scroll in/out using mouse wheel and/or use Left-Click to drag the plots.
-6. Use Ctrl-RightClick on the plots to see additional options.
+4. Click 'Add to Viewer' to open the files and configure some settings. You can also press Enter after selecting the files, or double-click a single file.
+5. View the Amplitude-Time (top) and Spectrogram (bottom) plots. 
+6. Scroll in/out using mouse wheel. Use Left-Click to drag the plots, and hold Right-Click to stretch/zoom the plots along a particular axis.
+7. Use Ctrl-RightClick on the plots to see additional options.
+
+## DSP Functionality
+
+### Initial Settings
+
+![](screenshots/loader.jpg)
+
+### Taking Slices of Samples
+
+This is done with Ctrl-Alt-Click. Most further functionality will use the user's slice if this action was performed. Otherwise, the entire array of samples will be used.
+
+![](screenshots/slice.jpg)
+
+### Simple Spectrum (FFT)
+
+![](screenshots/fft.jpg)
+
+### Baud Rate Estimation
+
+### Frequency Offset Estimation
+
+### Demodulation
 
 ## Issues
 
