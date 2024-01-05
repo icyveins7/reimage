@@ -27,6 +27,8 @@ class FileListFrame(QFrame):
 
         # Enable hover events, for status tips
         self.setAttribute(Qt.WA_Hover)
+        # Enable drag and drop
+        self.setAcceptDrops(True)
 
         # Create the file list widget
         self.flw = QListWidget()
@@ -399,6 +401,26 @@ class FileListFrame(QFrame):
         self.ow.resize(
             25, self.flw.height() #  - self.flw.horizontalScrollBar().height()
         )
+
+    ####################
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        for url in event.mimeData().urls():
+            droppedFilepath = url.toLocalFile()
+            item = QListWidgetItem(droppedFilepath)
+            item.setToolTip("Size: %d bytes" % (os.path.getsize(droppedFilepath)))
+            self.flw.addItem(item)
+
+            # Update internal memory
+            self.filepaths.append(droppedFilepath)
+
+        # Update cache
+        self.updateFileListDBCache()
+        # Set order widget
+        self.initOrderWidget()
     
 
 
