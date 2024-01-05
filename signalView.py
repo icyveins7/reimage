@@ -52,12 +52,6 @@ class SignalView(QFrame):
         # Placeholder for xdata
         self.xdata = None
         self.startTime = None
-        
-        # Placeholder for downsample rates
-        self.dsrs = []
-        self.dscache = []
-        self.curDsrIdx = -1
-        # self.setDownsampleCache()
 
         # Placeholder for spectrogram data
         self.freqs = None
@@ -194,24 +188,6 @@ class SignalView(QFrame):
             self.sp.setImage(self.sxx)
             self.sp.setLevels([0, self.sxxMax])
 
-    def setDownsampleCache(self):
-        # Clear existing cache
-        self.dscache = []
-        self.dsrs = [] # Note that this is the cached downsample values, unlike self.dsr (the pre-processing value)
-        # We cache the original sample rate to use as the bootstrap
-        # self.dscache.append(np.abs(self.ydata)) # Cache amplitude directly?
-        self.dscache.append(self.ydata) # Cache the original complex data
-        self.dsrs.append(1)
-
-        cursize = self.ydata.size
-        while cursize > 1e5: # Recursively downsample in orders of magnitude
-            self.dscache.append(self.dscache[-1][::10])
-            self.dsrs.append(self.dsrs[-1]*10)
-            cursize = self.dscache[-1].size
-        
-        # print(self.dscache)
-        print(self.dsrs)
-
     def loadMarkers(self):
         sfilepaths, samplestarts, labels = self.markerdb.getMarkers(self.filelist)
 
@@ -231,10 +207,6 @@ class SignalView(QFrame):
         # This is usually the fs value used in all functions, other than the preprocessing steps
         # and the marker values (which are normalised)
         return self.fs if self.dsr is None else self.fs/self.dsr
-
-    def getTimevec(self, curDSR):
-        dfs = self.getDisplayedFs()
-        return np.arange(0, self.ydata.size, curDSR) / dfs
 
     def setYData(self, ydata, filelist, sampleStarts):
         """
@@ -292,9 +264,10 @@ class SignalView(QFrame):
 
         self.loadMarkers()
 
-        # self.setDownsampleCache()
         self.plotAmpTime()
+        print("Completed plotAmpTime()")
         self.plotSpecgram()
+        print("Completed plotSpecgram()")
 
         # Equalize the widths of the y-axis?
         self.p1.getAxis('left').setWidth(60) # Hardcoded for now
@@ -359,7 +332,6 @@ class SignalView(QFrame):
             dfs = self.getDisplayedFs()
             viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size / dfs
             self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
-            self.curDsrIdx = -1 # On init, the maximum dsr is used
             self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
 
             # Create the tracking marker
@@ -388,7 +360,6 @@ class SignalView(QFrame):
         dfs = self.getDisplayedFs()
         viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size / dfs
         self.p1.setLimits(xMin = -viewBufferX, xMax = self.ydata.size / dfs + viewBufferX)
-        self.curDsrIdx = -1 # On init, the maximum dsr is used
         self.p1.vb.setXRange(-viewBufferX, self.ydata.size/dfs + viewBufferX) # Set it to zoomed out at start
 
         
@@ -414,6 +385,8 @@ class SignalView(QFrame):
         tspan = self.ts[-1] - self.ts[0]
         fspan = self.freqs[-1] - self.freqs[0]
 
+        print("Generated specgram base matrix")
+
         if auto_transpose:
             self.sxx = self.sxx.T
 
@@ -428,11 +401,14 @@ class SignalView(QFrame):
                     tspan+self.specTimeRes, 
                     fspan+self.specFreqRes)
             ) # set image on existing item instead?
+            print("Generated specgram image")
+
             self.sp.setAutoDownsample(active=False) # Performance on the downsampler is extremely bad! Main cause of lag spikes
             cm2use = pg.colormap.get('viridis') # you don't need matplotlib to use viridis!
             self.sp.setLookupTable(cm2use.getLookupTable())
             
             self.spw.addItem(self.sp) # Must add it back because clears are done in setYData
+            print("Added specgram item to plot window")
             self.spw.setMenuEnabled(False)
 
             viewBufferX = self.VIEW_BUFFER_FRACTION * self.ydata.size/dfs
@@ -619,12 +595,11 @@ class SignalView(QFrame):
 
             # Find nearest point based on x value
             # For now, we ignore the viewing downsample rate (only read the pure data)
-            timevec = self.getTimevec(1)
-            timeIdx = int(np.round((mousePoint.x() - timevec[0]) * self.getDisplayedFs()))
+            timeIdx = int(np.round((mousePoint.x() - self.timevec[0]) * self.getDisplayedFs()))
             
             # Set the marker
             if timeIdx > 0 and timeIdx < self.ydata.size:
-                self.pmarker.setData([timevec[timeIdx]],[np.abs(self.ydata[timeIdx])])
+                self.pmarker.setData([self.timevec[timeIdx]],[np.abs(self.ydata[timeIdx])])
 
                 # If the phasor window is open, set the data there
                 try:
