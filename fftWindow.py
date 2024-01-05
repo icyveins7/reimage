@@ -67,6 +67,7 @@ class FFTWindow(QMainWindow):
     def on_fftlen_selected(self):
         # Replot
         self.plot()
+        self.plot_medfilt() # We must call this too otherwise the medfilt will be wrong
 
     def plot(self):
         self.fftData = np.fft.fft(self.slicedData, int(self.fftlenDropdown.currentText()))
