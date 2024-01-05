@@ -75,7 +75,10 @@ class EstimateFreqWindow(QMainWindow):
 
         # CZT Plot Item
         self.cztplotItem = pg.PlotDataItem(pen='r')
+        self.cztMaxPlotItem = pg.PlotDataItem(pen=None, symbol='x', symbolPen='r', symbolBrush='r')
+        self.cztMaxTextItem = pg.TextItem(color=(255,255,255))
         self.fftplot.addItem(self.cztplotItem)
+        self.fftplot.addItem(self.cztMaxPlotItem)
         
         # Initialize FFT plot
         self.odata = None # Some placeholders
@@ -128,9 +131,26 @@ class EstimateFreqWindow(QMainWindow):
         czt = self.calculateCztCM(numPts, xviewrange[0], xviewrange[1], cztRes)
         cztfreq = np.arange(numPts) * cztRes + xviewrange[0]
         # Now plot it
+        absczt = np.abs(czt)
         self.cztplotItem.setData(
-            cztfreq, 20*np.log10(np.abs(czt))
+            cztfreq, 20*np.log10(absczt)
         )
+
+        # Get and plot an X over the max point for CZT
+        mi = np.argmax(absczt)
+        self.cztMaxPlotItem.setData(
+            [cztfreq[mi]], [20*np.log10(absczt[mi])]
+        )
+
+        # Plot the text displaying the max values for easy reading
+        if self.cztMaxTextItem is not None:
+            self.fftplot.removeItem(self.cztMaxTextItem)
+        self.cztMaxTextItem = pg.TextItem(
+            color=(255,255,255),
+            text="%f, %f" % (cztfreq[mi], 20*np.log10(absczt[mi]))
+        )
+        self.cztMaxTextItem.setPos(cztfreq[mi], 20*np.log10(absczt[mi]))
+        self.fftplot.addItem(self.cztMaxTextItem)
 
 
     def calculateCztCM(self, numPts, startFreq, endFreq, cztRes):
