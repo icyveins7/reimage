@@ -8,7 +8,7 @@ if not os.path.exists(testdataDir):
     os.makedirs(testdataDir)
 
 # Create a simple bpsk signal and displace it
-baud = int(1e6)
+baud = int(10e6)
 bits = np.random.randint(0,2,baud)*2-1
 syms = sps.resample_poly(bits.astype(np.complex64), 10, 1) # 10x OSR
 print(syms)
