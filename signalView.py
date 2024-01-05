@@ -57,7 +57,7 @@ class SignalView(QFrame):
         self.dsrs = []
         self.dscache = []
         self.curDsrIdx = -1
-        self.setDownsampleCache()
+        # self.setDownsampleCache()
 
         # Placeholder for spectrogram data
         self.freqs = None
@@ -369,10 +369,15 @@ class SignalView(QFrame):
     def plotReim(self):
         # Legend for reim
         self.p1.addLegend()
-        # Recreate the plots like ampTime
-        timevec = self.getTimevec(self.dsrs[-1])
-        self.pre = self.p1.plot(timevec, np.real(self.dscache[-1]), pen='r', name='Re')
-        self.pim = self.p1.plot(timevec, np.imag(self.dscache[-1]), pen='c', name='Im')
+        # Recreate the plots like ampTime        
+        self.pre = self.p1.plot(
+            self.timevec[self.idx0:self.idx1:self.skip], 
+            np.real(self.ydata[self.idx0:self.idx1:self.skip]),
+            pen='r', name='Re')
+        self.pim = self.p1.plot(
+            self.timevec[self.idx0:self.idx1:self.skip], 
+            np.imag(self.ydata[self.idx0:self.idx1:self.skip]), 
+            pen='c', name='Im')
         self.pre.setClipToView(True)
         self.pim.setClipToView(True)
         
@@ -519,8 +524,9 @@ class SignalView(QFrame):
         if reslice:
             print("Reslice is %s after checking pan" % (reslice))
 
-        target_i0_spec = max(int((xstart-self.ts[0]) / self.specTimeRes), 0)
-        target_i1_spec = min(int((xend-self.ts[0]) / self.specTimeRes), self.ts.size)
+        # TODO: For specgram downsampling, not used for now
+        # target_i0_spec = max(int((xstart-self.ts[0]) / self.specTimeRes), 0)
+        # target_i1_spec = min(int((xend-self.ts[0]) / self.specTimeRes), self.ts.size)
 
         # Reslice if needed
         if reslice:
@@ -531,24 +537,44 @@ class SignalView(QFrame):
             self.skip = max((target_i1 - target_i0) // target, 1) # We don't include the buffer in the skip calculation
             print("Plotting %d:%d:%d" % (self.idx0, self.idx1, self.skip))
 
+            
             t1 = time.time()
             t = self.timevec[self.idx0:self.idx1:self.skip]
             t2 = time.time()
-            amp = np.abs(self.ydata[self.idx0:self.idx1:self.skip])
-            t3 = time.time()
-            
-            self.p.setData(t, amp,
-                           clipToView=True)
-            t4 = time.time()
-            self.p1.vb.setYRange(0, np.max(amp))
-            t5 = time.time()
+            if self.plotType == self.AMPL_PLOT:
+                amp = np.abs(self.ydata[self.idx0:self.idx1:self.skip])
+                t3 = time.time()
+                
+                self.p.setData(t, amp,
+                            clipToView=True)
+                t4 = time.time()
+                self.p1.vb.setYRange(0, np.max(amp))
+                t5 = time.time()
+            elif self.plotType == self.REIM_PLOT:
+                re = np.real(self.ydata[self.idx0:self.idx1:self.skip])
+                im = np.imag(self.ydata[self.idx0:self.idx1:self.skip])
+                t3 = time.time()
+
+                self.pre.setData(
+                    t, re,
+                    clipToView=True
+                )
+                self.pim.setData(
+                    t, im,
+                    clipToView=True
+                )
+                t4 = time.time()
+                self.p1.vb.setYRange(min(np.min(re),np.min(im)), max(np.max(re), np.max(im)))
+                t5 = time.time()
+
+
             self.p1.disableAutoRange(axis=pg.ViewBox.YAxis)
             t6 = time.time()
             print("Took %f, %f to slice time and data" % (t2-t1, t3-t2))
             print("Took %f, %f, %f to set data, set y range and disable autorange" % (
                 t4-t3, t5-t4, t6-t5))
             
-            # # Similar work for specgram # This is very slow..
+            # # TODO: Similar work for specgram # This is very slow..
             # self.idx0_spec = max(target_i0_spec - target_i0, 0)
             # self.idx1_spec = min(target_i1_spec + target_i1, self.ts.size)
             # self.skip_spec = max((target_i1_spec - target_i0_spec) // target, 1)
