@@ -63,6 +63,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.sidebar.changeSpecgramContrastSignal.connect(self.sv.adjustSpecgramContrast)
         self.sidebar.changeSpecgramLogScaleSignal.connect(self.sv.adjustSpecgramLog)
 
+        self.sidebar.showHideAmpPlotSignal.connect(self.sv.showHideAmpPlot)
+
         self.fileListFrame.dataSignal.connect(self.sidebar.reset) # Clear all settings on new data
         
         self.resizedSignal.connect(self.fileListFrame.onResizedWindow)

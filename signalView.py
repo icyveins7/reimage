@@ -899,4 +899,12 @@ class SignalView(QFrame):
             pass
             # For debugging purposes..
             # print("Exception when changing phasor samp buffer %s" % str(e))
+        
+    # Connections for toggling subplots
+    @Slot(bool)
+    def showHideAmpPlot(self, show: bool):
+        if show:
+            self.glw.addItem(self.p1, row=0, col=0)
+        else:
+            self.glw.removeItem(self.p1)
 

@@ -16,6 +16,8 @@ class SidebarSettings(QFrame):
     changeToAmpPlotSignal = Signal()
     changeToReimPlotSignal = Signal()
 
+    showHideAmpPlotSignal = Signal(bool)
+
     def __init__(self,
         parent=None, f=Qt.WindowFlags()
     ):
@@ -65,6 +67,12 @@ class SidebarSettings(QFrame):
         self.ampplotgroupbox.setLayout(self.ampplotlayout)
         self.settingsLayout.addWidget(self.ampplotgroupbox)
 
+        # Add the show/hide checkbox
+        self.ampplotShowHide = QCheckBox()
+        self.ampplotShowHide.setChecked(True)
+        self.ampplotShowHide.stateChanged.connect(self.showHideAmpPlot)
+        self.ampplotlayout.addRow("Show/Hide", self.ampplotShowHide)
+
         # Add real/imag view
         self.reimgroupbox = QGroupBox() # QButtonGroup() # QGroupBox()
         self.reimgrouplayout = QHBoxLayout()
@@ -94,6 +102,10 @@ class SidebarSettings(QFrame):
     def plotReim(self, checked: bool):
         if checked: # Only if state is checked
             self.changeToReimPlotSignal.emit()
+
+    @Slot(int)
+    def showHideAmpPlot(self, toShow: int):
+        self.showHideAmpPlotSignal.emit(toShow > 0)
 
     @Slot()
     def addsma(self):
