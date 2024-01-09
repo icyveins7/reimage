@@ -80,8 +80,17 @@ class SignalView(QFrame):
 
         # Corresponding labels for linear region
         self.linearRegionLabelsLayout = QHBoxLayout()
-        self.linearRegionBoundsLabel = QLabel()
-        self.linearRegionLabelsLayout.addWidget(self.linearRegionBoundsLabel)
+        # self.linearRegionBoundsLabel = QLabel()
+        # self.linearRegionLabelsLayout.addWidget(self.linearRegionBoundsLabel)
+
+        self.linearRegionStartEdit = QLineEdit()
+        self.linearRegionStartEdit.setFixedWidth(160)
+        self.linearRegionEndEdit = QLineEdit()
+        self.linearRegionEndEdit.setFixedWidth(160)
+        self.linearRegionLabelsLayout.addWidget(self.linearRegionStartEdit)
+        self.linearRegionLabelsLayout.addWidget(QLabel(":"))
+        self.linearRegionLabelsLayout.addWidget(self.linearRegionEndEdit)
+        self.linearRegionLabelsLayout.addStretch()
 
         # Placeholders for linear regions 
         self.linearRegion = None
@@ -453,10 +462,16 @@ class SignalView(QFrame):
         self.linearRegion = None
         self.specLinearRegion = None
         # Reset the text
-        self.linearRegionBoundsLabel.clear()
+        # self.linearRegionBoundsLabel.clear()
+
+        self.linearRegionStartEdit.clear()
+        self.linearRegionEndEdit.clear()
 
     def formatlinearRegionBoundsLabel(self, region):
-        self.linearRegionBoundsLabel.setText("%f : %f (%f)" % (region[0], region[1], region[1]-region[0]))
+        # self.linearRegionBoundsLabel.setText("%f : %f (%f)" % (region[0], region[1], region[1]-region[0]))
+        self.linearRegionStartEdit.setText(str(region[0]))
+        self.linearRegionEndEdit.setText(str(region[1]))
+
 
     @Slot()
     def onAmpRegionChanged(self):
