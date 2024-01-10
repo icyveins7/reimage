@@ -83,10 +83,12 @@ class FileListFrame(QFrame):
 
         # Create keyboard shortcut for file deletion
         self.delShortcut = QShortcut(QKeySequence("Delete"), self)
+        self.delShortcut.setContext(Qt.WidgetWithChildrenShortcut)
         self.delShortcut.activated.connect(self.removeFilesFromList)
 
         # Create keyboard shortcut for adding files to viewer
         self.addShortcut = QShortcut(QKeySequence("Return"), self)
+        self.addShortcut.setContext(Qt.WidgetWithChildrenShortcut)
         self.addShortcut.activated.connect(self.onAddBtnClicked)
 
         # Allow double-click for opening of single files
