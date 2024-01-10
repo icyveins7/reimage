@@ -80,16 +80,19 @@ class SignalView(QFrame):
 
         # Corresponding labels for linear region
         self.linearRegionLabelsLayout = QHBoxLayout()
-        # self.linearRegionBoundsLabel = QLabel()
-        # self.linearRegionLabelsLayout.addWidget(self.linearRegionBoundsLabel)
 
         self.linearRegionStartEdit = QLineEdit()
-        self.linearRegionStartEdit.setFixedWidth(160)
+        self.linearRegionStartEdit.setFixedWidth(120)
+        self.linearRegionStartEdit.editingFinished.connect(self.onLinearRegionEditsFinished)
         self.linearRegionEndEdit = QLineEdit()
-        self.linearRegionEndEdit.setFixedWidth(160)
+        self.linearRegionEndEdit.setFixedWidth(120)
+        self.linearRegionEndEdit.editingFinished.connect(self.onLinearRegionEditsFinished)
+        self.linearRegionDurationLabel = QLabel()
+
         self.linearRegionLabelsLayout.addWidget(self.linearRegionStartEdit)
         self.linearRegionLabelsLayout.addWidget(QLabel(":"))
         self.linearRegionLabelsLayout.addWidget(self.linearRegionEndEdit)
+        self.linearRegionLabelsLayout.addWidget(self.linearRegionDurationLabel)
         self.linearRegionLabelsLayout.addStretch()
 
         # Placeholders for linear regions 
@@ -148,6 +151,16 @@ class SignalView(QFrame):
         self.idx0 = 0
         self.idx1 = -1
         self.skip = 1
+
+    @Slot()
+    def onLinearRegionEditsFinished(self):
+        # Extract bounds from the edit boxes
+        start = float(self.linearRegionStartEdit.text())
+        end = float(self.linearRegionEndEdit.text())
+        # Set the linear region bounds with it
+        if self.linearRegion is not None:
+            self.linearRegion.setRegion((start, end))
+
 
     @Slot(int)
     def addSma(self, length: int):
@@ -461,16 +474,16 @@ class SignalView(QFrame):
         self.spw.removeItem(self.specLinearRegion)
         self.linearRegion = None
         self.specLinearRegion = None
-        # Reset the text
-        # self.linearRegionBoundsLabel.clear()
 
+        # Reset the text
         self.linearRegionStartEdit.clear()
         self.linearRegionEndEdit.clear()
+        self.linearRegionDurationLabel.clear()
 
     def formatlinearRegionBoundsLabel(self, region):
-        # self.linearRegionBoundsLabel.setText("%f : %f (%f)" % (region[0], region[1], region[1]-region[0]))
-        self.linearRegionStartEdit.setText(str(region[0]))
-        self.linearRegionEndEdit.setText(str(region[1]))
+        self.linearRegionStartEdit.setText("%f" % (region[0]))
+        self.linearRegionEndEdit.setText("%f" % (region[1]))
+        self.linearRegionDurationLabel.setText("(%f)" % (region[1]-region[0]))
 
 
     @Slot()
