@@ -6,6 +6,7 @@ os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6' # Set this to force ReImage to use Py
 import sys
 import numpy as np
 import sqlite3 as sq
+import pyqtgraph.exporters as exporters
 
 from signalView import SignalView
 from fileList import FileListFrame
@@ -124,6 +125,10 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.predetectMenu = QtWidgets.QMenu("Predetect", self)
         self.predetectAmp = self.predetectMenu.addAction("Via Amplitude")
         self.predetectAmp.triggered.connect(self.openPredetectAmp)
+        # ===========
+        self.exportMenu = QtWidgets.QMenu("Export", self)
+        self.exportMenuAction = self.exportMenu.addAction("To Image")
+        self.exportMenuAction.triggered.connect(self.exportToImage)
 
         self.menubar.addMenu(self.predetectMenu)
 
@@ -139,6 +144,11 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.fileListFrame.fileListStatusTip.connect(self.statusbar.showMessage)
 
         self.setStatusBar(self.statusbar)
+
+    @QtCore.Slot()
+    def exportToImage(self):
+        # TODO: trigger Pyqtgraph's inbuilt export on the signalView
+        raise NotImplementedError("Not yet implemented")
 
     @QtCore.Slot()
     def openPredetectAmp(self):
