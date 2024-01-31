@@ -6,7 +6,6 @@ os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6' # Set this to force ReImage to use Py
 import sys
 import numpy as np
 import sqlite3 as sq
-import pyqtgraph.exporters as exporters
 
 from signalView import SignalView
 from fileList import FileListFrame
@@ -17,6 +16,7 @@ from ipc import ReimageListenerThread
 
 class ReimageMain(QtWidgets.QMainWindow):
     resizedSignal = QtCore.Signal()
+    exportToImageSignal = QtCore.Signal()
 
     def __init__(self):
         super().__init__()
@@ -69,6 +69,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.fileListFrame.dataSignal.connect(self.sidebar.reset) # Clear all settings on new data
         
         self.resizedSignal.connect(self.fileListFrame.onResizedWindow)
+        self.exportToImageSignal.connect(self.sv.exportToImageSlot)
 
         # Application global settings
         QtCore.QCoreApplication.setOrganizationName("Seo")
@@ -125,12 +126,13 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.predetectMenu = QtWidgets.QMenu("Predetect", self)
         self.predetectAmp = self.predetectMenu.addAction("Via Amplitude")
         self.predetectAmp.triggered.connect(self.openPredetectAmp)
+        self.menubar.addMenu(self.predetectMenu)
         # ===========
         self.exportMenu = QtWidgets.QMenu("Export", self)
         self.exportMenuAction = self.exportMenu.addAction("To Image")
         self.exportMenuAction.triggered.connect(self.exportToImage)
+        self.menubar.addMenu(self.exportMenu)
 
-        self.menubar.addMenu(self.predetectMenu)
 
     def setupStatusBar(self):
         # Permanent help message
@@ -147,8 +149,8 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     @QtCore.Slot()
     def exportToImage(self):
-        # TODO: trigger Pyqtgraph's inbuilt export on the signalView
-        raise NotImplementedError("Not yet implemented")
+        # Just fire the signal for now
+        self.exportToImageSignal.emit()
 
     @QtCore.Slot()
     def openPredetectAmp(self):

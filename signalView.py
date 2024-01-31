@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog, QMessageBox, QSlider
 from PySide6.QtCore import Qt, Signal, Slot, QRectF, QEvent
 import pyqtgraph as pg
+import pyqtgraph.exporters as exporters
 import numpy as np
 import scipy.signal as sps
 
@@ -935,4 +936,10 @@ class SignalView(QFrame):
             self.glw.addItem(self.p1, row=0, col=0)
         else:
             self.glw.removeItem(self.p1)
+
+
+    # Connection for exports
+    @Slot()
+    def exportToImageSlot(self):
+        print("Received exportToImageSlot")
 
