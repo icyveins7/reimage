@@ -134,7 +134,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.exportMenu = QtWidgets.QMenu("Export", self)
         self.exportMenuAction = self.exportMenu.addAction("To Image")
         self.exportMenuAction.triggered.connect(self.exportToImage)
-        self.exportSettingsAction = self.exportMenu.addAction("Settings")
+        self.exportSettingsAction = self.exportMenu.addAction("Resolution Settings")
         self.exportSettingsAction.triggered.connect(self.openExportSettings)
         self.menubar.addMenu(self.exportMenu)
 
