@@ -16,7 +16,7 @@ from ipc import ReimageListenerThread
 
 class ReimageMain(QtWidgets.QMainWindow):
     resizedSignal = QtCore.Signal()
-    exportToImageSignal = QtCore.Signal()
+    exportToImageSignal = QtCore.Signal(float)
 
     def __init__(self):
         super().__init__()
@@ -93,6 +93,9 @@ class ReimageMain(QtWidgets.QMainWindow):
         #     'filtercutoff': None,
         #     'dsr': None
         # }
+        # Exporter settings
+        self.exportResolutionScaleFactor = 2.0
+
         # Configuration handling
         self.currentConfig = 'DEFAULT' # This is the default one
 
@@ -131,6 +134,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.exportMenu = QtWidgets.QMenu("Export", self)
         self.exportMenuAction = self.exportMenu.addAction("To Image")
         self.exportMenuAction.triggered.connect(self.exportToImage)
+        self.exportSettingsAction = self.exportMenu.addAction("Settings")
+        self.exportSettingsAction.triggered.connect(self.openExportSettings)
         self.menubar.addMenu(self.exportMenu)
 
 
@@ -150,7 +155,19 @@ class ReimageMain(QtWidgets.QMainWindow):
     @QtCore.Slot()
     def exportToImage(self):
         # Just fire the signal for now
-        self.exportToImageSignal.emit()
+        self.exportToImageSignal.emit(self.exportResolutionScaleFactor)
+
+    @QtCore.Slot()
+    def openExportSettings(self):
+        # Simple setting of 1 value
+        newResolutionScale, ok = QtWidgets.QInputDialog.getDouble(
+            self, "Set Export Resolution Scale Factor",
+            "Resolution Scale Factor: ", self.exportResolutionScaleFactor,
+            0.1, 10.0
+        )
+        if ok and newResolutionScale is not None:
+            self.exportResolutionScaleFactor = newResolutionScale
+
 
     @QtCore.Slot()
     def openPredetectAmp(self):

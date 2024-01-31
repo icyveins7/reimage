@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit, QApplication, QMenu, QInputDialog, QMessageBox, QSlider
 from PySide6.QtCore import Qt, Signal, Slot, QRectF, QEvent
 import pyqtgraph as pg
-import pyqtgraph.exporters as exporters
+from pyqtgraph.exporters import ImageExporter
 import numpy as np
 import scipy.signal as sps
 
@@ -939,7 +939,11 @@ class SignalView(QFrame):
 
 
     # Connection for exports
-    @Slot()
-    def exportToImageSlot(self):
-        print("Received exportToImageSlot")
+    @Slot(float)
+    def exportToImageSlot(self, resolutionScaleFactor: float):
+        self.exporter = ImageExporter(self.glw.scene())
+        # This is actually how ImageExporter sets the resolution! 
+        targetWidth = self.exporter.getTargetRect().width() * resolutionScaleFactor
+        self.exporter.parameters()['width'] = targetWidth # This is actually a global resolution parameter
+        self.exporter.export()
 
