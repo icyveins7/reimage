@@ -14,6 +14,11 @@ class ReimageListenerThread(QThread):
     # Some helpful 'define' constants
     EXIT_COMMAND = b'0'
     EXPORT_COMMAND = b'1'
+    EXPORT_RAW_COMMAND = b'2'
+    RAW_DTYPE = {
+        np.dtype('complex64'): b'0',
+        np.dtype('complex128'): b'1'
+    }
 
     # Going to leave the attached data here instead of as an instance variable
     # since it doesn't really matter..
@@ -42,6 +47,7 @@ class ReimageListenerThread(QThread):
                             print("Exiting gracefully.")
                             end = True
                             break
+
                         elif cmd == self.EXPORT_COMMAND:
                             print("sending selected data")
                             package = {
@@ -51,6 +57,13 @@ class ReimageListenerThread(QThread):
                                 'indices': self.reimSelectedDataIndices
                             }
                             conn.send_bytes(pickle.dumps(package))
+
+                        elif cmd == self.EXPORT_RAW_COMMAND: 
+                            # Use this for MATLAB interface since pickle doesn't work
+                            print("Sending raw data array alone.")
+                            conn.send_bytes(self.RAW_DTYPE[self.reimSelectedData.dtype])
+                            conn.send_bytes(self.reimSelectedData.tobytes())
+
                         else:
                             # Receive data for plotting
                             print("Receiving data.")
@@ -98,6 +111,23 @@ def getReimageData(address: tuple=reimage_default_address):
         print(package)
     return package
 
+def getReimageDataRaw(address: tuple=reimage_default_address):
+    # This shouldn't be the one used when in python
+    # It's just here for testing purposes
+
+    data = None
+    with Client(address) as conn:
+        conn.send_bytes(ReimageListenerThread.EXPORT_RAW_COMMAND)
+        dtype = conn.recv_bytes()
+        print(dtype)
+        parsed_dtypes = {
+            b'0': np.complex64,
+            b'1': np.complex128
+        }
+        data = np.frombuffer(conn.recv_bytes(), dtype=parsed_dtypes[dtype])
+        print(data)
+
+    return data
 
 def sendReimageData(
     data: np.ndarray,
