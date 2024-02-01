@@ -131,6 +131,7 @@ dmypy.json
 
 # Additional
 *.db
+*.db-journal
 exampledata/
 *.zip
 *.ini
