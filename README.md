@@ -48,7 +48,7 @@ Alternatively, you may want to look for the latest CI/CD automatic builds in [Ac
 
 ## Quick-start
 
-![](screenshots/mainwindow.jpg)
+![Main Window Screenshot](screenshots/mainwindow.jpg)
 
 Most users should find that the tooltips at the bottom-left and bottom-right of the windows suffice as guidance.
 
@@ -63,17 +63,17 @@ Most users should find that the tooltips at the bottom-left and bottom-right of 
 
 ### Initial Settings
 
-![](screenshots/loader.jpg)
+![Loader Settings Screenshot](screenshots/loader.jpg)
 
 ### Taking Slices of Samples
 
 This is done with Ctrl-Alt-Click. Most further functionality will use the user's slice if this action was performed. Otherwise, the entire array of samples will be used.
 
-![](screenshots/slice.jpg)
+![Slicing Screenshot](screenshots/slice.jpg)
 
 ### Simple Spectrum (FFT)
 
-![](screenshots/fft.jpg)
+![FFT Screenshot](screenshots/fft.jpg)
 
 ### Baud Rate Estimation
 

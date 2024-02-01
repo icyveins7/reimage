@@ -12,6 +12,7 @@ from fileList import FileListFrame
 from predetections import PredetectAmpDialog
 from loaderSettings import LoaderSettingsDialog
 from sidebarSettings import SidebarSettings
+from readmeWindow import ReadmeWindow
 from ipc import ReimageListenerThread
 
 class ReimageMain(QtWidgets.QMainWindow):
@@ -20,6 +21,13 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
+
+        # We change the directory to the one containing this file
+        # This has several uses:
+        # 1) all databases/configs stay in the same folder, instead of
+        #    where the user's working folder might be at the time
+        # 2) for README window, the images are rendered correctly
+        os.chdir(os.path.dirname(__file__))
 
         # Databases
         self.cachedb = sq.connect('cache.db')
@@ -137,20 +145,17 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.exportSettingsAction = self.exportMenu.addAction("Resolution Settings")
         self.exportSettingsAction.triggered.connect(self.openExportSettings)
         self.menubar.addMenu(self.exportMenu)
+        # ===========
+        self.helpMenu = QtWidgets.QMenu("Help", self)
+        self.readmeMenuAction = self.helpMenu.addAction("View README")
+        self.readmeMenuAction.triggered.connect(self.viewReadme)
+        self.menubar.addMenu(self.helpMenu)
 
-
-    def setupStatusBar(self):
-        # Permanent help message
-        self.statusbar = QtWidgets.QStatusBar()
-        self.helperStatus = QtWidgets.QLabel(
-            "Ctrl-Rightclick on the plots to see signal processing options.")
-        self.statusbar.addPermanentWidget(self.helperStatus)
-
-        # Widget specific help messages
-        self.sv.SignalViewStatusTip.connect(self.statusbar.showMessage)
-        self.fileListFrame.fileListStatusTip.connect(self.statusbar.showMessage)
-
-        self.setStatusBar(self.statusbar)
+    ##### Menu bar slots
+    @QtCore.Slot()
+    def viewReadme(self):
+        self.readmeWindow = ReadmeWindow()
+        self.readmeWindow.show()
 
     @QtCore.Slot()
     def exportToImage(self):
@@ -182,6 +187,22 @@ class ReimageMain(QtWidgets.QMainWindow):
             ) # TODO: write getter for this
         dialog.predetectAmpSignal.connect(self.fileListFrame.highlightFiles)
         dialog.exec()
+
+    ###### End of menu bar slots
+
+    ##### Status bar
+    def setupStatusBar(self):
+        # Permanent help message
+        self.statusbar = QtWidgets.QStatusBar()
+        self.helperStatus = QtWidgets.QLabel(
+            "Ctrl-Rightclick on the plots to see signal processing options.")
+        self.statusbar.addPermanentWidget(self.helperStatus)
+
+        # Widget specific help messages
+        self.sv.SignalViewStatusTip.connect(self.statusbar.showMessage)
+        self.fileListFrame.fileListStatusTip.connect(self.statusbar.showMessage)
+
+        self.setStatusBar(self.statusbar)
 
     # @QtCore.Slot(int)
     # def setSampleRate(self, samplerate: int):
