@@ -11,6 +11,10 @@ reimage_default_address = ('localhost', 5000)
 
 #%% Reimage App side
 class ReimageListenerThread(QThread):
+    # Some helpful 'define' constants
+    EXIT_COMMAND = b'0'
+    EXPORT_COMMAND = b'1'
+
     # Going to leave the attached data here instead of as an instance variable
     # since it doesn't really matter..
     reimSelectedData = None
@@ -34,11 +38,11 @@ class ReimageListenerThread(QThread):
                         print('connection accepted from', listener.last_accepted)
                         cmd = conn.recv_bytes()
 
-                        if cmd == b'0':
+                        if cmd == self.EXIT_COMMAND:
                             print("Exiting gracefully.")
                             end = True
                             break
-                        elif cmd == b'1':
+                        elif cmd == self.EXPORT_COMMAND:
                             print("sending selected data")
                             package = {
                                 'time': time.time(),
@@ -47,6 +51,11 @@ class ReimageListenerThread(QThread):
                                 'indices': self.reimSelectedDataIndices
                             }
                             conn.send_bytes(pickle.dumps(package))
+                        else:
+                            # Receive data for plotting
+                            print("Receiving data.")
+                            print(pickle.loads(cmd))
+
                 except EOFError as e:
                     print("EOFError: %s" % (str(e)))
                 except Exception as e:
@@ -59,12 +68,59 @@ class ReimageListenerThread(QThread):
 
 #%% Client side
 def getReimageData(address: tuple=reimage_default_address):
+    """
+    Extracts the data you exported from ReImage.
+
+    Parameters
+    ----------
+    address : tuple, optional
+        Tuple of IP address & port, by default ('localhost', 5000)
+
+    Returns
+    -------
+    result : dict
+        Unpickled dictionary with the following keys:
+            'data' : np.ndarray
+                The selected data from ReImage.
+            'time' : float
+                Unix time of export.
+            'filepaths': list
+                List of strings of the exported filepaths.
+            'indices' : list
+                List of 2 indices denoting the indices used for the selection.
+                Together with the 'filepaths', you should be able to double-check
+                that the data you exported is the same as if you had done it manually.
+    """
     package = None
     with Client(address) as conn:
         conn.send_bytes(b'1')
         package = pickle.loads(conn.recv_bytes())
         print(package)
     return package
+
+
+def sendReimageData(
+    data: np.ndarray,
+    fs: float=1.0,
+    address: tuple=reimage_default_address
+):
+    # Pickle the item first
+    pickled = pickle.dumps(
+        {
+            'data': data,
+            'fs': fs
+        }
+    )
+
+    # TODO:
+    # 1) Get default config
+    # 2) Set the bare minimum; don't allow anything beyond fs/nfft setting
+    # 3) Set this config in main
+    # 4) Set the new YData in signal view
+
+    # Send it
+    with Client(address) as conn:
+        conn.send_bytes(pickled)
 
 
 #%% Basic testing
