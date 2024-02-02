@@ -29,6 +29,9 @@ class ReimageMain(QtWidgets.QMainWindow):
         # 2) for README window, the images are rendered correctly
         os.chdir(os.path.dirname(__file__))
 
+        # Icon setting (doesn't do anything for MacOS?)
+        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), 'icon.png')))
+
         # Databases
         self.cachedb = sq.connect('cache.db')
 
