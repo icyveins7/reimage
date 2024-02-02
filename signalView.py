@@ -5,6 +5,7 @@ import pyqtgraph as pg
 from pyqtgraph.exporters import ImageExporter
 import numpy as np
 import scipy.signal as sps
+import platform
 
 from fftWindow import FFTWindow
 from estBaudWindow import EstimateBaudWindow
@@ -913,7 +914,10 @@ class SignalView(QFrame):
     def event(self, event):
         '''Override events for status tips.'''
         if event.type() == QEvent.HoverEnter:
-            self.SignalViewStatusTip.emit("Ctrl-Alt-Click to select a region for processing; by default, processes all data.")
+            if platform.system() == 'Darwin':
+                self.SignalViewStatusTip.emit("Cmd-Opt-Click to select a region for processing; by default, processes all data.")
+            else:
+                self.SignalViewStatusTip.emit("Ctrl-Alt-Click to select a region for processing; by default, processes all data.")
         # elif event.type() == QEvent.HoverLeave:
         #     print("leave") # TODO: do we need this?
         return super().event(event)

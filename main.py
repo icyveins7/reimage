@@ -2,6 +2,7 @@ from importlib.abc import Loader
 from PySide6 import QtCore, QtWidgets, QtGui
 import os
 os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6' # Set this to force ReImage to use PySide6
+import platform
 
 import sys
 import numpy as np
@@ -197,8 +198,12 @@ class ReimageMain(QtWidgets.QMainWindow):
     def setupStatusBar(self):
         # Permanent help message
         self.statusbar = QtWidgets.QStatusBar()
-        self.helperStatus = QtWidgets.QLabel(
-            "Ctrl-Rightclick on the plots to see signal processing options.")
+        if platform.system() == 'Darwin':
+            self.helperStatus = QtWidgets.QLabel(
+                "Cmd-Rightclick on the plots to see signal processing options.")
+        else:
+            self.helperStatus = QtWidgets.QLabel(
+                "Ctrl-Rightclick on the plots to see signal processing options.")
         self.statusbar.addPermanentWidget(self.helperStatus)
 
         # Widget specific help messages
@@ -207,11 +212,6 @@ class ReimageMain(QtWidgets.QMainWindow):
 
         self.setStatusBar(self.statusbar)
 
-    # @QtCore.Slot(int)
-    # def setSampleRate(self, samplerate: int):
-    #     # Main use-case is to DISPLAY sample rate for to-be-loaded .wav files
-    #     self.wavSamplerate = samplerate
-    #     print("Set wav sample rate to %d" % self.wavSamplerate)
 
     @QtCore.Slot(str, int)
     def newFilesHandler(self, specialType: str="", wavSamplerate: int=None, filepaths: list=None):
