@@ -125,9 +125,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.listenerThread.start()
 
         # Experimental tutorial bubbles
-        self.tb = TutorialBubble()
-        self.tb.setText("Welcome to ReImage!")
-        self.tb.show()
+        self.tb = TutorialBubble("Welcome to ReImage!", self) # The bubble will show itself internally
 
     def closeEvent(self, event):
         """QWidget handler for the destructor. Do not use __del__ for this!"""
