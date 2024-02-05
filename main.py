@@ -16,6 +16,8 @@ from sidebarSettings import SidebarSettings
 from readmeWindow import ReadmeWindow
 from ipc import ReimageListenerThread
 
+from tutorialBubble import TutorialBubble
+
 class ReimageMain(QtWidgets.QMainWindow):
     resizedSignal = QtCore.Signal()
     exportToImageSignal = QtCore.Signal(float)
@@ -121,6 +123,11 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.listenerThread = ReimageListenerThread()
         self.sv.DataSelectionSignal.connect(self.listenerThread.setSelectedData)
         self.listenerThread.start()
+
+        # Experimental tutorial bubbles
+        self.tb = TutorialBubble()
+        self.tb.setText("Welcome to ReImage!")
+        self.tb.show()
 
     def closeEvent(self, event):
         """QWidget handler for the destructor. Do not use __del__ for this!"""
