@@ -77,7 +77,23 @@ This is done with Ctrl-Alt-Click. Most further functionality will use the user's
 
 ### Baud Rate Estimation
 
+This performs a baud rate estimation via a simple cyclostationary method:
+
+$$
+x[n] \rightarrow \mathcal{F} [|x[n]|]
+$$
+
+For PSK modulations, this results in peaks in the resulting spectrum at the baud rate.
+
 ### Frequency Offset Estimation
+
+This performs a frequency offset estimation via a simple cyclostationary method:
+
+$$
+x[n] \rightarrow \mathcal{F}[x[n]^m]
+$$
+
+This works for m-PSK modulations, where the largest peak is found at $mf$ where $f$ is the frequency offset of the signal.
 
 ### Demodulation
 
