@@ -333,7 +333,7 @@ class SignalView(QFrame):
         # Create and save the PlotDataItems as self.p
         if self.timevec is not None:
             length = self.timevec.size
-            self.skip = length // self.target
+            self.skip = max(length // self.target, 1)
             self.idx0 = 0
             self.idx1 = length
 
