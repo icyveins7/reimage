@@ -157,9 +157,20 @@ class SignalView(QFrame):
         self.idx1 = -1
         self.skip = 1
 
+        # # Hide all these at the start
+        # widgetChildren = (self.linearRegionLabelsLayout.itemAt(i) for i in range(self.linearRegionLabelsLayout.count()))
+        # for widgetItem in widgetChildren:
+        #     widgetItem.widget().hide()
+
+
+
     @Slot()
     def onLinearRegionZoomBtnClicked(self):
-        print("TODO: Linear region zoom button clicked")
+        if self.linearRegion is not None:
+            self.p1.vb.setXRange(
+                self.linearRegion.getRegion()[0],
+                self.linearRegion.getRegion()[1]
+            )
 
     @Slot()
     def onLinearRegionEditsFinished(self):
@@ -490,6 +501,12 @@ class SignalView(QFrame):
             self.spw.addItem(self.specLinearRegion)
             # Connect to slot for updates as well
             self.specLinearRegion.sigRegionChanged.connect(self.onSpecRegionChanged)
+
+            # Show the linear region edits/buttons
+            widgetChildren = (self.linearRegionLabelsLayout.itemAt(i) for i in range(self.linearRegionLabelsLayout.count()))
+            for widgetItem in widgetChildren:
+                widgetItem.widget().show()
+
             
     @Slot()
     def deleteLinearRegions(self):
@@ -502,6 +519,11 @@ class SignalView(QFrame):
         self.linearRegionStartEdit.clear()
         self.linearRegionEndEdit.clear()
         self.linearRegionDurationLabel.clear()
+
+        # Hide widgets
+        widgetChildren = (self.linearRegionLabelsLayout.itemAt(i) for i in range(self.linearRegionLabelsLayout.count()))
+        for widgetItem in widgetChildren:
+            widgetItem.widget().hide()
 
     def formatlinearRegionBoundsLabel(self, region):
         self.linearRegionStartEdit.setText("%f" % (region[0]))
