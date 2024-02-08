@@ -157,10 +157,11 @@ class SignalView(QFrame):
         self.idx1 = -1
         self.skip = 1
 
-        # # Hide all these at the start
-        # widgetChildren = (self.linearRegionLabelsLayout.itemAt(i) for i in range(self.linearRegionLabelsLayout.count()))
-        # for widgetItem in widgetChildren:
-        #     widgetItem.widget().hide()
+        # Hide all these at the start
+        widgetChildren = (self.linearRegionLabelsLayout.itemAt(i) for i in range(self.linearRegionLabelsLayout.count()))
+        for widgetItem in widgetChildren:
+            if widgetItem.widget() is not None: # Spacer item returns None
+                widgetItem.widget().hide()
 
 
 
