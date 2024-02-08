@@ -90,11 +90,14 @@ class SignalView(QFrame):
         self.linearRegionEndEdit.setFixedWidth(120)
         self.linearRegionEndEdit.editingFinished.connect(self.onLinearRegionEditsFinished)
         self.linearRegionDurationLabel = QLabel()
+        self.linearRegionZoomBtn = QPushButton("Zoom to Selection")
+        self.linearRegionZoomBtn.clicked.connect(self.onLinearRegionZoomBtnClicked)
 
         self.linearRegionLabelsLayout.addWidget(self.linearRegionStartEdit)
         self.linearRegionLabelsLayout.addWidget(QLabel(":"))
         self.linearRegionLabelsLayout.addWidget(self.linearRegionEndEdit)
         self.linearRegionLabelsLayout.addWidget(self.linearRegionDurationLabel)
+        self.linearRegionLabelsLayout.addWidget(self.linearRegionZoomBtn)
         self.linearRegionLabelsLayout.addStretch()
 
         # Placeholders for linear regions 
@@ -153,6 +156,10 @@ class SignalView(QFrame):
         self.idx0 = 0
         self.idx1 = -1
         self.skip = 1
+
+    @Slot()
+    def onLinearRegionZoomBtnClicked(self):
+        print("TODO: Linear region zoom button clicked")
 
     @Slot()
     def onLinearRegionEditsFinished(self):
