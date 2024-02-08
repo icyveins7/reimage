@@ -250,6 +250,7 @@ class ReimageMain(QtWidgets.QMainWindow):
             'complex float64': np.float64
         }
         self.fileListFrame.fmt = formatsToDtype[newsettings['fmt']]
+        self.fileListFrame.swapEndian = newsettings['swapEndian']
         self.fileListFrame.headersize = newsettings['headersize']
         self.fileListFrame.usefixedlen = newsettings['usefixedlen']
         self.fileListFrame.fixedlen = newsettings['fixedlen']

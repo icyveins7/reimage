@@ -52,6 +52,7 @@ class LoaderSettingsConfig:
         cfg = self.load()
         cfg['DEFAULT'] = {
             "fmt": "complex int16",
+            "swapEndian": "False",
             "headersize": "0",
             "usefixedlen": "False",
             "fixedlen": "-1",
@@ -133,6 +134,10 @@ class LoaderSettingsDialog(QDialog):
         self.datafmtDropdown.addItems(dataformats)
         self.datafmtDropdown.currentTextChanged.connect(self.onDataFmtChanged)
         self.formlayout.addRow("File Data Type", self.datafmtDropdown)
+
+        # Endianness
+        self.endiannessCheckBox = QCheckBox()
+        self.formlayout.addRow("Swap endian-ness", self.endiannessCheckBox)
 
         # Header size
         self.headersizeEdit = QLineEdit()
@@ -379,7 +384,7 @@ class LoaderSettingsDialog(QDialog):
 
             # "usefixedlen": self.fixedlenCheckbox.isChecked(),
             # "fixedlen": int(self.fixedlenEdit.text()) if self.fixedlenEdit.isEnabled() else -1,
-            
+            "swapEndian": self.endiannessCheckBox.isChecked(),    
             "invSpec": self.invertspecCheckbox.isChecked(),
             ###########################
             'nperseg': int(self.specNpersegDropdown.currentText()),
@@ -451,90 +456,104 @@ class LoaderSettingsDialog(QDialog):
     def _loadSelectedConfigToUI(self, cfgname: str):
         cfg = self.config.getConfig(cfgname)
 
-        # Data type
-        self.datafmtDropdown.setCurrentText(cfg.get('fmt'))
+        try:
+            # Data type
+            self.datafmtDropdown.setCurrentText(cfg.get('fmt'))
 
-        # Header size
-        self.headersizeEdit.setText(cfg.get('headersize'))
+            # Endianness
+            self.endiannessCheckBox.setChecked(cfg.getboolean('swapEndian'))
 
-        if len(self.filesizes) == 1:
-            sampleStart = cfg.getint('sampleStart')
-            span = self.sampleStartSlider.maximum() - self.sampleStartSlider.minimum()
-            ## Yes, yes this is repeated.. TODO
-            headerBytes = int(self.headersizeEdit.text()) if self.headersizeEdit.text() != "" else 0
-            expectedSamples = self.parseExpectedSamplesInFiles(
-                headerBytes,  
-                self.bytesPerSample[self.datafmtDropdown.currentText()]
-            )
-            # We must scale it to the slider values
-            self.sampleStartEdit.setText(str(int(sampleStart)))
-            oldstate = self.sampleStartSlider.blockSignals(True) # Remember to block slider signals
-            self.sampleStartSlider.setValue(int(sampleStart/expectedSamples[0] * span))
-            self.sampleStartSlider.blockSignals(oldstate)
-            # Only set the ending if the fixedlen is specified
-            if cfg.getint('fixedlen') >= 0:
-                sampleEnd = sampleStart + cfg.getint('fixedlen')
-                self.sampleEndEdit.setText(str(int(sampleEnd)))
-                oldstate = self.sampleEndSlider.blockSignals(True) # Remember to block slider signals
-                self.sampleEndSlider.setValue(int(sampleEnd/expectedSamples[0] * span))
-                self.sampleEndSlider.blockSignals(oldstate)
-                
+            # Header size
+            self.headersizeEdit.setText(cfg.get('headersize'))
 
-        else:
-            # Fixed Length
-            if cfg.getboolean('usefixedlen'):
-                self.fixedlenCheckbox.setChecked(True)
-                self.fixedlenEdit.setEnabled(True)
-                self.fixedlenEdit.setText(cfg.get('fixedlen'))
+            if len(self.filesizes) == 1:
+                sampleStart = cfg.getint('sampleStart')
+                span = self.sampleStartSlider.maximum() - self.sampleStartSlider.minimum()
+                ## Yes, yes this is repeated.. TODO
+                headerBytes = int(self.headersizeEdit.text()) if self.headersizeEdit.text() != "" else 0
+                expectedSamples = self.parseExpectedSamplesInFiles(
+                    headerBytes,  
+                    self.bytesPerSample[self.datafmtDropdown.currentText()]
+                )
+                # We must scale it to the slider values
+                self.sampleStartEdit.setText(str(int(sampleStart)))
+                oldstate = self.sampleStartSlider.blockSignals(True) # Remember to block slider signals
+                self.sampleStartSlider.setValue(int(sampleStart/expectedSamples[0] * span))
+                self.sampleStartSlider.blockSignals(oldstate)
+                # Only set the ending if the fixedlen is specified
+                if cfg.getint('fixedlen') >= 0:
+                    sampleEnd = sampleStart + cfg.getint('fixedlen')
+                    self.sampleEndEdit.setText(str(int(sampleEnd)))
+                    oldstate = self.sampleEndSlider.blockSignals(True) # Remember to block slider signals
+                    self.sampleEndSlider.setValue(int(sampleEnd/expectedSamples[0] * span))
+                    self.sampleEndSlider.blockSignals(oldstate)
+                    
+
             else:
-                self.fixedlenCheckbox.setChecked(False)
-                self.fixedlenEdit.setEnabled(False)
+                # Fixed Length
+                if cfg.getboolean('usefixedlen'):
+                    self.fixedlenCheckbox.setChecked(True)
+                    self.fixedlenEdit.setEnabled(True)
+                    self.fixedlenEdit.setText(cfg.get('fixedlen'))
+                else:
+                    self.fixedlenCheckbox.setChecked(False)
+                    self.fixedlenEdit.setEnabled(False)
 
-        # Inverted Spectrum
-        self.invertspecCheckbox.setChecked(cfg.getboolean('invSpec'))
+            # Inverted Spectrum
+            self.invertspecCheckbox.setChecked(cfg.getboolean('invSpec'))
 
-        #################################
-        # Specgram nperseg
-        self.specNpersegDropdown.setCurrentText(cfg.get('nperseg'))
+            #################################
+            # Specgram nperseg
+            self.specNpersegDropdown.setCurrentText(cfg.get('nperseg'))
 
-        # Specgram Noverlap
-        self.specNoverlapSpinbox.setValue(cfg.getint('noverlap'))
+            # Specgram Noverlap
+            self.specNoverlapSpinbox.setValue(cfg.getint('noverlap'))
 
-        # Sample Rate
-        self.fsEdit.setText(cfg.get('fs'))
+            # Sample Rate
+            self.fsEdit.setText(cfg.get('fs'))
 
-        # Centre Frequency (this is really just for display purposes)
-        self.fcEdit.setText(cfg.get('fc'))
+            # Centre Frequency (this is really just for display purposes)
+            self.fcEdit.setText(cfg.get('fc'))
 
-        # Frequency shift
-        if cfg.get('freqshift') is not None and cfg.get('freqshift') != "":
-            self.freqshiftCheckbox.setChecked(True)
-            self.freqshiftEdit.setEnabled(True)
-            self.freqshiftEdit.setText(cfg.get('freqshift'))
-        else:
-            self.freqshiftCheckbox.setChecked(False)
-            self.freqshiftEdit.setEnabled(False)
+            # Frequency shift
+            if cfg.get('freqshift') is not None and cfg.get('freqshift') != "":
+                self.freqshiftCheckbox.setChecked(True)
+                self.freqshiftEdit.setEnabled(True)
+                self.freqshiftEdit.setText(cfg.get('freqshift'))
+            else:
+                self.freqshiftCheckbox.setChecked(False)
+                self.freqshiftEdit.setEnabled(False)
 
-        # Filtering
-        if cfg.get('numTaps') is not None and cfg.get('numTaps') != "":
-            self.filterCheckbox.setChecked(True)
-            self.numTapsDropdown.setEnabled(True)
-            self.numTapsDropdown.setCurrentText(cfg.get('numTaps'))
-            self.cutoffEdit.setEnabled(True)
-            self.cutoffEdit.setText(cfg.get('filtercutoff'))
-        else:
-            self.filterCheckbox.setChecked(False)
-            self.numTapsDropdown.setEnabled(False)
-            self.cutoffEdit.setEnabled(False)
+            # Filtering
+            if cfg.get('numTaps') is not None and cfg.get('numTaps') != "":
+                self.filterCheckbox.setChecked(True)
+                self.numTapsDropdown.setEnabled(True)
+                self.numTapsDropdown.setCurrentText(cfg.get('numTaps'))
+                self.cutoffEdit.setEnabled(True)
+                self.cutoffEdit.setText(cfg.get('filtercutoff'))
+            else:
+                self.filterCheckbox.setChecked(False)
+                self.numTapsDropdown.setEnabled(False)
+                self.cutoffEdit.setEnabled(False)
 
-        # Downsampling
-        if cfg.get('dsr') is not None and cfg.get('dsr') != "":
-            self.downsampleCheckbox.setChecked(True)
-            self.downsampleEdit.setEnabled(True)
-            self.downsampleEdit.setText(cfg.get('dsr'))
-        else:
-            self.downsampleCheckbox.setChecked(False)
-            self.downsampleEdit.setEnabled(False)
+            # Downsampling
+            if cfg.get('dsr') is not None and cfg.get('dsr') != "":
+                self.downsampleCheckbox.setChecked(True)
+                self.downsampleEdit.setEnabled(True)
+                self.downsampleEdit.setText(cfg.get('dsr'))
+            else:
+                self.downsampleCheckbox.setChecked(False)
+                self.downsampleEdit.setEnabled(False)
+
+        except Exception as e:
+            # This usually occurs when you change the loadersettings, then 
+            # the old file will not have the correct keys.
+            # Easiest way to deal with this is to just regenerate the default file
+            self.config = None # Reset it
+            os.remove(LoaderSettingsConfig.loaderSettingsFile) # Delete
+            self.config = LoaderSettingsConfig()
+            # Recursively call self?
+            self._loadSelectedConfigToUI(cfgname)
 
     def _populateConfigs(self):
         savedcfgs = self.config.getSavedConfigs()

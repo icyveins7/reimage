@@ -101,6 +101,7 @@ class FileListFrame(QFrame):
 
         # File settings
         self.fmt = np.int16
+        self.swapEndian = False
         self.headersize = 0
         self.usefixedlen = False
         self.fixedlen = -1
@@ -361,7 +362,11 @@ class FileListFrame(QFrame):
 
         self.refreshOrderWidget()
 
-        data = np.array(data).flatten().astype(np.float32).view(np.complex64)
+        data = np.array(data).flatten()
+        if self.swapEndian:
+            print("Swapping endianness as requested")
+            data = data.byteswap(inplace=True)
+        data = data.astype(np.float32).view(np.complex64)
         if self.invSpec:
             data = data.conj()
         self.dataSignal.emit(data, filepaths, sampleStarts)
