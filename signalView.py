@@ -506,7 +506,8 @@ class SignalView(QFrame):
             # Show the linear region edits/buttons
             widgetChildren = (self.linearRegionLabelsLayout.itemAt(i) for i in range(self.linearRegionLabelsLayout.count()))
             for widgetItem in widgetChildren:
-                widgetItem.widget().show()
+                if widgetItem.widget() is not None:
+                    widgetItem.widget().show()
 
             
     @Slot()
@@ -524,7 +525,8 @@ class SignalView(QFrame):
         # Hide widgets
         widgetChildren = (self.linearRegionLabelsLayout.itemAt(i) for i in range(self.linearRegionLabelsLayout.count()))
         for widgetItem in widgetChildren:
-            widgetItem.widget().hide()
+            if widgetItem.widget() is not None:
+                widgetItem.widget().hide()
 
     def formatlinearRegionBoundsLabel(self, region):
         self.linearRegionStartEdit.setText("%f" % (region[0]))

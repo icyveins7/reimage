@@ -59,7 +59,9 @@ class FFTWindow(QMainWindow):
 
     def setupFFTMedfiltDropdown(self):
         self.fftmedfiltDropdown = QComboBox()
-        self.fftmedfiltDropdown.addItems([str(i) for i in np.arange(10)*2 + 15]) # Needs to be odd numbers
+        medfiltOptions = [str(i) for i in np.arange(10)*2 + 15] # Needs to be odd numbers
+        medfiltOptions.insert(0, "None")
+        self.fftmedfiltDropdown.addItems(medfiltOptions)         
         self.fftlenLayout.addWidget(self.fftmedfiltDropdown)
         self.fftmedfiltDropdown.activated.connect(self.on_fftmedfilt_selected)
 
@@ -82,12 +84,17 @@ class FFTWindow(QMainWindow):
         self.plot_medfilt()
 
     def plot_medfilt(self):
-        self.medfiltData = sps.medfilt(
-            np.abs(self.fftData),
-            kernel_size=int(self.fftmedfiltDropdown.currentText())
-        )
-        self.pltmed.setData(
-            x=np.fft.fftshift(makeFreq(int(self.fftlenDropdown.currentText()), self.fs)),
-            y=20*np.log10(self.medfiltData),
-            pen='r'
-        )
+        if self.fftmedfiltDropdown.currentText() == "None":
+            # Remove the plot item data
+            self.pltmed.setData() # Just leave this blank
+
+        else:
+            self.medfiltData = sps.medfilt(
+                np.abs(self.fftData),
+                kernel_size=int(self.fftmedfiltDropdown.currentText())
+            )
+            self.pltmed.setData(
+                x=np.fft.fftshift(makeFreq(int(self.fftlenDropdown.currentText()), self.fs)),
+                y=20*np.log10(self.medfiltData),
+                pen='r'
+            )
