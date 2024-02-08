@@ -396,17 +396,31 @@ class SignalView(QFrame):
         
 
     def plotSpecgram(self, window=('tukey',0.25), auto_transpose=False):
+        # Always extract displayed sample rate first
         dfs = self.getDisplayedFs()
-        self.freqs, self.ts, self.sxx = sps.spectrogram(
-            self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, 
-            return_onesided=False, detrend=False
-        )
-        # print(self.sxx.shape) # This is (nfft, self.ts.size)
+
+        # Handle the case where not enough to even plot 1 segment
+        if self.ydata.size < self.nperseg:
+            self.freqs, self.ts, self.sxx = sps.spectrogram(
+                np.pad(self.ydata,(0,self.nperseg-self.ydata.size)), dfs, window, self.nperseg, self.noverlap, self.nperseg, 
+                return_onesided=False, detrend=False
+            )
+        else:
+            self.freqs, self.ts, self.sxx = sps.spectrogram(
+                self.ydata, dfs, window, self.nperseg, self.noverlap, self.nperseg, 
+                return_onesided=False, detrend=False
+            )
+
+        print(self.sxx.shape) # This is (nfft, self.ts.size)
 
         # Calculate resolutions for later
         self.specFreqRes = dfs / self.nperseg
         # print(self.specFreqRes, self.freqs[1]-self.freqs[0]) # confirmed the same
-        self.specTimeRes = self.ts[1] - self.ts[0]
+
+        # self.specTimeRes = self.ts[1] - self.ts[0]
+        # print(self.specTimeRes) # This is the same as below, so use the below form to not rely on the array generated
+        # print((self.nperseg-self.noverlap)/dfs)
+        self.specTimeRes = (self.nperseg-self.noverlap)/dfs
 
         self.freqs = np.fft.fftshift(self.freqs) + self.fc # Offset by the centre freq
         self.sxx = np.fft.fftshift(self.sxx, axes=0)
