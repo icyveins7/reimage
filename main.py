@@ -137,6 +137,17 @@ class ReimageMain(QtWidgets.QMainWindow):
     @QtCore.Slot(np.ndarray, list, list)
     def onNewData(self, data, filelist, sampleStarts):
         self.sv.setYData(data, filelist, sampleStarts) # this calls the plot automatically
+        self.tb = TutorialBubble(
+            "Look at the toolbar below for shortcuts to interact with the data.\n\n"
+            "Hold Left-Click to pan\n"
+            "Hold Right-Click to stretch\n"
+            "Scroll Up/Down to zoom\n",
+            self,
+            (
+               self.frameGeometry().width()/2,
+               self.frameGeometry().height()/2+100, # Move down 100 pixels roughly
+            )
+        )
 
     def setupMenu(self):
         self.menubar = QtWidgets.QMenuBar()

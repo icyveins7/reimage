@@ -47,14 +47,19 @@ class TutorialBubble(QMessageBox):
             """
         )
 
+        
+        if relativeToParent is None:
+            # Move to center of screen
+            self.centerPos()
+        else:
+            self.moveRelativeToParent(relativeToParent)
+ 
        
         # You must show first, before the .width()/.height() is properly evaluated
         # self.setModal(True) # Doing this makes it flicker back and forth, just set parent and it should work
         self.show()
 
-        # # Move to center of screen
-        self.centerPos()
- 
+
         # This seems like a decent way to get it working... 
         # Taken from https://forum.qt.io/topic/61117/setting-border-radius-does-not-clip-the-background/3
         self.painterPath = QPainterPath()
@@ -63,6 +68,7 @@ class TutorialBubble(QMessageBox):
 
 
     def centerPos(self):
+        """Centre in the middle of the screen, not the parent widget."""
         # Taken from https://stackoverflow.com/questions/12432740/pyqt4-what-is-the-best-way-to-center-dialog-windows
         # Note that QGuiApplication is used now in PySide6 
         # This works the best out of all the googled methods!
@@ -70,4 +76,14 @@ class TutorialBubble(QMessageBox):
         cp = QGuiApplication.primaryScreen().availableGeometry().center()
         qr.moveCenter(cp)
         self.move(qr.topLeft())
+
+    def moveRelativeToParent(self, pixelsRelativeToParent):
+        """
+        Move relative to top left corner of parent widget,
+        accounting for current size of the bubble? 
+        """
+        self.move(
+            self.parent.x()-self.frameGeometry().width()+pixelsRelativeToParent[0], 
+            self.parent.y()-self.frameGeometry().height()+pixelsRelativeToParent[1]
+        )
 
