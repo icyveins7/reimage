@@ -146,7 +146,8 @@ class ReimageMain(QtWidgets.QMainWindow):
             (
                self.frameGeometry().width()/2,
                self.frameGeometry().height()/2+100, # Move down 100 pixels roughly
-            )
+            ),
+            key='onNewData'
         )
 
     def setupMenu(self):
