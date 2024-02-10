@@ -122,6 +122,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         # Add the side-thread for export/import of data
         self.listenerThread = ReimageListenerThread()
         self.sv.DataSelectionSignal.connect(self.listenerThread.setSelectedData)
+        self.listenerThread.IMPORT_COMMAND_SIGNAL.connect(self.handleIpcImportData)
         self.listenerThread.start()
 
         # Experimental tutorial bubbles
@@ -251,6 +252,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.sv.noverlap = newsettings['noverlap']
         self.sv.fs = newsettings['fs']
         self.sv.fc = newsettings['fc']
+        # Above settings only change visuals; used in ipc methods
+        # Following settings actually change the signal
         self.sv.freqshift = newsettings['freqshift']
         self.sv.numTaps = newsettings['numTaps']
         self.sv.filtercutoff = newsettings['filtercutoff']
@@ -272,6 +275,32 @@ class ReimageMain(QtWidgets.QMainWindow):
     def resizeEvent(self, event):
         self.resizedSignal.emit()
         super().resizeEvent(event)
+
+    @QtCore.Slot(np.ndarray, float)
+    def handleIpcImportData(
+        self,
+        data: np.ndarray, 
+        fs: float,
+        fc: float=0.0,
+        nperseg: int=128, # Referenced from loaderSettings
+        noverlap: int=16
+    ):
+        # Show a confirmation dialog
+        ret = QtWidgets.QMessageBox.question(
+            self, "Plot imported data",
+            "A request was made to plot imported data."
+            "This will override any current plots.\n"
+            "Would you like to proceed?",
+        )
+        if ret == QtWidgets.QMessageBox.StandardButton.Yes:
+            # Set the settings
+            self.sv.fs = fs
+            self.sv.fc = fc
+            self.sv.nperseg = nperseg
+            self.sv.noverlap = noverlap
+
+            # Then call the slot
+            self.sv.setYData(data, [], [])
         
 
 

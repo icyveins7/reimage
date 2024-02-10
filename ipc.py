@@ -15,10 +15,14 @@ class ReimageListenerThread(QThread):
     EXIT_COMMAND = b'0'
     EXPORT_COMMAND = b'1'
     EXPORT_RAW_COMMAND = b'2'
+    IMPORT_COMMAND = b'3'
     RAW_DTYPE = {
         np.dtype('complex64'): b'0',
         np.dtype('complex128'): b'1'
     }
+
+    # Define the signals
+    IMPORT_COMMAND_SIGNAL = Signal(np.ndarray, float)
 
     # Going to leave the attached data here instead of as an instance variable
     # since it doesn't really matter..
@@ -64,10 +68,17 @@ class ReimageListenerThread(QThread):
                             conn.send_bytes(self.RAW_DTYPE[self.reimSelectedData.dtype])
                             conn.send_bytes(self.reimSelectedData.tobytes())
 
+                        elif cmd == self.IMPORT_COMMAND:
+                            # Used for importing from python interpreters (or anything that can pickle)
+                            print("Importing pickled data.")
+                            package = pickle.loads(conn.recv_bytes())
+                            self.IMPORT_COMMAND_SIGNAL.emit(
+                                package['data'],
+                                package['fs']
+                            )
+
                         else:
-                            # Receive data for plotting
-                            print("Receiving data.")
-                            print(pickle.loads(cmd))
+                            raise TypeError("Unknown command: %s" % (str(cmd)))
 
                 except EOFError as e:
                     print("EOFError: %s" % (str(e)))
@@ -132,24 +143,32 @@ def getReimageDataRaw(address: tuple=reimage_default_address):
 def sendReimageData(
     data: np.ndarray,
     fs: float=1.0,
+    fc: float=0.0,
+    nperseg: int=128,
+    noverlap: int=16,
     address: tuple=reimage_default_address
 ):
+    # Check type
+    if not np.iscomplexobj(data): 
+        raise TypeError("Data must be complex64 or complex128")
+    
+    # Cast to complex64 if complex128
+    data = data.astype(np.complex64)
+
     # Pickle the item first
     pickled = pickle.dumps(
         {
             'data': data,
-            'fs': fs
+            'fs': fs,
+            'fc': fc,
+            'nperseg': nperseg,
+            'noverlap': noverlap
         }
     )
 
-    # TODO:
-    # 1) Get default config
-    # 2) Set the bare minimum; don't allow anything beyond fs/nfft setting
-    # 3) Set this config in main
-    # 4) Set the new YData in signal view
-
     # Send it
     with Client(address) as conn:
+        conn.send_bytes(ReimageListenerThread.IMPORT_COMMAND)
         conn.send_bytes(pickled)
 
 
