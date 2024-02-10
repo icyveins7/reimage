@@ -10,6 +10,11 @@ In particular, ReImage attempts to maximise smoothness (frames-per-second) of pl
 
 After the initial loading, scrolling in and out of plots of up to 500M samples or more is still buttery-smooth (at least for me!).
 
+There are two main use-cases for ReImage:
+
+1. Plotting large number of samples from files.
+2. (Experimental) Exporting/importing of data to/from Python/MATLAB. This lets you use ReImage like a plotting library with a smoother user experience for large arrays.
+
 ## Installation and Usage (From Source)
 
 To run it from source, it is advisable to create a new virtual environment first; many of the PySide vs PyQt libraries do not play well with each other, so this is highly advised.
