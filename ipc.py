@@ -16,6 +16,7 @@ class ReimageListenerThread(QThread):
     EXPORT_COMMAND = b'1'
     EXPORT_RAW_COMMAND = b'2'
     IMPORT_COMMAND = b'3'
+    IMPORT_RAW_COMMAND = b'4'
     RAW_DTYPE = {
         np.dtype('complex64'): b'0',
         np.dtype('complex128'): b'1'
@@ -77,6 +78,21 @@ class ReimageListenerThread(QThread):
                                 package['fs']
                             )
 
+                        elif cmd == self.IMPORT_RAW_COMMAND:
+                            # Use for importing from MATLAB or any non-pickle interface
+                            print("Importing raw data array.")
+                            # Custom header packing
+                            # 1) fs: 8-byte double
+                            # 2) fc: 8-byte double
+                            # 3) nperseg: 4-byte int32
+                            # 4) noverlap: 4-byte int32
+                            rawheader = conn.recv_bytes(24)
+                            fs = np.frombuffer(rawheader[:8], dtype=np.float64)[0]
+                            fc = np.frombuffer(rawheader[8:16], dtype=np.float64)[0]
+                            nperseg = np.frombuffer(rawheader[16:20], dtype=np.int32)[0]
+                            noverlap = np.frombuffer(rawheader[20:24], dtype=np.int32)[0]
+                            print("fs: {}, fc: {}, nperseg: {}, noverlap: {}".format(fs, fc, nperseg, noverlap))
+                            # data = np.frombuffer(conn.recv_bytes(), dtype=np.complex64)
                         else:
                             raise TypeError("Unknown command: %s" % (str(cmd)))
 
