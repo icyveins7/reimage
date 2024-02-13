@@ -92,7 +92,11 @@ class ReimageListenerThread(QThread):
                             nperseg = np.frombuffer(rawheader[16:20], dtype=np.int32)[0]
                             noverlap = np.frombuffer(rawheader[20:24], dtype=np.int32)[0]
                             print("fs: {}, fc: {}, nperseg: {}, noverlap: {}".format(fs, fc, nperseg, noverlap))
-                            # data = np.frombuffer(conn.recv_bytes(), dtype=np.complex64)
+                            data = np.frombuffer(conn.recv_bytes(), dtype=np.complex64)
+                            self.IMPORT_COMMAND_SIGNAL.emit(
+                                data,
+                                fs 
+                            )
                         else:
                             raise TypeError("Unknown command: %s" % (str(cmd)))
 

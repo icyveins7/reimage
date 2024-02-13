@@ -1,4 +1,4 @@
-function data = sendReimageData(data, varargin)
+function sendReimageData(data, varargin)
     % Write defaults
     fs = 1.0;
     fc = 0.0;
@@ -8,24 +8,26 @@ function data = sendReimageData(data, varargin)
     port = 5000;
 
     % Parse varargin
-    if nargin <= 2
-        fs = varargin{1};
+    if length(varargin) >= 1 
+        if size(varargin) <= 2
+            fs = varargin{1};
+        end
+        if size(varargin) <= 3
+            fc = varargin{2};
+        end
+        if size(varargin) <= 4
+            nperseg = varargin{3};
+        end
+        if size(varargin) <= 5
+            noverlap = varargin{4};
+        end
+        if size(varargin) <= 6
+            ipaddr = varargin{5};
+        end
+        if size(varargin) <= 7
+            port = varargin{6};
+        end 
     end
-    if nargin <= 3
-        fc = varargin{2};
-    end
-    if nargin <= 4
-        nperseg = varargin{3};
-    end
-    if nargin <= 5
-        noverlap = varargin{4};
-    end
-    if nargin <= 6
-        ipaddr = varargin{5};
-    end
-    if nargin <= 7
-        port = varargin{6};
-    end 
 
     client = tcpclient(ipaddr, port);
 
@@ -36,36 +38,28 @@ function data = sendReimageData(data, varargin)
     msg = uint8([0, 0, 0, 1, 52]); % we write it in this order which python expects
     client.write(msg);
 
-    % Create the header of the 4 values
+    % Create the header of the 4 values, 24 bytes
+    header = uint8([0,0,0,24]);
     % Cast explicitly to double, then typecast to uint8
-
+    header = [header typecast(double(fs), 'uint8')];
     % Same for fc
-
+    header = [header typecast(double(fc), 'uint8')];
     % Cast explicitly to int32, then typecast to uint8
-
+    header = [header typecast(int32(nperseg), 'uint8')];
     % Same for noverlap
-
+    header = [header typecast(int32(noverlap), 'uint8')];
     % Send header
+    client.write(header);
 
-
-
-    % Read the type (4 bytes + 1 byte payload always)
-    datatype = client.read(5); % we can ignore the size since we know it
-    datatype = datatype(5);
-    % Read the data (4 bytes + the payload remainder)
-    rawbyteslength = client.read(4);
-    % must swapbytes to get correct length
-    rawbyteslength = swapbytes(typecast(rawbyteslength, 'uint32')); 
-    % Read the actual payload
-    rawbytes = client.read(rawbyteslength);
-
-    % Cast the data
-    if datatype == uint8('0')
-        data = typecast(rawbytes, 'single');
-    elseif datatype == uint8('1')
-        data = typecast(rawbytes, 'double');
-    end
-    
-    data = complex(data(1:2:end), data(2:2:end));
+    % Send actual data
+    % Cast as complex singles
+    % Matlab has no typecast for complex arrays, so we have to extract and reshape
+    cdata = reshape([real(data); imag(data)], 1, []); % First into row vector
+    cdata = single(cdata); % Then cast to single
+    cdata = typecast(cdata, 'uint8');
+    cdatalength = typecast(swapbytes(uint32([length(cdata)])), 'uint8');
+    % Send it
+    sdata = [cdatalength cdata];
+    client.write(sdata);
 
 end
