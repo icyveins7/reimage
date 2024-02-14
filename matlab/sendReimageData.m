@@ -9,22 +9,22 @@ function sendReimageData(data, varargin)
 
     % Parse varargin
     if length(varargin) >= 1 
-        if size(varargin) <= 2
+        if length(varargin) >= 2
             fs = varargin{1};
         end
-        if size(varargin) <= 3
+        if length(varargin) >= 3
             fc = varargin{2};
         end
-        if size(varargin) <= 4
+        if length(varargin) >= 4
             nperseg = varargin{3};
         end
-        if size(varargin) <= 5
+        if length(varargin) >= 5
             noverlap = varargin{4};
         end
-        if size(varargin) <= 6
+        if length(varargin) >= 6
             ipaddr = varargin{5};
         end
-        if size(varargin) <= 7
+        if length(varargin) >= 7
             port = varargin{6};
         end 
     end
@@ -54,7 +54,9 @@ function sendReimageData(data, varargin)
     % Send actual data
     % Cast as complex singles
     % Matlab has no typecast for complex arrays, so we have to extract and reshape
-    cdata = reshape([real(data); imag(data)], 1, []); % First into row vector
+    % If data is a column, reshape to a row first
+    cdata = reshape(data, 1, []);
+    cdata = reshape([real(cdata); imag(cdata)], 1, []); % First into row vector
     cdata = single(cdata); % Then cast to single
     cdata = typecast(cdata, 'uint8');
     cdatalength = typecast(swapbytes(uint32([length(cdata)])), 'uint8');
