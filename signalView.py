@@ -509,7 +509,7 @@ class SignalView(QFrame):
                 if widgetItem.widget() is not None:
                     widgetItem.widget().show()
 
-            
+
     @Slot()
     def deleteLinearRegions(self):
         self.p1.removeItem(self.linearRegion)
@@ -529,9 +529,9 @@ class SignalView(QFrame):
                 widgetItem.widget().hide()
 
     def formatlinearRegionBoundsLabel(self, region):
-        self.linearRegionStartEdit.setText("%f" % (region[0]))
-        self.linearRegionEndEdit.setText("%f" % (region[1]))
-        self.linearRegionDurationLabel.setText("(%f)" % (region[1]-region[0]))
+        self.linearRegionStartEdit.setText("%.9f" % (region[0]))
+        self.linearRegionEndEdit.setText("%.9f" % (region[1]))
+        self.linearRegionDurationLabel.setText("(%.9f)" % (region[1]-region[0]))
 
 
     @Slot()
