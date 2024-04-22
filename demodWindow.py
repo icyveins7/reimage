@@ -9,6 +9,7 @@ from functools import partial
 
 from dsp import makeFreq, SimpleDemodulatorBPSK, SimpleDemodulatorQPSK, SimpleDemodulator8PSK, SimpleDemodulatorPSK
 
+
 class DemodWindow(QMainWindow):
     def __init__(self, slicedData=None, startIdx=None, endIdx=None, fs=1.0):
         super().__init__()
@@ -34,7 +35,7 @@ class DemodWindow(QMainWindow):
         self.layout.addLayout(self.btmLayout)
 
         # Plots
-        self.setupPlots() # This has to be before setupOptions for layout reasons
+        self.setupPlots()  # This has to be before setupOptions for layout reasons
 
         # Options menus
         self.setupOptions()
@@ -45,6 +46,10 @@ class DemodWindow(QMainWindow):
         # Object holder for the demodulator
         self.demodulator = None
 
+        # Holders for the demodulator constellation selection
+        self.txtanchor = None  # These follow QTextCursor
+        self.txtposition = None
+
     def setupBitsViews(self):
         self.rotGrpBox = QGroupBox()
         self.btmLayout.addWidget(self.rotGrpBox)
@@ -52,7 +57,7 @@ class DemodWindow(QMainWindow):
         self.rotGrpBox.setLayout(self.rotGrpLayout)
         # Preload many radio buttons
         self.rotRadioBtns = [
-            QRadioButton() for i in range(8) # For now, 8 maximum
+            QRadioButton() for i in range(8)  # For now, 8 maximum
         ]
         for i, btn in enumerate(self.rotRadioBtns):
             self.rotGrpLayout.addWidget(btn)
@@ -61,8 +66,13 @@ class DemodWindow(QMainWindow):
             # Connect it
             btn.clicked.connect(partial(self.rotChanged, i))
 
+        self.phaseBrowser = QTextBrowser()
+        self.phaseBrowser.setFontFamily("Monospace")
+        self.phaseBrowser.selectionChanged.connect(self.onPhaseBrowserSelectionChanged)
+        self.btmLayout.addWidget(self.phaseBrowser)
+
         self.hexBrowser = QTextBrowser()
-        self.hexBrowser.setMinimumHeight(300)
+        # self.hexBrowser.setMinimumHeight(300)
         self.hexBrowser.setFontFamily("Monospace")
         self.btmLayout.addWidget(self.hexBrowser)
 
@@ -71,22 +81,28 @@ class DemodWindow(QMainWindow):
         self.btmLayout.addWidget(self.asciiBrowser)
 
     def setupPlots(self):
+        # ==== Top layout
+        # Left: abs plot with selection controls below,
+        # right: main demod options (see setupOptions)
         self.abswin = pg.GraphicsLayoutWidget()
         self.topLayout.addWidget(self.abswin)
-        self.absplt = self.abswin.addPlot()
-        self.abspltitem = self.absplt.plot(np.arange(self.slicedData.size)/self.fs, np.abs(self.slicedData))
 
+        self.absplt = self.abswin.addPlot()
+        self.abspltitem = self.absplt.plot(
+            np.arange(self.slicedData.size)/self.fs, np.abs(self.slicedData))
+
+        # ==== Vertical middle layout
+        # Left: the eye opening plot, right: the constellation plot
         self.rwin = pg.GraphicsLayoutWidget()
         self.rwin.setMinimumHeight(300)
         self.midLayout.addWidget(self.rwin)
-        self.eoplt = self.rwin.addPlot(0,0)
-        self.conplt = self.rwin.addPlot(0,1)
+        self.eoplt = self.rwin.addPlot(0, 0)
+        self.conplt = self.rwin.addPlot(0, 1)
 
         self.symSizeSlider = QSlider(Qt.Vertical)
         self.symSizeSlider.setRange(1, 100)
         self.midLayout.addWidget(self.symSizeSlider)
         self.symSizeSlider.valueChanged.connect(self.adjustSymSize)
-
 
     def setupOptions(self):
         self.optOuterLayout = QVBoxLayout()
@@ -106,7 +122,8 @@ class DemodWindow(QMainWindow):
 
         self.baud = 1
         self.baudSpinbox = QSpinBox()
-        self.baudSpinbox.setRange(1, 2147483647) # Arbitrarily set maximum to int32 max
+        # Arbitrarily set maximum to int32 max
+        self.baudSpinbox.setRange(1, 2147483647)
         self.baudSpinbox.valueChanged.connect(self.setBaud)
         self.optLayout.addRow("Baud Rate", self.baudSpinbox)
 
@@ -123,7 +140,7 @@ class DemodWindow(QMainWindow):
         self.optLayout.addRow("Output Sample Rate: ", self.finalfsLabel)
 
         # Call the slot once to initialize the other values
-        self.osrChanged(self.osr) 
+        self.osrChanged(self.osr)
 
         self.demodBtn = QPushButton("Demodulate")
         self.demodBtn.clicked.connect(self.runDemod)
@@ -140,7 +157,6 @@ class DemodWindow(QMainWindow):
         # Re-evaluate the resampling factors
         self.evaluateResampling()
 
-
     @Slot(int)
     def osrChanged(self, osr):
         self.osr = osr
@@ -150,7 +166,8 @@ class DemodWindow(QMainWindow):
     def evaluateResampling(self):
         # Evaluate the resample factors
         self.up = np.lcm(self.fs, self.osr * self.baud) // self.fs
-        self.down = np.lcm(self.fs, self.osr * self.baud) // (self.baud * self.osr)
+        self.down = np.lcm(self.fs, self.osr *
+                           self.baud) // (self.baud * self.osr)
         self.finalfs = self.osr * self.baud
         # Place them in their widgets
         self.updownLabel.setText("%d/%d" % (self.up, self.down))
@@ -170,7 +187,6 @@ class DemodWindow(QMainWindow):
             print("Created 8PSK")
         else:
             self.demodulator = None
-
 
     @Slot()
     def runDemod(self):
@@ -194,49 +210,68 @@ class DemodWindow(QMainWindow):
             resampled = sps.resample_poly(self.slicedData, self.up, self.down)
         else:
             resampled = self.slicedData
-        
+
         # Run demodulator
         if resampled.size % self.osr != 0:
             resampled = resampled[:-(resampled.size % self.osr)]
-        self.demodulator.demod(resampled.astype(np.complex64), self.osr, verb=False)
+        self.demodulator.demod(resampled.astype(
+            np.complex64), self.osr, verb=False)
 
         # Plot the eye-opening
+        self.eoplt.clear()  # Clear plot for re-runs
         self.eopltitem = self.eoplt.plot(
             self.demodulator.eo_metric
         )
+
         # Plot the constellation
-        maxbound = np.max(self.demodulator.reimc.view(np.float32)) * 1.5
-        self.conpltitem = self.conplt.plot(
-            np.real(self.demodulator.reimc),
-            np.imag(self.demodulator.reimc),
-            symbol='o',
-            symbolPen=None,
-            symbolBrush='w',
-            pen=None
-        )
-        self.maxSymbolSize = self.conpltitem.opts['symbolSize']
-        self.symSizeSlider.setValue(100) # Maximum at the start
-        self.conplt.setLimits(
-            xMin=-maxbound*2,
-            xMax=maxbound*2, # Need longer range for x when window is viewed in standard 16:9
-            yMin=-maxbound,
-            yMax=maxbound
-        ) 
-        self.conplt.setAspectLocked()
+        self.plotConstellation()
 
         # Update the options for rotation
         self.updateRotations()
 
         # Interpret and post to text browsers
         self.interpret()
-        
 
-    def interpret(self, phaseSymShift: int=0):
+    def plotConstellation(self, start: int = 0, end: int = None):
+        # Default to plot all
+        if end is None:
+            end = self.demodulator.reimc.size
+
+        self.conplt.clear()  # Clear plot for re-runs
+
+        # Plot the constellation
+        maxbound = np.max(self.demodulator.reimc.view(np.float32)) * 1.5
+        self.conpltitem = self.conplt.plot(
+            np.real(self.demodulator.reimc[start:end]),
+            np.imag(self.demodulator.reimc[start:end]),
+            symbol='o',
+            symbolPen=None,
+            symbolBrush='w',
+            pen=None
+        )
+        self.maxSymbolSize = self.conpltitem.opts['symbolSize']
+        self.symSizeSlider.setValue(100)  # Maximum at the start
+        self.conplt.setLimits(
+            xMin=-maxbound*2,
+            xMax=maxbound*2,  # Need longer range for x when window is viewed in standard 16:9
+            yMin=-maxbound,
+            yMax=maxbound
+        )
+        self.conplt.setAspectLocked()
+
+
+    def interpret(self, phaseSymShift: int = 0):
+        # ======= Update the text browsers
+        # The phase browser ignores the plain text selection
+        self.phaseBrowser.setPlainText(
+            "".join(["%d" % (i) for i in self.demodulator.syms])
+        )
+
         # Search for the one with the best readable text
-        iSkip, utf8chars = self.demodulator.findPlainText(phaseSymShift=phaseSymShift)
+        iSkip, utf8chars = self.demodulator.findPlainText(
+            phaseSymShift=phaseSymShift)
         # TODO: add widget to turn this off i.e. manually select the skips
-        
-        # Update the text browsers
+
         hexvals = self.demodulator.packBinaryBytesToBits(
             self.demodulator.unpackToBinaryBytes(
                 self.demodulator.symsToBits(
@@ -251,18 +286,18 @@ class DemodWindow(QMainWindow):
         # There may be issues converting to a readable string..
         readable = hexvals.tobytes().decode("utf-8", "backslashreplace")
         # May contain null chars?
-        readable = readable.replace("\0", " ") # Replace with spaces?
-        
+        readable = readable.replace("\0", " ")  # Replace with spaces?
+
         self.asciiBrowser.setPlainText(
             str(readable)
         )
-
 
     def updateRotations(self):
         # Only show buttons up to the current mod type
         [self.rotRadioBtns[i].show() for i in range(self.demodulator.m)]
         # Hide everything after
-        [self.rotRadioBtns[i].hide() for i in range(self.demodulator.m, len(self.rotRadioBtns))]
+        [self.rotRadioBtns[i].hide() for i in range(
+            self.demodulator.m, len(self.rotRadioBtns))]
 
         # Check the first one
         self.rotRadioBtns[0].setChecked(True)
@@ -272,4 +307,32 @@ class DemodWindow(QMainWindow):
         print("Rotation %d selected" % i)
         # Reinterpret
         self.interpret(i)
-        
+
+    @Slot()
+    def onPhaseBrowserSelectionChanged(self):
+        # Note, this seems to fire very often, even
+        # when the selection doesn't change i.e.
+        # when mouse moves but not enough to select 1 more letter,
+        # this still fires; hence we should track and replot only
+        # when actual changes happen
+        txtCursor = self.phaseBrowser.textCursor()
+        if (
+                self.txtanchor != txtCursor.anchor() or
+                self.txtposition != txtCursor.position()
+        ):
+            self.txtanchor = txtCursor.anchor()
+            self.txtposition = txtCursor.position()
+            # Then figure out start and end
+            if self.txtanchor < self.txtposition:
+                start = self.txtanchor
+                end = self.txtposition
+            elif self.txtanchor > self.txtposition:
+                start = self.txtposition
+                end = self.txtanchor
+            else:
+                # No real selection, plot everything again
+                start = 0
+                end = len(self.demodulator.syms)
+
+            # Replot the constellation
+            self.plotConstellation(start, end)
