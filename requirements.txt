@@ -1,6 +1,6 @@
 cffi==1.16.0
 numpy==1.26.2
-Pillow==10.2.0
+Pillow==10.3.0
 pycparser==2.21
 pyqtgraph==0.13.3
 PySide6==6.6.0
