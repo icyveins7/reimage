@@ -331,6 +331,8 @@ class AudioWorker(QObject):
         # outdata[:chunksize, 0] = self.slicedData[self.current_frame:self.current_frame + chunksize] * self.tone[:chunksize]
 
         # The real audio processing is to hilbert
+        if chunksize <= 0:
+            return  # Nothing to process
         haudio = sps.hilbert(self.slicedData[self.current_frame:self.current_frame + chunksize])
         # Then multiply a complex tone
         hsaudio = haudio * self.tone[:chunksize]
