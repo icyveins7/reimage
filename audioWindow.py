@@ -23,9 +23,16 @@ class AudioWindow(QMainWindow):
         super().__init__()
         self.setAttribute(Qt.WA_DeleteOnClose) # Ensure deletion so threads are cleanedup
 
+        # Pre-processing for complex data
+        if np.iscomplexobj(slicedData):
+            # Assume to be FM, and just immediately demodulate
+            fmDemod = np.angle(slicedData[:-1] * slicedData[1:].conj())
+            self.slicedData = fmDemod
+        else:
+            self.slicedData = slicedData
+
         # Attaching data
         # TODO: fix padding so that specgram can be performed
-        self.slicedData = slicedData
         self.fs = fs
         print(self.fs)
         self.timevec = np.arange(self.slicedData.size) / self.fs # pre-generate time
@@ -190,7 +197,7 @@ class AudioWindow(QMainWindow):
         self.btmImg.setImage(self.dataSpec)
         # self.btmImg.setRect(QRectF(0, -self.fs/2, self.slicedData.size/self.fs, self.fs))
         self.btmImg.setRect(QRectF(0, 0, self.slicedData.size/self.fs, self.fs)) # Use this if one-sided specgram
-        cm2use = pg.colormap.getFromMatplotlib('viridis')
+        cm2use = pg.colormap.get('viridis')
         self.btmImg.setLookupTable(cm2use.getLookupTable())
 
         # Set limits
