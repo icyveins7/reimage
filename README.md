@@ -2,7 +2,7 @@
 
 ![PyInstaller CI/CD](https://github.com/icyveins7/reimage/actions/workflows/main.yaml/badge.svg)
 
-ReImage is a Python 3 + PySide6 + PyQtGraph app for quickly visualizing recorded RF data in the form of real and imaginary samples. Think of it as Adobe Audition or Audacity, but for raw complex samples.
+ReImage is a Python 3 + PySide6 + PyQtGraph app for quickly visualizing recorded RF data in the form of real and imaginary (IQ) samples. Think of it as Adobe Audition or Audacity, but for raw complex samples.
 
 The goals for this project are to provide quick, offline ways of examining recorded data. As such, it is not meant to do everything DSP-related. It is aimed to be used after performing test recordings to verify that the recordings will be useful for further processing later on.
 
@@ -58,7 +58,7 @@ Alternatively, you may want to look for the latest CI/CD automatic builds in [Ac
 Most users should find that the tooltips at the bottom-left and bottom-right of the windows suffice as guidance.
 
 1. Populate the file list via 'Open File(s)' or 'Open Folder'. You can now also drag and drop files into the list from your file explorer.
-2. Select some files in the file list (via Ctrl-Click or Shift-Click). Clear the entire list with the 'Clear' button or specific files via the Delete key.
+2. Select some files in the file list (via Ctrl-Click or Shift-Click). Clear the entire list with the 'Clear' button or specific files via the Delete key. Search for particular files by typing something into the search bar.
 4. Click 'Add to Viewer' to open the files and configure some settings. You can also press Enter after selecting the files, or double-click a single file.
 5. View the Amplitude-Time (top) and Spectrogram (bottom) plots. 
 6. Scroll in/out using mouse wheel. Use Left-Click to drag the plots, and hold Right-Click to stretch/zoom the plots along a particular axis.
@@ -82,6 +82,8 @@ This is done with Ctrl-Alt-Click. Most further functionality will use the user's
 
 ### Baud Rate Estimation
 
+![CM21](screenshots/cm21.png)
+
 This performs a baud rate estimation via a simple cyclostationary method:
 
 $$
@@ -92,15 +94,43 @@ For PSK modulations, this results in peaks in the resulting spectrum at the baud
 
 ### Frequency Offset Estimation
 
+![CMX0](screenshots/cmx0.png)
+
+![CMX0zoomed](screenshots/cmx0zoomed.png)
+
 This performs a frequency offset estimation via a simple cyclostationary method:
 
 $$
 x[n] \rightarrow \mathcal{F}[x[n]^m]
 $$
 
-This works for m-PSK modulations, where the largest peak is found at $mf$ where $f$ is the frequency offset of the signal.
+This works for m-PSK modulations, where the largest peak is found at $mf$ where $f$ is the frequency offset of the signal. A zoomed FFT using CZTs can be used to find the true peak at subsample bins.
 
 ### Demodulation
+
+![Demodulator Screenshot](screenshots/demodulator.png)
+
+This is currently only implemented for PSK modulations. The signal should be frequency-corrected by adjustments when loading the file. Then the demodulator will
+
+1. Resample the signal based on the user's parameters.
+2. Find the eye-opening.
+3. Demodulate.
+4. View the constellation plot and demodulated symbol indices.
+
+You can also select the plotted constellation points by highlighting the text in the first outputbox; this helps you remove the 'noise' symbols from the plot.
+
+### Audio Manipulation (FM Signals or Wav Files)
+
+Using this on a .wav file will load and play the real samples as audio.
+
+Using this on a file with any other extension will treat the complex samples as an FM signal, and perform a simple demodulation via
+
+$$
+a[n] = \text{angle}(x[n] x^*[n+1])
+$$
+
+The new window will contain a simple audio player that should arbitrarily play, pause, stop (rewind to the start) and drag the playline around. You can also adjust the frequency of the audio to correct the pitch in realtime.
+
 
 ## Issues
 
