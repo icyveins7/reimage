@@ -258,8 +258,13 @@ class LoaderSettingsDialog(QDialog):
         self.downsampleCheckbox = QCheckBox()
         self.sformlayout.addRow("Apply downsampling?", self.downsampleCheckbox)
         self.downsampleEdit = QLineEdit()
+        self.downsampleEdit.textEdited.connect(self.onDownsampleChanged)
         self.downsampleCheckbox.toggled.connect(self.downsampleEdit.setEnabled)
         self.sformlayout.addRow("Downsample Rate", self.downsampleEdit)
+        self.fsAfterDownsampleEdit = QLineEdit()
+        self.fsAfterDownsampleEdit.setEnabled(False)
+        self.sformlayout.addRow(
+            "Sample Rate After Downsampling", self.fsAfterDownsampleEdit)
 
         # Special type-handling
         if specialType != "":
@@ -280,7 +285,8 @@ class LoaderSettingsDialog(QDialog):
         self.fsEdit.setFocus()
 
     ############################################
-    # These methods are used to deal with single long files and the slider/label widgets
+    # These methods are used to deal with single long
+    # files and the slider/label widgets
 
     @Slot(str)
     def onDataFmtChanged(self, text: str):
@@ -480,6 +486,17 @@ class LoaderSettingsDialog(QDialog):
             "Spectrogram Overlap (samples) [default: %d]" % (nperseg/8))
         self.specNoverlapSpinbox.setValue(nperseg/8)
 
+    @Slot(str)
+    def onDownsampleChanged(self, txt: str):
+        if len(txt) > 0:
+            dsr = int(txt)
+            self.fsAfterDownsampleEdit.setText(
+                str(float(self.fsEdit.text()) / dsr)
+            )
+        else:
+            self.fsAfterDownsampleEdit.setText("")
+
+    # =========================================
     # These methods are related to config wrangling
     @Slot(str)
     def _loadSelectedConfigToUI(self, cfgname: str):
