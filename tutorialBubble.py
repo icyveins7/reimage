@@ -5,14 +5,15 @@ from PySide6.QtGui import QPainterPath, QGuiApplication
 import configparser
 import os
 
-class TutorialBubble(QMessageBox): 
+
+class TutorialBubble(QMessageBox):
     tutorialIniFile = "reimage.ini"
 
-    def __init__(self, 
-                 text: str, 
-                 parent: QWidget=None, 
-                 relativeToParent: tuple=None,
-                 key: str=None):
+    def __init__(self,
+                 text: str,
+                 parent: QWidget = None,
+                 relativeToParent: tuple = None,
+                 key: str = None):
         """
         Instantiate the bubble dialog with some text.
 
@@ -20,7 +21,7 @@ class TutorialBubble(QMessageBox):
         ----------
         text : str
             The bubble dialog's text.
-        
+
         parent : QWidget, optional
             Parent widget. Defaults to None.
             Use this to help center the widget, or if it should be placed
@@ -41,6 +42,9 @@ class TutorialBubble(QMessageBox):
 
         # QMessageBox implementation
         self.setText(text)
+        self.setInformativeText(
+            "<i>github.com/icyveins7/reimage</i>"
+        )
 
         # Set frameless
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, True)
@@ -51,8 +55,8 @@ class TutorialBubble(QMessageBox):
         # Set stylesheet for rounded corners
         # self.setStyleSheet(
         #     """
-        #     QMessageBox { 
-        #         border-radius: 10px; 
+        #     QMessageBox {
+        #         border-radius: 10px;
         #         border: 2px solid rgb(0,0,0);
         #         background-color: rgba(255, 255, 255, 255);
         #     }
@@ -80,8 +84,10 @@ class TutorialBubble(QMessageBox):
                 shouldShow = True
 
             if shouldShow:
-                self.rejectBtn = self.addButton("Don't Show Again", QMessageBox.ButtonRole.RejectRole)
-                self.rejectBtn.clicked.connect(self.reject) # Must do this for the custom button, or else reject() doesn't get called
+                self.rejectBtn = self.addButton(
+                    "Don't Show Again", QMessageBox.ButtonRole.RejectRole)
+                # Must do this for the custom button, or else reject() doesn't get called
+                self.rejectBtn.clicked.connect(self.reject)
                 self.addButton(QMessageBox.StandardButtons.Ok)
 
         if relativeToParent is None:
@@ -89,23 +95,24 @@ class TutorialBubble(QMessageBox):
             self.centerPos()
         else:
             self.moveRelativeToParent(relativeToParent)
-       
+
         # You must show first, before the .width()/.height() is properly evaluated
         # self.setModal(True) # Doing this makes it flicker back and forth, just set parent and it should work
         if shouldShow:
             self.show()
 
-        # This seems like a decent way to get it working... 
+        # This seems like a decent way to get it working...
         # Taken from https://forum.qt.io/topic/61117/setting-border-radius-does-not-clip-the-background/3
         self.painterPath = QPainterPath()
-        self.painterPath.addRoundedRect(0, 0, self.width(), self.height(), 10, 10)
-        self.setMask(self.painterPath.toFillPolygon().toPolygon()) # TODO: handle all 4 edges?
-
+        self.painterPath.addRoundedRect(
+            0, 0, self.width(), self.height(), 10, 10)
+        # TODO: handle all 4 edges?
+        self.setMask(self.painterPath.toFillPolygon().toPolygon())
 
     def centerPos(self):
         """Centre in the middle of the screen, not the parent widget."""
         # Taken from https://stackoverflow.com/questions/12432740/pyqt4-what-is-the-best-way-to-center-dialog-windows
-        # Note that QGuiApplication is used now in PySide6 
+        # Note that QGuiApplication is used now in PySide6
         # This works the best out of all the googled methods!
         qr = self.frameGeometry()
         cp = QGuiApplication.primaryScreen().availableGeometry().center()
@@ -118,8 +125,10 @@ class TutorialBubble(QMessageBox):
         accounting for current size of the bubble? 
         """
         self.move(
-            self.parent.x()-self.frameGeometry().width()+pixelsRelativeToParent[0], 
-            self.parent.y()-self.frameGeometry().height()+pixelsRelativeToParent[1]
+            self.parent.x()-self.frameGeometry().width() +
+            pixelsRelativeToParent[0],
+            self.parent.y()-self.frameGeometry().height() +
+            pixelsRelativeToParent[1]
         )
 
     # Overload reject()
@@ -136,9 +145,9 @@ class TutorialBubble(QMessageBox):
 
         else:
             cfg.read(self.tutorialIniFile)
-            cfg['tutorials'][self.key] = 'False' # TODO: doesn't like me setting bools
+            # TODO: doesn't like me setting bools
+            cfg['tutorials'][self.key] = 'False'
             with open(self.tutorialIniFile, "w") as f:
                 cfg.write(f)
 
         super().reject()
-
