@@ -5,8 +5,11 @@ This gives more clarity as to what the current settings are,
 and allows use-cases such as .wav file automatic sample rate filling.
 '''
 
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QFormLayout, QComboBox, QDialogButtonBox, QCheckBox, QGroupBox
-from PySide6.QtWidgets import QSpinBox, QLabel, QHBoxLayout, QPushButton, QInputDialog, QSlider
+from PySide6.QtWidgets import QDialog, QVBoxLayout, QLineEdit, QFormLayout
+from PySide6.QtWidgets import QComboBox, QDialogButtonBox, QCheckBox
+from PySide6.QtWidgets import QGroupBox, QMessageBox
+from PySide6.QtWidgets import QSpinBox, QLabel, QHBoxLayout
+from PySide6.QtWidgets import QPushButton, QInputDialog, QSlider
 from PySide6.QtCore import Qt, Signal, Slot
 # import numpy as np
 import configparser
@@ -458,7 +461,27 @@ class LoaderSettingsDialog(QDialog):
         return strSettings
 
     def accept(self):
+        # Get the new candidate settings
         newsettings = self.parseSettings()
+
+        # Before we even do anything, check if number of samples is too large
+        sampleCountCheck = QMessageBox.Ok
+        totalSampleCount = sum(self.parseExpectedSamplesInFiles(
+            newsettings['headersize'],
+            self.bytesPerSample[self.datafmtDropdown.currentText()]
+        ))
+        if totalSampleCount >= 100e6:
+            sampleCountCheck = QMessageBox.warning(
+                self,
+                "High number of loaded samples",
+                "You are about to load %d samples.\nThis may lag your computer significantly depending on your RAM budget. Are you sure?" % totalSampleCount,
+                QMessageBox.Ok | QMessageBox.Cancel, QMessageBox.Ok
+            )
+
+        if sampleCountCheck != QMessageBox.Ok:
+            return
+
+        # Continue with using settings
         self.settingsSignal.emit(newsettings)
 
         # Before accepting, we check if the current settings match the current config
