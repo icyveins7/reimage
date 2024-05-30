@@ -131,6 +131,41 @@ $$
 
 The new window will contain a simple audio player that should arbitrarily play, pause, stop (rewind to the start) and drag the playline around. You can also adjust the frequency of the audio to correct the pitch in realtime.
 
+### Exporting/Importing to Python/MATLAB
+
+You can exported the selected samples for further processing to Python or MATLAB with ```Select Data for Export```. Then, in Python you can do:
+
+```python
+# This requires you to have the ipc.py file in your path
+from ipc import getReimageData
+data = getReimageData()
+```
+
+or for MATLAB:
+
+```MATLAB
+% Add the matlab/ folder to path to find these functions
+data = getReimageData();
+```
+
+
+The reverse is also possible; you can send data for plotting to ReImage from Python:
+
+```python
+# This requires you to have the ipc.py file in your path
+from ipc import sendReimageData
+sendReimageData(data) # Some numpy array
+```
+
+or from MATLAB:
+
+```MATLAB
+% Add the matlab/ folder to path to find these functions
+sendReimageData(data);
+```
+
+The transfers are done over the loopback IP address with port 5000 by default, so no disk space is used in either direction.
+
 
 ## Issues
 
