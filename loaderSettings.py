@@ -235,7 +235,13 @@ class LoaderSettingsDialog(QDialog):
 
         # Centre Frequency (this is really just for display purposes)
         self.fcEdit = QLineEdit()
-        self.sformlayout.addRow("Centre Frequency (Hz)", self.fcEdit)
+        self.fcEdit.setToolTip(
+            "This is used for display purposes only.\n "
+            "To actually shift the centre frequency of the signal, \n"
+            "use the frequency shift options below."
+        )
+        self.sformlayout.addRow("Centre Frequency of Recording (Hz)",
+                                self.fcEdit)
 
         # Frequency shift
         self.freqshiftCheckbox = QCheckBox()
@@ -245,6 +251,11 @@ class LoaderSettingsDialog(QDialog):
         self.freqshiftCheckbox.toggled.connect(self.freqshiftEdit.setEnabled)
         self.sformlayout.addRow(
             "Initial frequency shift (Hz)", self.freqshiftEdit)
+        self.finalFcEdit = QLineEdit()
+        self.finalFcEdit.setEnabled(False)
+        self.freqshiftEdit.textEdited.connect(self.onFreqShiftChanged)
+        self.sformlayout.addRow(
+            "Final centre frequency (Hz)", self.finalFcEdit)
 
         # Filtering
         self.filterCheckbox = QCheckBox()
@@ -424,7 +435,7 @@ class LoaderSettingsDialog(QDialog):
             'nperseg': int(self.specNpersegDropdown.currentText()),
             'noverlap': self.specNoverlapSpinbox.value(),
             'fs': int(float(self.fsEdit.text())),
-            'fc': float(self.fcEdit.text()),
+            'fc': float(self.fcEdit.text()) + float(self.freqshiftEdit.text()) if self.freqshiftCheckbox.isChecked() else 0,
             'freqshift': float(self.freqshiftEdit.text()) if self.freqshiftCheckbox.isChecked() else None,
             'numTaps': int(self.numTapsDropdown.currentText()) if self.filterCheckbox.isChecked() else None,
             'filtercutoff': float(self.cutoffEdit.text()) if self.filterCheckbox.isChecked() else None,
@@ -519,8 +530,19 @@ class LoaderSettingsDialog(QDialog):
         else:
             self.fsAfterDownsampleEdit.setText("")
 
+    @Slot(str)
+    def onFreqShiftChanged(self, txt: str):
+        if len(txt) > 0:
+            finalFc = float(self.fcEdit.text()) + float(
+                self.freqshiftEdit.text()
+            )
+            self.finalFcEdit.setText(str(finalFc))
+        else:
+            self.finalFcEdit.setText("")
+
     # =========================================
     # These methods are related to config wrangling
+
     @Slot(str)
     def _loadSelectedConfigToUI(self, cfgname: str):
         cfg = self.config.getConfig(cfgname)
