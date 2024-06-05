@@ -8,13 +8,15 @@ import scipy.io as sio
 import sqlite3 as sq
 import operator
 
-#%%
+# %%
+
+
 class FileListItem(QListWidgetItem):
     def __init__(self, *args, **kwargs):
         super.__init__(*args, **kwargs)
 
 
-#%%
+# %%
 class FileListFrame(QFrame):
     dataSignal = Signal(np.ndarray, list, list)
     # sampleRateSignal = Signal(int)
@@ -39,12 +41,13 @@ class FileListFrame(QFrame):
         # Create the ordering list widget
         self.ow = QListWidget()
         self.ow.setFixedWidth(25)
-        self.flw.verticalScrollBar().valueChanged.connect(self.ow.verticalScrollBar().setValue)
+        self.flw.verticalScrollBar().valueChanged.connect(
+            self.ow.verticalScrollBar().setValue)
         self.ow.verticalScrollBar().hide()
         self.ow.horizontalScrollBar().hide()
         self.ow.verticalScrollBar().setStyleSheet("width: 0px")
         self.ow.horizontalScrollBar().setStyleSheet("height: 0px")
-        
+
         # Need a vertical layout for the orderwidget to align
         self.ovlayout = QVBoxLayout()
         self.ovlayout.addWidget(self.ow)
@@ -55,9 +58,9 @@ class FileListFrame(QFrame):
         self.hlayout.addWidget(self.flw)
         # self.hlayout.addWidget(self.ow)
         self.hlayout.addLayout(self.ovlayout)
-        
+
         # Sublayout for buttons
-        self.btnLayout = QHBoxLayout() # TODO: change layout max width?
+        self.btnLayout = QHBoxLayout()  # TODO: change layout max width?
         # Some buttons..
         self.prepareFileBtn()
         self.prepareFolderBtn()
@@ -71,7 +74,7 @@ class FileListFrame(QFrame):
 
         # Create the main layout
         self.layout = QVBoxLayout()
-        self.layout.addLayout(self.btnLayout) # Buttons at the top
+        self.layout.addLayout(self.btnLayout)  # Buttons at the top
         self.layout.addWidget(self.searchEdit)
         self.layout.addLayout(self.hlayout)
         # self.layout.addWidget(self.flw) # List below it
@@ -95,7 +98,7 @@ class FileListFrame(QFrame):
         self.flw.itemDoubleClicked.connect(self.doubleClickOpen)
 
         # Initialize database for the filelist cache
-        self.db = db # Sqlite3 connection object
+        self.db = db  # Sqlite3 connection object
         self.initFileListDBCache()
         self.refreshFileListFromDBCache()
 
@@ -122,20 +125,21 @@ class FileListFrame(QFrame):
 
         # Raise a dialog to check
         confirmation = QMessageBox.question(self,
-            "Confirm files' removal from list",
-            "Are you sure you want to remove these %d files?" % len(rows),
-            QMessageBox.Yes | QMessageBox.No,
-            QMessageBox.Yes
-        )
+                                            "Confirm files' removal from list",
+                                            "Are you sure you want to remove these %d files?" % len(
+                                                rows),
+                                            QMessageBox.Yes | QMessageBox.No,
+                                            QMessageBox.Yes
+                                            )
 
         if confirmation == QMessageBox.Yes:
             # Iterate backwards so the row numbers don't change
-            for i in range(self.flw.count()-1,-1,-1):
+            for i in range(self.flw.count()-1, -1, -1):
                 if i in rows:
                     self.flw.takeItem(i)
 
-
     ####################
+
     @Slot(str)
     def filterFiles(self, txt: str):
         if txt == '':
@@ -147,7 +151,7 @@ class FileListFrame(QFrame):
             searchFiles = [f for f in self.filepaths if txt in f]
             self.flw.clear()
             self.flw.addItems(searchFiles)
-        
+
         # Reload the order widget based on the file list
         self.initOrderWidget()
         self.refreshOrderWidget()
@@ -168,7 +172,8 @@ class FileListFrame(QFrame):
     ####################
     def initFileListDBCache(self):
         cur = self.db.cursor()
-        cur.execute("create table if not exists filelistcache(idx INTEGER primary key, path TEXT NOT NULL UNIQUE);")
+        cur.execute(
+            "create table if not exists filelistcache(idx INTEGER primary key, path TEXT NOT NULL UNIQUE);")
         self.db.commit()
 
     def updateFileListDBCache(self):
@@ -183,18 +188,21 @@ class FileListFrame(QFrame):
         cur = self.db.cursor()
         cur.execute("select * from filelistcache")
         r = cur.fetchall()
-        r = sorted(r, key=operator.itemgetter(0)) # sort by the index, which is the first value in the tuples
+        # sort by the index, which is the first value in the tuples
+        r = sorted(r, key=operator.itemgetter(0))
         rpaths = [i[1] for i in r]
 
         noLongerExist = 0
         for i in range(len(rpaths)):
             item = QListWidgetItem(rpaths[i])
-            if os.path.exists(rpaths[i]): # If file still exists
-                item.setToolTip("Size: %d bytes" % (os.path.getsize(rpaths[i])))
+            if os.path.exists(rpaths[i]):  # If file still exists
+                item.setToolTip("Size: %d bytes" %
+                                (os.path.getsize(rpaths[i])))
                 self.flw.addItem(item)
-            else: # If it doesn't, remove it from the database
+            else:  # If it doesn't, remove it from the database
                 noLongerExist += 1
-                cur.execute("delete from filelistcache where path=?", (rpaths[i],)) # TODO: test if this works
+                cur.execute("delete from filelistcache where path=?",
+                            (rpaths[i],))  # TODO: test if this works
 
         # Update the cache again (in case some files were deleted)
         self.updateFileListDBCache()
@@ -203,9 +211,8 @@ class FileListFrame(QFrame):
         # Update internal memory
         self.filepaths.extend(rpaths)
 
-        
-
     ####################
+
     def prepareClearBtn(self):
         self.clearBtn = QPushButton("Clear")
         self.clearBtn.setMaximumWidth(40)
@@ -221,8 +228,8 @@ class FileListFrame(QFrame):
         # Update internal list
         self.filepaths = []
 
-
     ####################
+
     def prepareFileBtn(self):
         self.oFileBtn = QPushButton("Open File(s)")
         self.btnLayout.addWidget(self.oFileBtn)
@@ -232,12 +239,13 @@ class FileListFrame(QFrame):
     @Slot()
     def onFileBtnClicked(self):
         fileNames, selectedFilter = QFileDialog.getOpenFileNames(self,
-            "Open Complex Data Files", ".", "Complex Data Files (*.bin *.dat);;All Files (*)")
-        if len(fileNames) > 0: # When cancelled, it returns an empty list
+                                                                 "Open Complex Data Files", ".", "Complex Data Files (*.bin *.dat);;All Files (*)")
+        if len(fileNames) > 0:  # When cancelled, it returns an empty list
             # self.flw.addItems(fileNames) # DEPRECATED
             for i in range(len(fileNames)):
                 item = QListWidgetItem(fileNames[i])
-                item.setToolTip("Size: %d bytes" % (os.path.getsize(fileNames[i])))
+                item.setToolTip("Size: %d bytes" %
+                                (os.path.getsize(fileNames[i])))
                 self.flw.addItem(item)
         # Update cache
         self.updateFileListDBCache()
@@ -256,14 +264,15 @@ class FileListFrame(QFrame):
     @Slot()
     def onFolderBtnClicked(self):
         folderName = QFileDialog.getExistingDirectory()
-        if folderName is not None and len(folderName)>0:
+        if folderName is not None and len(folderName) > 0:
             folderFiles = os.listdir(folderName)
             fileNames = [os.path.join(folderName, i) for i in folderFiles]
             for i in range(len(fileNames)):
                 item = QListWidgetItem(fileNames[i])
-                item.setToolTip("Size: %d bytes" % (os.path.getsize(fileNames[i])))
+                item.setToolTip("Size: %d bytes" %
+                                (os.path.getsize(fileNames[i])))
                 self.flw.addItem(item)
-            
+
         # Update internal memory
         self.filepaths.extend(fileNames)
 
@@ -271,7 +280,7 @@ class FileListFrame(QFrame):
         self.updateFileListDBCache()
         # Set order widget
         self.initOrderWidget()
-    
+
     ####################
     def prepareAddBtn(self):
         self.addBtn = QPushButton("Add to Viewer")
@@ -288,20 +297,18 @@ class FileListFrame(QFrame):
             if len(filepaths) > 1:
                 # Raise a dialog to check
                 wavError = QMessageBox.critical(self,
-                    "Wav file support is limited to one at a time.",
-                    QMessageBox.Ok,
-                    QMessageBox.Ok
-                )
+                                                "Wav file support is limited to one at a time.",
+                                                QMessageBox.Ok,
+                                                QMessageBox.Ok
+                                                )
             else:
                 samplerate, _ = sio.wavfile.read(filepaths[0])
                 # self.sampleRateSignal.emit(samplerate)
                 self.newFilesSignal.emit("wav", samplerate, filepaths)
 
-
         # For everything else, as it used to be
         else:
             self.newFilesSignal.emit("", None, filepaths)
-
 
     '''This is now the second step of loading, after settings are confirmed.'''
     @Slot()
@@ -314,19 +321,20 @@ class FileListFrame(QFrame):
         data = []
         sampleStarts = [0]
 
-        ### TODO: have a more structured way of reading wavs
+        # TODO: have a more structured way of reading wavs
         if any(".wav" in file for file in filepaths):
             # Only load the single wav file
             samplerate, wavdata = sio.wavfile.read(filepaths[0])
             print(samplerate)
-            scaling = 2**(wavdata.dtype.itemsize * 8) if not np.issubdtype(wavdata.dtype, np.floating) else 1.0 # Scale appropriately for all integer-based
+            scaling = 2**(wavdata.dtype.itemsize * 8) if not np.issubdtype(wavdata.dtype,
+                                                                           np.floating) else 1.0  # Scale appropriately for all integer-based
             print("scaling = %f" % scaling)
             # Compress to single channel and write as floats
             if wavdata.ndim > 1:
                 wavdata = np.sum(wavdata.astype(np.float32), axis=1) / scaling
             else:
                 wavdata = wavdata.astype(np.float32) / scaling
-            assert(np.all(np.abs(wavdata) <= 1.0))
+            assert (np.all(np.abs(wavdata) <= 1.0))
             data.append(wavdata)
             data = np.array(data).flatten()
             print(data.shape)
@@ -338,7 +346,7 @@ class FileListFrame(QFrame):
             self.refreshOrderWidget()
             return
 
-        ### TODO: end of wav file handling
+        # TODO: end of wav file handling
 
         if self.usefixedlen:
             cnt = self.fixedlen
@@ -351,10 +359,10 @@ class FileListFrame(QFrame):
         for i in range(len(filepaths)):
             filepath = filepaths[i]
             d = np.fromfile(
-                filepath, dtype=self.fmt, count=cnt*2, # x2 for complex samples
-                offset=self.headersize + self.sampleStart*self.fmt(1).itemsize*2) # offset from the sample start as well if provided
+                filepath, dtype=self.fmt, count=cnt*2,  # x2 for complex samples
+                offset=self.headersize + self.sampleStart*self.fmt(1).itemsize*2)  # offset from the sample start as well if provided
             data.append(d)
-            
+
             sampleStarts.append(int(d.size/2 + sampleStarts[-1]))
 
             # Add to internal memory of current files
@@ -371,8 +379,8 @@ class FileListFrame(QFrame):
             data = data.conj()
         self.dataSignal.emit(data, filepaths, sampleStarts)
 
-
     ##################
+
     def initOrderWidget(self):
         self.ow.clear()
         self.ow.addItems(["-" for i in range(self.flw.count())])
@@ -384,8 +392,9 @@ class FileListFrame(QFrame):
         # Also remember to first call the initOrderWidget() if the file list changes
         for i in range(self.flw.count()):
             if self.flw.item(i).text() in self.order:
-                self.ow.item(i).setText(str(self.order[self.flw.item(i).text()]))
-        
+                self.ow.item(i).setText(
+                    str(self.order[self.flw.item(i).text()]))
+
     ###################
     def event(self, event):
         '''Override events for status tips.'''
@@ -406,7 +415,7 @@ class FileListFrame(QFrame):
     def onResizedWindow(self):
         # Adjust the two list widgets nicely
         self.ow.resize(
-            25, self.flw.height() #  - self.flw.horizontalScrollBar().height()
+            25, self.flw.height()  # - self.flw.horizontalScrollBar().height()
         )
 
     ####################
@@ -418,7 +427,8 @@ class FileListFrame(QFrame):
         for url in event.mimeData().urls():
             droppedFilepath = url.toLocalFile()
             item = QListWidgetItem(droppedFilepath)
-            item.setToolTip("Size: %d bytes" % (os.path.getsize(droppedFilepath)))
+            item.setToolTip("Size: %d bytes" %
+                            (os.path.getsize(droppedFilepath)))
             self.flw.addItem(item)
 
             # Update internal memory
@@ -428,6 +438,3 @@ class FileListFrame(QFrame):
         self.updateFileListDBCache()
         # Set order widget
         self.initOrderWidget()
-    
-
-
