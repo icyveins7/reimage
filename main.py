@@ -1,22 +1,21 @@
-from importlib.abc import Loader
+# from importlib.abc import Loader
+from tutorialBubble import TutorialBubble
+from ipc import ReimageListenerThread
+from readmeWindow import ReadmeWindow
+from sidebarSettings import SidebarSettings
+from loaderSettings import LoaderSettingsDialog
+from predetections import PredetectAmpDialog
+from fileList import FileListFrame
+from signalView import SignalView
+import sqlite3 as sq
+import numpy as np
+import sys
+import platform
 from PySide6 import QtCore, QtWidgets, QtGui
 import os
-os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6' # Set this to force ReImage to use PySide6
-import platform
+# Set this to force ReImage to use PySide6
+os.environ['PYQTGRAPH_QT_LIB'] = 'PySide6'
 
-import sys
-import numpy as np
-import sqlite3 as sq
-
-from signalView import SignalView
-from fileList import FileListFrame
-from predetections import PredetectAmpDialog
-from loaderSettings import LoaderSettingsDialog
-from sidebarSettings import SidebarSettings
-from readmeWindow import ReadmeWindow
-from ipc import ReimageListenerThread
-
-from tutorialBubble import TutorialBubble
 
 class ReimageMain(QtWidgets.QMainWindow):
     resizedSignal = QtCore.Signal()
@@ -33,7 +32,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         os.chdir(os.path.dirname(__file__))
 
         # Icon setting (doesn't do anything for MacOS?)
-        self.setWindowIcon(QtGui.QIcon(os.path.join(os.path.dirname(__file__), 'icon.png')))
+        self.setWindowIcon(QtGui.QIcon(os.path.join(
+            os.path.dirname(__file__), 'icon.png')))
 
         # Databases
         self.cachedb = sq.connect('cache.db')
@@ -48,15 +48,15 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.setCentralWidget(widget)
 
         # Sublayout 1
-        self.workspaceLayout = QtWidgets.QHBoxLayout() # Sublayout 
+        self.workspaceLayout = QtWidgets.QHBoxLayout()  # Sublayout
         self.fileListFrame = FileListFrame(db=self.cachedb)
         self.workspaceLayout.addWidget(self.fileListFrame)
-        
+
         # Add sublayouts to main layout
         self.layout.addLayout(self.workspaceLayout)
 
         # Add signal viewer
-        self.sv = SignalView(np.zeros(100) + 100000) # sample data
+        self.sv = SignalView(np.zeros(100) + 100000)  # sample data
         self.sv.plotAmpTime()
         self.workspaceLayout.addWidget(self.sv)
 
@@ -75,13 +75,16 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.sidebar.changeToAmpPlotSignal.connect(self.sv.changeToAmpPlot)
         self.sidebar.changeToReimPlotSignal.connect(self.sv.changeToReimPlot)
 
-        self.sidebar.changeSpecgramContrastSignal.connect(self.sv.adjustSpecgramContrast)
-        self.sidebar.changeSpecgramLogScaleSignal.connect(self.sv.adjustSpecgramLog)
+        self.sidebar.changeSpecgramContrastSignal.connect(
+            self.sv.adjustSpecgramContrast)
+        self.sidebar.changeSpecgramLogScaleSignal.connect(
+            self.sv.adjustSpecgramLog)
 
         self.sidebar.showHideAmpPlotSignal.connect(self.sv.showHideAmpPlot)
 
-        self.fileListFrame.dataSignal.connect(self.sidebar.reset) # Clear all settings on new data
-        
+        self.fileListFrame.dataSignal.connect(
+            self.sidebar.reset)  # Clear all settings on new data
+
         self.resizedSignal.connect(self.fileListFrame.onResizedWindow)
         self.exportToImageSignal.connect(self.sv.exportToImageSlot)
 
@@ -102,8 +105,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         #     'noverlap': 128/8,
         #     'fs': 1,
         #     'fc': 0.0,
-        #     'freqshift': None, 
-        #     'numTaps': None, 
+        #     'freqshift': None,
+        #     'numTaps': None,
         #     'filtercutoff': None,
         #     'dsr': None
         # }
@@ -111,7 +114,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.exportResolutionScaleFactor = 2.0
 
         # Configuration handling
-        self.currentConfig = 'DEFAULT' # This is the default one
+        self.currentConfig = 'DEFAULT'  # This is the default one
 
         # Menu
         self.setupMenu()
@@ -121,12 +124,15 @@ class ReimageMain(QtWidgets.QMainWindow):
 
         # Add the side-thread for export/import of data
         self.listenerThread = ReimageListenerThread()
-        self.sv.DataSelectionSignal.connect(self.listenerThread.setSelectedData)
-        self.listenerThread.IMPORT_COMMAND_SIGNAL.connect(self.handleIpcImportData)
+        self.sv.DataSelectionSignal.connect(
+            self.listenerThread.setSelectedData)
+        self.listenerThread.IMPORT_COMMAND_SIGNAL.connect(
+            self.handleIpcImportData)
         self.listenerThread.start()
 
         # Experimental tutorial bubbles
-        self.tb = TutorialBubble("Welcome to ReImage!", self) # The bubble will show itself internally
+        # The bubble will show itself internally
+        self.tb = TutorialBubble("Welcome to ReImage!", self)
 
     def closeEvent(self, event):
         """QWidget handler for the destructor. Do not use __del__ for this!"""
@@ -137,7 +143,8 @@ class ReimageMain(QtWidgets.QMainWindow):
 
     @QtCore.Slot(np.ndarray, list, list)
     def onNewData(self, data, filelist, sampleStarts):
-        self.sv.setYData(data, filelist, sampleStarts) # this calls the plot automatically
+        # this calls the plot automatically
+        self.sv.setYData(data, filelist, sampleStarts)
         self.tb = TutorialBubble(
             "Look at the toolbar below for shortcuts to interact with the data.\n\n"
             "Hold Left-Click to pan\n"
@@ -145,8 +152,8 @@ class ReimageMain(QtWidgets.QMainWindow):
             "Scroll Up/Down to zoom\n",
             self,
             (
-               self.frameGeometry().width()/2,
-               self.frameGeometry().height()/2+100, # Move down 100 pixels roughly
+                self.frameGeometry().width()/2,
+                self.frameGeometry().height()/2+100,  # Move down 100 pixels roughly
             ),
             key='onNewData'
         )
@@ -154,7 +161,7 @@ class ReimageMain(QtWidgets.QMainWindow):
     def setupMenu(self):
         self.menubar = QtWidgets.QMenuBar()
         self.setMenuBar(self.menubar)
-        
+
         # ===========
         self.predetectMenu = QtWidgets.QMenu("Predetect", self)
         self.predetectAmp = self.predetectMenu.addAction("Via Amplitude")
@@ -164,7 +171,8 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.exportMenu = QtWidgets.QMenu("Export", self)
         self.exportMenuAction = self.exportMenu.addAction("To Image")
         self.exportMenuAction.triggered.connect(self.exportToImage)
-        self.exportSettingsAction = self.exportMenu.addAction("Resolution Settings")
+        self.exportSettingsAction = self.exportMenu.addAction(
+            "Resolution Settings")
         self.exportSettingsAction.triggered.connect(self.openExportSettings)
         self.menubar.addMenu(self.exportMenu)
         # ===========
@@ -173,7 +181,7 @@ class ReimageMain(QtWidgets.QMainWindow):
         self.readmeMenuAction.triggered.connect(self.viewReadme)
         self.menubar.addMenu(self.helpMenu)
 
-    ##### Menu bar slots
+    # Menu bar slots
     @QtCore.Slot()
     def viewReadme(self):
         self.readmeWindow = ReadmeWindow()
@@ -195,7 +203,6 @@ class ReimageMain(QtWidgets.QMainWindow):
         if ok and newResolutionScale is not None:
             self.exportResolutionScaleFactor = newResolutionScale
 
-
     @QtCore.Slot()
     def openPredetectAmp(self):
         dialog = PredetectAmpDialog(
@@ -206,38 +213,48 @@ class ReimageMain(QtWidgets.QMainWindow):
                 'usefixedlen': self.fileListFrame.usefixedlen,
                 'fixedlen': self.fileListFrame.fixedlen
             }
-            ) # TODO: write getter for this
+        )  # TODO: write getter for this
         dialog.predetectAmpSignal.connect(self.fileListFrame.highlightFiles)
         dialog.exec()
 
-    ###### End of menu bar slots
+    # End of menu bar slots
 
-    ##### Status bar
+    # Status bar
     def setupStatusBar(self):
         # Permanent help message
         self.statusbar = QtWidgets.QStatusBar()
         if platform.system() == 'Darwin':
             self.helperStatus = QtWidgets.QLabel(
-                "Cmd-Rightclick on the plots to see signal processing options.")
+                "Cmd-Rightclick on the plots to see signal processing options."
+            )
         else:
             self.helperStatus = QtWidgets.QLabel(
-                "Ctrl-Rightclick on the plots to see signal processing options.")
+                "Ctrl-Rightclick on the plots to see signal processing options."
+            )
         self.statusbar.addPermanentWidget(self.helperStatus)
 
         # Widget specific help messages
         self.sv.SignalViewStatusTip.connect(self.statusbar.showMessage)
-        self.fileListFrame.fileListStatusTip.connect(self.statusbar.showMessage)
+        self.fileListFrame.fileListStatusTip.connect(
+            self.statusbar.showMessage)
 
         self.setStatusBar(self.statusbar)
 
-
     @QtCore.Slot(str, int)
-    def newFilesHandler(self, specialType: str="", wavSamplerate: int=None, filepaths: list=None):
+    def newFilesHandler(
+        self,
+        specialType: str = "",
+        wavSamplerate: int = None,
+        filepaths: list = None
+    ):
         # We spawn the new amalgamated loader settings
-        dialog = LoaderSettingsDialog(specialType, configName=self.currentConfig, wavSamplerate=wavSamplerate, filepaths=filepaths)
+        dialog = LoaderSettingsDialog(
+            specialType, configName=self.currentConfig,
+            wavSamplerate=wavSamplerate, filepaths=filepaths)
         dialog.settingsSignal.connect(self.saveSettings)
         dialog.configSignal.connect(self.saveConfigName)
-        dialog.accepted.connect(self.fileListFrame.loadFiles) # If accepted then we load files
+        # If accepted then we load files
+        dialog.accepted.connect(self.fileListFrame.loadFiles)
         dialog.exec()
 
     @QtCore.Slot(str)
@@ -279,11 +296,11 @@ class ReimageMain(QtWidgets.QMainWindow):
     @QtCore.Slot(np.ndarray, float)
     def handleIpcImportData(
         self,
-        data: np.ndarray, 
+        data: np.ndarray,
         fs: float,
-        fc: float=0.0,
-        nperseg: int=128, # Referenced from loaderSettings
-        noverlap: int=16
+        fc: float = 0.0,
+        nperseg: int = 128,  # Referenced from loaderSettings
+        noverlap: int = 16
     ):
         # Show a confirmation dialog
         ret = QtWidgets.QMessageBox.question(
@@ -301,8 +318,6 @@ class ReimageMain(QtWidgets.QMainWindow):
 
             # Then call the slot
             self.sv.setYData(data, [], [])
-        
-
 
 
 if __name__ == '__main__':
