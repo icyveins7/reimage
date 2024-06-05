@@ -63,6 +63,7 @@ Most users should find that the tooltips at the bottom-left and bottom-right of 
 5. View the Amplitude-Time (top) and Spectrogram (bottom) plots. 
 6. Scroll in/out using mouse wheel. Use Left-Click to drag the plots, and hold Right-Click to stretch/zoom the plots along a particular axis.
 7. Use Ctrl-RightClick on the plots to see additional options.
+8. Use Ctrl-Click / Shift-Click on the amplitude plot to add/remove marker lines that you can read from a database later on.
 
 ## DSP Functionality
 
